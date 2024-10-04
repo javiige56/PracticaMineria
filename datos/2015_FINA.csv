@@ -1,7 +1,3 @@
-# Swimming results from 2015 World Aquatics Championships
-# Data from OMEGA, official time keepers of the World Championships.
-# Accessed http://www.omegatiming.com/File/Download?id=00010F0200FFFFFFFFFFFFFFFFFFFF08
-# Converted from XML to tidy CSV format
 athleteid,lastname,firstname,birthdate,gender,name,code,eventid,heat,lane,points,reactiontime,swimtime,split,cumswimtime,splitdistance,daytime,round,distance,relaycount,stroke,splitswimtime
 100784,BORSHI,NOEL,1996-02-13,F,Albania,ALB,1,1,4,680.0,0.77,63.65,1,29.63,50,930.0,PRE,100,1,FLY,29.63
 100784,BORSHI,NOEL,1996-02-13,F,Albania,ALB,1,1,4,680.0,0.77,63.65,2,63.65,100,930.0,PRE,100,1,FLY,34.019999999999996
