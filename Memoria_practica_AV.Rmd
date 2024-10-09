@@ -103,10 +103,80 @@ Podemos poner las variables categóricas como factores de un modo mejor usando l
 datos2015<- datos2015 %>% convert_as_factor(gender,name,round, stroke)
 ```
 
-Vamos a hacer algún gráfico:
+Vamos a ver algunas frecuencias de variables categóricas, 
+```{r}
+cat("Género")
+table(datos2015$gender)
+cat('\n', "Ronda")
+table(datos2015$round)
+cat('\n',"Distancias")
+table(datos2015$distance)
+cat('\n', "Estilo de nado")
+table(datos2015$stroke)
+```
+Con esto, podemos observar que la proporción de hombres en los datos es ligeramente mayor, sin ser significativa. 
+
+Queremos analizar variables según la edad. Por ello, utilizaremos los datos de la fecha de nacimiento, y creamos una nueva variable que será la edad. 
+
+```{r}
+datos2015$birthdate <- as.Date(datos2015$birthdate)
+
+# Calcular la edad
+today <- Sys.Date()  # Obtener la fecha actual
+datos2015$Edad <- as.numeric(difftime(today, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
+
+# Mostrar los datos con la nueva columna de Edad
+head(datos2015)
+```
+Representamos la distribución de la edad, en general y también en función del género.
+
+```{r}
+hist_var <- ggplot(data = datos2015) +
+geom_histogram(mapping = aes(x = Edad), binwidth = 5)
+hist_var
+```
+```{r}
+hist_varF <- ggplot(data = subset(datos2015,gender== 'F')) +
+geom_histogram(mapping = aes(x = Edad), binwidth = 5)
+
+hist_varM <- ggplot(data = subset(datos2015,gender== 'M'))+
+geom_histogram(mapping = aes(x = Edad), binwidth = 5)
+hist_varF 
+hist_varM
+
+```
+
+
+
+Como podemos observar, la media de edades tiende a ser la misma en ambos géneros. Sin embargo, se puede observar como parece ocurrir que las mujeres comienzan a competir a menor edad. 
+
+
+
+Vamos ahora a realizar el gráfico del tiempo de reacción, para observar su distribución.
 
 ```{r}
 p<-ggplot(datos2015,aes(x=reactiontime))+geom_histogram()
 p
 
 ```
+
+
+Realizaremos ahora el análisis de componentes principales
+
+```{r}
+datos_filtrados <- datos2015 %>%
+  filter(codeid == '3') %>%
+  select(reactiontime, swimtime, cumswimtime, splitswimtime)
+
+# Mostrar el DataFrame filtrado
+head(datos_filtrados)
+
+```
+
+
+
+
+
+
+
+
