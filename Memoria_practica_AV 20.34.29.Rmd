@@ -319,3 +319,105 @@ pruebawide
 ```
 
 Lo tenemos!
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+##PROFUNDIZAMOS EN LAS EDADES
+Vamos a ver si las distintas edades de los nadadores dependen del género del nadador.
+
+```{r}
+ggplot(nadadoresParticipantes, aes(x = edad, colour = gender)) +
+  geom_density(lwd=2, linetype=1)
+```
+
+Como las curvas están diferenciadas por colores (uno para cada género), podemos observar si la distribución de edades difiere entre hombres y mujeres.Parece que la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres. Esta diferencia en la distribución de edades entre los géneros puede llevarte a realizar distintos test estadísticos para confirmar si la diferencia es significativa.
+
+
+```{r}
+t.test(edad~gender,data=nadadoresParticipantes)
+
+```
+
+Hemos comparado las medias de edad entre mujeres (grupo F) y hombres (grupo M), tomando como hipótesis nula que las medias de edad entre mujeres y hombres son iguales, y cómo hipótesis alternativa que las medias de edad entre mujeres y hombres son diferentes. Aunque el resultado del t-test muestra que hay una diferencia estadísticamente significativa(el p-valor es muy pequeño) entre las edades medias de hombres y mujeres (aproximadamente 1.16 años), en términos prácticos, esta diferencia es relativamente pequeña. En este caso, puede no ser relevante en términos de la experiencia o desempeño de los nadadores.
+
+No obstante, proseguimos en nuestro análisis exploratorio.
+
+```{r}
+tabla1<-table(nadadoresParticipantes$edad>30,nadadoresParticipantes$gender)
+chisq.test(tabla1)
+```
+Por el resultado del siguiente test aplicado,podemos concluir con que no hay asociación significativa: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros  datos. En términos sencillos,la edad no parece estar relacionada con el género de los nadadores en cuanto a si son mayores de 30 años.
+
+```{r}
+tabla2<-table(nadadoresParticipantes$edad<20,nadadoresParticipantes$gender)
+chisq.test(tabla2)
+```
+
+Hay una diferencia considerable entre las frecuencias observadas (cuántos hombres y mujeres son menores de 20 años) y las frecuencias esperadas bajo la hipótesis nula (que no hay asociación entre edad y género para menores de 20 años). Esto sugiere ir un paso más allá, ¿Hay más mujeres menores de edad que hombres menores de edad?
+  
+  
+  ```{r}
+tabla3<-table(nadadoresParticipantes$edad<18,nadadoresParticipantes$gender)
+chisq.test(tabla3)
+```
+
+Los resultados sugieren que el género y la edad (si son menores de 18 años) están significativamente relacionados en tu conjunto de datos de nadadores. Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
+Veamos números,
+```{r}
+tabla3
+
+#Calcular los totales
+totales <- colSums(tabla3)
+
+#Calcular el porcentaje de nadadores menores de 18 años por género
+porcentajes <- (tabla3[2, ] / totales) * 100  
+# fila 2 son los menores de 18
+
+porcentajes
+```
+
+
+Aproximadamente 2 de cada 10 mujeres son menores de 18 años, mientras que solamente 1 de cada 10 hombres es menor de 18 años.
+
+```{r}
+library(dplyr)
+
+#Crear una nueva columna para clasificar por edad
+nadadoresParticipantes <- nadadoresParticipantes %>%
+  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
+
+#Resumir el número de participantes en cada prueba por grupo de edad(CODIGO DE GOOGLE)
+resumen_pruebas <- nadadoresParticipantes %>%
+  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
+  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
+  ungroup() %>%  # Quitar agrupación
+  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
+
+# Mostrar el resumen
+resumen_pruebas
+
+```
+
+Tenemos la distancia de 100 metros, con 405 participantes. Es la distancia más popular entre los nadadores mayores de 18 años. Le sigue la distancia de 209 participantes, la de 200 metros.
+200 metros: Con 209 participantes, sigue siendo una distancia muy popular.
+La participación disminuye considerablemente en distancias más largas, como 1500 metros con solo 13 participantes.
+Para los menores de 18 años tenemos carreras de 100 metros con 75 participantes, esta es la distancia más frecuentada, aunque significativamente menos que el grupo de 18 años o más.
+La participación en distancias más largas, como 400 metros, es aún más baja, con solo 19 participantes.
+
+Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
+La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
+La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
+
+##no se como mirarlo solo para chicas(lo intente no me pegueis)
+##lo de las banderas no encuentro la pagina jeje
