@@ -1,5 +1,5 @@
 ---
-title: "FINA DATA"
+title: "Mundial de natación de Kazán 2015"
 author: "4to mates"
 date: "`r Sys.Date()`"
 output:
@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(rstatix)
 library(ggplot2)
+library(tidyr)
 ```
 
 
@@ -48,131 +49,276 @@ Según la descripción oficial de los datos, las variables que conforman el conj
 * daytime: hora a la que se nadó
 * round: ronda (preliminar, semifinal, final)
 * distance: distancia de la prueba
-* relaycount: ¿?
+* relaycount: Número de relevista.
 * stroke: Estilo de nado en el que se realizó la prueba.
 * splitswimtime: Tiempo del parcial (50m)
 
+# Entender los datos.
+Primeramente, vamos a leer los datos:
 
-# Entender los datos
-A continuación leemos los datos:
+```{r}
+datos2015<-read.csv("datos/2015_FINA.csv", header=TRUE, sep = ',')
+```
 
-```{r lectura}
-datos2015 <- read.csv("datos/2015_FINA.csv", header = TRUE, sep=',')
+Una vez nuestro programa los ha leído, vamos a echar nuestro primer vistazo:
+
+```{r}
 dim(datos2015)
 ```
-Vamos a explorar el tipo de variables que tenemos:
-```{r variables}
-str(datos2015)
-```
+Tenemos en total 11423 filas y 22 variables o columnas.
 
-Vamos a intentar entender la primera observación:
+Veámos la primera ocurrencia de nuestra tabla:
+
 ```{r}
 head(datos2015,1)
-#enseña la primera observación de la base de datos
-
 ```
 
-Podemos observar una observación de la nadadora albanesa *Noel Borshi*, la cual nació el 13 de febrero de 1996, es Albanesa. Los datos nos muestran el primer parcial del 100 mariposa que nadó en preliminares a las 9:30 am. Nadó ese primer 50 en 29.63, tuvo un tiempo de reacción en la salida de 0.77. Podemos ver que su tiempo total en la prueba fue 63.65, lo cual le asigna 680 puntos FINA. Por último, nadó en la serie 1 calle 4.
+Observamos Noel Borshi, nadadora albanesa nacida un 13 de febrero de 1996, que tiene como id el número (100784). Noel Borshi nadó la prueba 1 en la serie 1 y carril 4. Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65s y pasó por el primer parcial (50m) en 29.63 segundos.
 
 # Análisis exploratorio de datos
 
-
-## Una evento específico.
-
-Vamos a elegir un evento específico y vamos a analizarlo.
-
-
-
-
-#Clase 1
-Guardamos como factores las variables categóricas:
-
+## Resumen de los datos.
+A continuación, vamos a ver un resumen de los datos: 
 ```{r}
-datos2015$gender<-as.factor(datos2015$gender)
+summary(datos2015)
 ```
 
-Veamos si ha funcionado:
+De aquí, podemos obsevar que tenemos algunos valores nulos (NA's), además se puede observar que, durante toda la competición, como máximo hubo 12 series y como mínimo 1. Que la piscina disponía de 10 carriles numerados del 0 al 9. También observamos que se nadaron pruebas de 50 y hasta 1500 metros. 
+
+Observamos que tenemos algunas variables categóricas, luego vamos a cargar la libreria "dyplr" y vamos a intentar visualizarlas de una mejor manera: 
+
+```{r}
+datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke)
+```
+
+Bien, ahora, visualicemos otra vez el resumen:
 
 ```{r}
 summary(datos2015)
 ```
 
-Podemos poner las variables categóricas como factores de un modo mejor usando la librería dplyr. Busco dplyr R data frame convert as factor.
+Bien, ahora podemos observar muchas más cosas, observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos. Vemos también que se nadaron pruebas de espalda, braza, mariposa, crol y estilos Individual. También observamos que las pruebas las disputaron hombres y mujeres. Podemos observar tamibén que el menor tiempo de reacción fue de 0.42 y el mayor de 0.97. 
 
-```{r}
-datos2015<- datos2015 %>% convert_as_factor(gender,name,round, stroke)
-```
+Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no nos estorben. 
 
-Vamos a ver algunas frecuencias de variables categóricas, 
-```{r}
-cat("Género")
-table(datos2015$gender)
-cat('\n', "Ronda")
-table(datos2015$round)
-cat('\n',"Distancias")
-table(datos2015$distance)
-cat('\n', "Estilo de nado")
-table(datos2015$stroke)
-```
-Con esto, podemos observar que la proporción de hombres en los datos es ligeramente mayor, sin ser significativa. 
+## Estudio sobre el número de nadadores, su género, país y edad.
 
-Queremos analizar variables según la edad. Por ello, utilizaremos los datos de la fecha de nacimiento, y creamos una nueva variable que será la edad. 
+### Edad
+Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada edad, ya que birthdate no nos va a dar tanto juego. 
 
 ```{r}
 datos2015$birthdate <- as.Date(datos2015$birthdate)
-
-# Calcular la edad
-today <- Sys.Date()  # Obtener la fecha actual
-datos2015$Edad <- as.numeric(difftime(today, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
-
-# Mostrar los datos con la nueva columna de Edad
-head(datos2015)
+#Calculamos la edad
+fechaKazan<- as.Date("2015-07-24")
+datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
 ```
-Representamos la distribución de la edad, en general y también en función del género.
+
+Ahora, vamos a crear una nueva tabla en la cual vamos a obtener sólamente los nadadores (sin repetir) que participaron en la competición: 
 
 ```{r}
-hist_var <- ggplot(data = datos2015) +
-geom_histogram(mapping = aes(x = Edad), binwidth = 5)
-hist_var
+nadadoresParticipantes <- datos2015 %>%
+  distinct(athleteid, .keep_all = TRUE)
 ```
-```{r}
-hist_varF <- ggplot(data = subset(datos2015,gender== 'F')) +
-geom_histogram(mapping = aes(x = Edad), binwidth = 5)
 
-hist_varM <- ggplot(data = subset(datos2015,gender== 'M'))+
-geom_histogram(mapping = aes(x = Edad), binwidth = 5)
+Bien, ahora, vamos a observar qué sucede con las edades: 
+
+```{r}
+summary(nadadoresParticipantes$edad)
+```
+Observamos que la edad máxima fue de 38 años, la media fue de 21.32 años, y el participante con menos edad fue de 10 años. 
+
+Aquí un enlace a la [noticia](https://www.rtve.es/deportes/20150807/nina-10-anos-alzain-tareq-asombra-a-natacion-mundial/1195782.shtml#:~:text=Se%20llama%20Alzain%20Tareq%2C%20tiene,estrella%20medi%C3%A1tica%20de%20la%20jornada.) sobre la joven nadadora de 10 años.
+
+Podríamos echar un vistazo y ver si la noticia se refiere a los datos que tenemos:
+
+```{r}
+datos_edad_10 <- datos2015[datos2015$edad == 10, ]
+datos_edad_10
+```
+
+Se trata de una nadadora de Bahrain que nadó el 50 mariposa y el 50 libres.
+
+
+Veámos como se distribuye en una gráfica de densidad las edades: 
+
+```{r}
+ggplot(nadadoresParticipantes, aes(x = edad)) +
+geom_density() +
+ggtitle("Distribución. Edades.")
+```
+
+Observamos que se concentra casi todas las edades entre los 16 y los 27 aproximadamente. 
+
+### Géneros participantes.
+
+Veamos el número exacto de mujeres y hombres en la competición: 
+```{r}
+summary(nadadoresParticipantes$gender)
+```
+
+Luego, observamos que hay 616 hombres y 494 mujeres que participaron en los mundiales de Kazán 2015.
+
+Observemos ahora cómo se distribuyen los hombres y las mujeres y sus respectivas edades: 
+
+```{r}
+hist_varF <- ggplot(data = subset(nadadoresParticipantes,gender== 'F')) +
+geom_histogram(mapping = aes(x = edad), binwidth = 2)
+
+hist_varM <- ggplot(data = subset(nadadoresParticipantes,gender== 'M'))+
+geom_histogram(mapping = aes(x = edad), binwidth = 2)
 hist_varF 
 hist_varM
-
 ```
-
-
 
 Como podemos observar, la media de edades tiende a ser la misma en ambos géneros. Sin embargo, se puede observar como parece ocurrir que las mujeres comienzan a competir a menor edad. 
 
+### Nacionalidades.
 
-
-Vamos ahora a realizar el gráfico del tiempo de reacción, para observar su distribución.
+Veamos un resumen de los datos sobre nacionalidades:
 
 ```{r}
-p<-ggplot(datos2015,aes(x=reactiontime))+geom_histogram()
-p
+summary(nadadoresParticipantes$name)
+```
+
+Luego observamos que China fue la que más participantes llevó, con un total de 39, EEUU llevó 37 nadadores, Italia cierra el podio con 31 nadadores inscritos. 
+
+*VER SI SE PUEDEN ESTIRAR MÁS ESTOS DATOS*
+
+
+
+## Estudio sobre los eventos, reactiontime, lane, heats y daytime: 
+
+Primeramente, vamos a elaborar una tabla que refleje nadadores y pruebas nadadas (lo único que vamos a desechar son los parciales (filas) en caso de que la prueba sea de más de 50 metros.)
+
+Para ello, primeramente debemos saber si cada prueba y cada tipo de prueba (preliminar, final o seminifinal), tiene un id de evento distinto, para ello seleccionamos algún nadador que haya nadado en la misma prueba varias rondas: 
+
+```{r}
+ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2015$code=="AUS", ]
+head(ejemplo,6)
+```
+
+Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio: 
+
+```{r}
+nadadoresPruebas <- datos2015 %>%
+  distinct(eventid, athleteid, .keep_all = TRUE)
 
 ```
 
+Los datos creados, reflejan nadadores y pruebas nadadas.
 
-Realizaremos ahora el análisis de componentes principales
+### Prueba 800m Libre femenino:
+
+Veamos qué nadadores nadaron el 800 libre femenino: 
 
 ```{r}
-datos_filtrados <- datos2015 %>%
-  filter(codeid == '3') %>%
-  select(reactiontime, swimtime, cumswimtime, splitswimtime)
+nadadoras800free<-nadadoresPruebas[nadadoresPruebas$distance==800 & nadadoresPruebas$gender=="F", ]
 
-# Mostrar el DataFrame filtrado
-head(datos_filtrados)
+dim(nadadoras800free)
+```
+Tenemos que 52 chicas nadaron el 800 libres, algunas de ellas dos veces ya que pasaron a la final. 
+
+*AÑADIR MAS COSAS SI QUEREIS*
+
+### reactiontime
+Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores: 
+```{r}
+ggplot(nadadoresPruebas, aes(x = reactiontime)) +
+geom_density() +
+ggtitle("Distribución. reactiontime")
 
 ```
 
+Parece que los datos siguen una distribución normal a priori. Vamos a ir más alla para intentar sacar conclusiones más profundas. 
+
+Vamos a comparar a comparar las funciones de densidad de chicos y chicas en general: 
+
+Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 800m libres y 50m libres: 
+
+Primeramente calculamos el conjunto de datos del 50m libres femenino: 
+
+```{r}
+nadadoras50free<-nadadoresPruebas[nadadoresPruebas$distance==50 & nadadoresPruebas$gender=="F" & nadadoresPruebas$stroke=="FREE", ]
+```
+
+
+```{r}
+ggplot(nadadoras800free, aes(x = reactiontime)) +
+geom_density() +
+ggtitle("Distribución. reactiontime 800m free Women")
+
+ggplot(nadadoras50free, aes(x=reactiontime))+geom_density()+ggtitle("Dstribución. reactiontime 50m free Women")
+```
+
+Se observa cómo en la prueba de 50 hay más nadadoras que tarden menos de 0.7 que en la de 800m. 
+
+*Podemos comparar a los chicos para ver si es cierto lo supuesto*
+
+
+### Calles usadas
+
+Veamos cómo se distribuyen las calles usadas: 
+
+```{r}
+ggplot(nadadoresPruebas, aes(nadadoresPruebas$lane)) + geom_bar(fill = "orange") +
+theme_bw()
+```
+
+Se observa que las calles menos usadas son tanto la 0 como la 9. 
+
+### Points
+
+Veamos ahora cómo se distribuyen los puntos: 
+
+```{r}
+ggplot(nadadoresPruebas, aes(x = points)) +
+geom_density() +
+ggtitle("Distribución. points")
+```
+Observamos que la mayoría de puntos se encuentran a partir de los 750/800 puntos, y esto, tiene sentido si razonamos que para entrar a los mundiales de natación, se necesitan unas marcas mínimas (una cantidad de puntos preestablecida). Luego es normal encontrar una gran cantidad de datos que tengan más de 750 puntos ya que había un "corte" para la inscripción en la competición. Esto hace que la gráfica no esté más distribuida por todos los posibles valores de puntos. 
+
+
+### Daytime
+
+Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
+
+```{r}
+ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.5, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
+```
+Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
+
+
+
+
+
+
+
+#PCA's
+
+Realizaremos ahora el análisis de componentes principales del 800m libres femenino:
+
+## PCA. 800M libres femenino
+
+Lo primero que debemos hacer es cargar los datos:
+
+```{r}
+prueba800libresPreliminar<- datos2015[datos2015$distance==800 & datos2015$gender=="F" & datos2015$stroke=="FREE" & datos2015$round=="PRE", ]
+
+prueba800libresPreliminar <- prueba800libresPreliminar %>%
+    select(lastname,firstname,gender, reactiontime, splitdistance, splitswimtime, edad, swimtime)
+```
+
+Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedemos con el nombre, apellido y parciales
+
+```{r}
+pruebawide <- prueba800libresPreliminar %>%
+  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
+              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+pruebawide
+```
+
+
+Lo tenemos!
 
 
 
