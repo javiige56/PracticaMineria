@@ -151,8 +151,10 @@ geom_density() +
 ggtitle("Distribución. Edades.")
 ```
 
-Observamos que se concentra casi todas las edades entre los 16 y los 27 aproximadamente.
+Observamos que se concentra el 50% de los datos entre los 19 y los 24.
 
+
+View
 ### Géneros participantes.
 
 Veamos el número exacto de mujeres y hombres en la competición:
