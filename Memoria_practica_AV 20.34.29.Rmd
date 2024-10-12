@@ -380,10 +380,33 @@ Nos vamos a fijar en la final, para ello, filtramos otra vez los datos:
 ```{r}
 nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & datos2015$round=="FIN", ]
 
-View(nadadoras800free)
 ```
 
-Ahora, vamos a definir una tabla en la que nos va a importar el nombre, los parciales
+Ahora, vamos a definir una tabla en la que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial: 
+
+```{r}
+nadadoras800free <- nadadoras800free %>%
+    select(lastname,firstname,gender,reactiontime,splitdistance,cumswimtime, swimtime)
+
+```
+
+Ahora vamos a representar cómo fue la carrera:
+
+```{r}
+# Ordenar los datos por tiempo
+nadadoras800free <- nadadoras800free %>%
+  arrange(splitdistance, cumswimtime)
+
+# Crear un índice de posición
+nadadoras800free <- nadadoras800free %>%
+  group_by(splitdistance) %>%
+  mutate(Posicion = rank(cumswimtime, ties.method = "first"))
+
+ggplot(nadadoras800free, aes(x = splitdistance, y = Posicion, group = lastname)) +
+  geom_line(aes(color = lastname, alpha = 1), size = 2) +
+  geom_point(aes(color = lastname, alpha = 1), size = 4) +
+  scale_y_reverse(breaks = 1:nrow(nadadoras800free))
+```
 
 
 # PCA's
@@ -416,7 +439,7 @@ Lo tenemos!
 # ideas que me surgen:
  - Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos. 
  - Ver cosas acerca del tiempo de reacción, a priori los hombres tienen mejor reactiontime.
- - Visualización de la final del 800m libres femenimo.
+ - Visualización de la final del 800m libres femenimo. (hecho)
  - Elaborar PCA.
 
 
