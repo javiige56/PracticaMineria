@@ -57,7 +57,7 @@ Según la descripción oficial de los datos, las variables que conforman el conj
 Primeramente, vamos a leer los datos:
 
 ```{r}
-datos2015<-read.csv("~/Desktop/maria del carmen/Prueba/2015_FINA.csv", header=TRUE, sep = ',')
+datos2015<-read.csv("datos/2015_FINA.csv", header=TRUE, sep = ',')
 ```
 
 Una vez nuestro programa los ha leído, vamos a echar nuestro primer vistazo:
@@ -130,7 +130,7 @@ Bien, ahora, vamos a observar qué sucede con las edades:
 summary(nadadoresParticipantes$edad)
 ```
 
-Observamos que la edad máxima fue de 38 años, la media fue de 21.32 años, y el participante con menos edad fue de 10 años.
+Observamos que la edad máxima fue de 38 años, la media fue de 21.32 años, y el participante con menos edad fue de 10 años. Además, el 50% de los participantes estaban entre 19 y 24 años de edad.
 
 Aquí un enlace a la [noticia](https://www.rtve.es/deportes/20150807/nina-10-anos-alzain-tareq-asombra-a-natacion-mundial/1195782.shtml#:~:text=Se%20llama%20Alzain%20Tareq%2C%20tiene,estrella%20medi%C3%A1tica%20de%20la%20jornada.) sobre la joven nadadora de 10 años.
 
@@ -141,9 +141,9 @@ datos_edad_10 <- datos2015[datos2015$edad == 10, ]
 datos_edad_10
 ```
 
-Se trata de una nadadora de Bahrain que nadó el 50 mariposa y el 50 libres.
+Se trata de una nadadora de Bahrain que nadó el 50 mariposa y el 50 libres. Luego podemos concluir que es un dato atípico pero no es erróneo. 
 
-Veámos como se distribuye en una gráfica de densidad las edades:
+Vamos a ver cómo se distribuyen las edades. 
 
 ```{r}
 ggplot(nadadoresParticipantes, aes(x = edad)) +
@@ -151,11 +151,7 @@ geom_density() +
 ggtitle("Distribución. Edades.")
 ```
 
-Observamos que se concentra el 50% de los datos entre los 19 y los 24.
-
-
-View
-### Géneros participantes.
+### Géneros participantes. 
 
 Veamos el número exacto de mujeres y hombres en la competición:
 
@@ -168,28 +164,101 @@ Luego, observamos que hay 616 hombres y 494 mujeres que participaron en los mund
 Observemos ahora cómo se distribuyen los hombres y las mujeres y sus respectivas edades:
 
 ```{r}
-hist_varF <- ggplot(data = subset(nadadoresParticipantes,gender== 'F')) +
-geom_histogram(mapping = aes(x = edad), binwidth = 2)
-
-hist_varM <- ggplot(data = subset(nadadoresParticipantes,gender== 'M'))+
-geom_histogram(mapping = aes(x = edad), binwidth = 2)
-hist_varF 
-hist_varM
+ggplot(nadadoresParticipantes, aes(x = edad, colour = gender)) +
+# Añadir la capa de la densidad de probabilidad.
+    geom_density()
 ```
 
-Como podemos observar, la media de edades tiende a ser la misma en ambos géneros. Sin embargo, se puede observar como parece ocurrir que las mujeres comienzan a competir a menor edad.
 
-### Nacionalidades.
+Según observamos la gráfica observamos que la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres. Esta diferencia en la distribución de edades entre los géneros puede llevarte a realizar distintos test estadísticos para confirmar si la diferencia es significativa. 
+
+
+```{r}
+t.test(edad~gender,data=nadadoresParticipantes)
+
+```
+
+Hemos comparado las medias de edad entre mujeres (grupo F) y hombres (grupo M), tomando como hipótesis nula que las medias de edad entre mujeres y hombres son iguales, y cómo hipótesis alternativa que las medias de edad entre mujeres y hombres son diferentes. Aunque el resultado del t-test muestra que hay una diferencia estadísticamente significativa(el p-valor es muy pequeño) entre las edades medias de hombres y mujeres (aproximadamente 1.16 años), en términos prácticos, esta diferencia es relativamente pequeña. En este caso, puede no ser relevante en términos de la experiencia o desempeño de los nadadores.
+
+No obstante, proseguimos en nuestro análisis exploratorio.
+
+```{r}
+tabla1<-table(nadadoresParticipantes$edad>30,nadadoresParticipantes$gender)
+chisq.test(tabla1)
+```
+Por el resultado del siguiente test aplicado,podemos concluir con que no hay asociación significativa: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros  datos. En términos sencillos,la edad no parece estar relacionada con el género de los nadadores en cuanto a si son mayores de 30 años.
+
+```{r}
+tabla2<-table(nadadoresParticipantes$edad<20,nadadoresParticipantes$gender)
+chisq.test(tabla2)
+```
+
+Hay una diferencia considerable entre las frecuencias observadas (cuántos hombres y mujeres son menores de 20 años) y las frecuencias esperadas bajo la hipótesis nula (que no hay asociación entre edad y género para menores de 20 años). Esto sugiere ir un paso más allá, ¿Hay más mujeres menores de edad que hombres menores de edad?
+  
+```{r}
+tabla3<-table(nadadoresParticipantes$edad<18,nadadoresParticipantes$gender)
+chisq.test(tabla3)
+```
+
+
+Los resultados sugieren que el género y la edad (si son menores de 18 años) están significativamente relacionados en tu conjunto de datos de nadadores. Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
+Veamos números,
+```{r}
+tabla3
+
+#Calcular los totales
+totales <- colSums(tabla3)
+
+#Calcular el porcentaje de nadadores menores de 18 años por género
+porcentajes <- (tabla3[2, ] / totales) * 100  
+# fila 2 son los menores de 18
+
+porcentajes
+```
+
+
+Aproximadamente 2 de cada 10 mujeres son menores de 18 años, mientras que solamente 1 de cada 10 hombres es menor de 18 años.
+
+
+
+### Nacionalidades. (meter aquí el código de salma.)
 
 Veamos un resumen de los datos sobre nacionalidades:
 
+
+
+
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
+
 ```{r}
-summary(nadadoresParticipantes$name)
+#Crear una nueva columna para clasificar por edad
+nadadoresParticipantes <- nadadoresParticipantes %>%
+  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
+
+#Resumir el número de participantes en cada prueba por grupo de edad(CODIGO DE GOOGLE)
+resumen_pruebas <- nadadoresParticipantes %>%
+  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
+  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
+  ungroup() %>%  # Quitar agrupación
+  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
+
+# Mostrar el resumen
+resumen_pruebas
+
 ```
 
-Luego observamos que China fue la que más participantes llevó, con un total de 39, EEUU llevó 37 nadadores, Italia cierra el podio con 31 nadadores inscritos.
+Tenemos la distancia de 100 metros, con 405 participantes. Es la distancia más popular entre los nadadores mayores de 18 años. Le sigue la distancia de 209 participantes, la de 200 metros.
+200 metros: Con 209 participantes, sigue siendo una distancia muy popular.
+La participación disminuye considerablemente en distancias más largas, como 1500 metros con solo 13 participantes.
+Para los menores de 18 años tenemos carreras de 100 metros con 75 participantes, esta es la distancia más frecuentada, aunque significativamente menos que el grupo de 18 años o más.
+La participación en distancias más largas, como 400 metros, es aún más baja, con solo 19 participantes.
 
-*VER SI SE PUEDEN ESTIRAR MÁS ESTOS DATOS*
+Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
+La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
+La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
+
+*(no se como mirarlo solo para chicas(lo intente no me pegueis))*
+
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
@@ -212,21 +281,7 @@ nadadoresPruebas <- datos2015 %>%
 
 Los datos creados, reflejan nadadores y pruebas nadadas.
 
-### Prueba 800m Libre femenino:
-
-Veamos qué nadadores nadaron el 800 libre femenino:
-
-```{r}
-nadadoras800free<-nadadoresPruebas[nadadoresPruebas$distance==800 & nadadoresPruebas$gender=="F", ]
-
-dim(nadadoras800free)
-```
-
-Tenemos que 52 chicas nadaron el 800 libres, algunas de ellas dos veces ya que pasaron a la final.
-
-*AÑADIR MAS COSAS SI QUEREIS*
-
-### reactiontime
+### Tiempo de reacción. Hombres vs Mujeres
 
 Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores:
 
@@ -241,24 +296,38 @@ Parece que los datos siguen una distribución normal a priori. Vamos a ir más a
 
 Vamos a comparar a comparar las funciones de densidad de chicos y chicas en general:
 
+```{r message=FALSE, warning=FALSE}
+ggplot(nadadoresPruebas, aes(x=reactiontime, colour=gender))+
+geom_density()+
+  ggtitle("Distribución. Hombres vs Mujeres")
+```
+
+De esta gráfica nos surgen muchas preguntas, vamos a analizar esto más a fondo. Hagamos un test de hipótesis donde: 
+
+* H0: El tiempo de reacción es igual en mujeres y hombres.
+* H1: El tiempo de reacción es menor en hombres que en mujeres.
+
+
+
+
+### Tiempo de reacción. Distancias largas vs distancias cortas.
+
 Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 800m libres y 50m libres:
 
-Primeramente calculamos el conjunto de datos del *50m* libres femenino:
+Primeramente calculamos el conjunto de datos:
 
 ```{r}
-nadadorasPruebas<-nadadoresPruebas[nadadoresPruebas$gender=="F" & nadadoresPruebas$stroke=="FREE", ]
+nadadorasComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="F" & nadadoresPruebas$stroke=="FREE", ]
 ```
 
 ```{r}
-ggplot(nadadoras800free, aes(x = reactiontime)) +
+ggplot(nadadorasComparacionReactionTime, aes(x = reactiontime,group=distance)) +
 geom_density() +
-ggtitle("Distribución. reactiontime 800m free Women")
+ggtitle("Distribución. Reaction time: 800m free vs 50m free")
 
-ggplot(nadadoras50free, aes(x=reactiontime))+geom_density()+ggtitle("Dstribución. reactiontime 50m free Women")
 ```
 
-Se observa cómo en la prueba de 50 hay más nadadoras que tarden menos de 0.7 que en la de 800m.
-
+Aquí también podemos hacer un test de hipótesis.
 *Podemos comparar a los chicos para ver si es cierto lo supuesto*
 
 ### Calles usadas
@@ -294,7 +363,30 @@ ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.5, colour="red", fill=
 
 Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
 
-#PCA's
+## Prueba 800m Libre femenino.
+
+Veamos qué nadadores nadaron el 800 libre femenino:
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+nadadoras800free<-nadadoresPruebas[nadadoresPruebas$distance==800 & nadadoresPruebas$gender=="F", ]
+
+dim(nadadoras800free)
+```
+
+Tenemos que 52 chicas nadaron el 800 libres, algunas de ellas dos veces ya que pasaron a la final. 
+
+Nos vamos a fijar en la final, para ello, filtramos otra vez los datos:
+
+```{r}
+nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & datos2015$round=="FIN", ]
+
+View(nadadoras800free)
+```
+
+Ahora, vamos a definir una tabla en la que nos va a importar el nombre, los parciales
+
+
+# PCA's
 
 Realizaremos ahora el análisis de componentes principales del 800m libres femenino:
 
@@ -321,6 +413,13 @@ pruebawide
 Lo tenemos!
 
 
+# ideas que me surgen:
+ - Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos. 
+ - Ver cosas acerca del tiempo de reacción, a priori los hombres tienen mejor reactiontime.
+ - Visualización de la final del 800m libres femenimo.
+ - Elaborar PCA.
+
+
 
 
 
@@ -329,208 +428,3 @@ Lo tenemos!
   
   
   
-  
-  
-  
-  
-##PROFUNDIZAMOS EN LAS EDADES
-Vamos a ver si las distintas edades de los nadadores dependen del género del nadador.
-
-```{r}
-ggplot(nadadoresParticipantes, aes(x = edad, colour = gender)) +
-  geom_density(lwd=2, linetype=1)
-```
-
-Como las curvas están diferenciadas por colores (uno para cada género), podemos observar si la distribución de edades difiere entre hombres y mujeres.Parece que la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres. Esta diferencia en la distribución de edades entre los géneros puede llevarte a realizar distintos test estadísticos para confirmar si la diferencia es significativa.
-
-
-```{r}
-t.test(edad~gender,data=nadadoresParticipantes)
-
-```
-
-Hemos comparado las medias de edad entre mujeres (grupo F) y hombres (grupo M), tomando como hipótesis nula que las medias de edad entre mujeres y hombres son iguales, y cómo hipótesis alternativa que las medias de edad entre mujeres y hombres son diferentes. Aunque el resultado del t-test muestra que hay una diferencia estadísticamente significativa(el p-valor es muy pequeño) entre las edades medias de hombres y mujeres (aproximadamente 1.16 años), en términos prácticos, esta diferencia es relativamente pequeña. En este caso, puede no ser relevante en términos de la experiencia o desempeño de los nadadores.
-
-No obstante, proseguimos en nuestro análisis exploratorio.
-
-```{r}
-tabla1<-table(nadadoresParticipantes$edad>30,nadadoresParticipantes$gender)
-chisq.test(tabla1)
-```
-Por el resultado del siguiente test aplicado,podemos concluir con que no hay asociación significativa: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros  datos. En términos sencillos,la edad no parece estar relacionada con el género de los nadadores en cuanto a si son mayores de 30 años.
-
-```{r}
-tabla2<-table(nadadoresParticipantes$edad<20,nadadoresParticipantes$gender)
-chisq.test(tabla2)
-```
-
-Hay una diferencia considerable entre las frecuencias observadas (cuántos hombres y mujeres son menores de 20 años) y las frecuencias esperadas bajo la hipótesis nula (que no hay asociación entre edad y género para menores de 20 años). Esto sugiere ir un paso más allá, ¿Hay más mujeres menores de edad que hombres menores de edad?
-  
-  
-  ```{r}
-tabla3<-table(nadadoresParticipantes$edad<18,nadadoresParticipantes$gender)
-chisq.test(tabla3)
-```
-
-Los resultados sugieren que el género y la edad (si son menores de 18 años) están significativamente relacionados en tu conjunto de datos de nadadores. Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
-Veamos números,
-```{r}
-tabla3
-
-#Calcular los totales
-totales <- colSums(tabla3)
-
-#Calcular el porcentaje de nadadores menores de 18 años por género
-porcentajes <- (tabla3[2, ] / totales) * 100  
-# fila 2 son los menores de 18
-
-porcentajes
-```
-
-
-Aproximadamente 2 de cada 10 mujeres son menores de 18 años, mientras que solamente 1 de cada 10 hombres es menor de 18 años.
-
-```{r}
-library(dplyr)
-
-#Crear una nueva columna para clasificar por edad
-nadadoresParticipantes <- nadadoresParticipantes %>%
-  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
-
-#Resumir el número de participantes en cada prueba por grupo de edad(CODIGO DE GOOGLE)
-resumen_pruebas <- nadadoresParticipantes %>%
-  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
-  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
-  ungroup() %>%  # Quitar agrupación
-  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
-
-# Mostrar el resumen
-resumen_pruebas
-
-```
-
-Tenemos la distancia de 100 metros, con 405 participantes. Es la distancia más popular entre los nadadores mayores de 18 años. Le sigue la distancia de 209 participantes, la de 200 metros.
-200 metros: Con 209 participantes, sigue siendo una distancia muy popular.
-La participación disminuye considerablemente en distancias más largas, como 1500 metros con solo 13 participantes.
-Para los menores de 18 años tenemos carreras de 100 metros con 75 participantes, esta es la distancia más frecuentada, aunque significativamente menos que el grupo de 18 años o más.
-La participación en distancias más largas, como 400 metros, es aún más baja, con solo 19 participantes.
-
-Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
-La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
-La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
-
-##no se como mirarlo solo para chicas(lo intente no me pegueis)
-
-
-
-
-
-
-
-
-
-##paises 
-
-
-```{r}
-##si alguien sabe ocultar este codigo q esta en sucio
-library(dplyr)
-library(ggplot2)
-library(ggimage)
-library(countrycode)
-
-datos2015<-read.csv("~/Desktop/maria del carmen/Prueba/2015_FINA.csv", header=TRUE, sep = ',')
-#bueno explico pa tontos como se hace 
-
-# NUESTRA TABLA ES nadadoresParticipantes
-# Agregar el código ISO de dos dígitos, DIRAS PORQUE NO USAS CODE ESQ EN R PONE QUE TIENE Q SER DE DOS ASIQ ES LO Q TOCA HAY Q CONVERTIR 
-#ASI LO PONE LA WEB 
-nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
-#UY SALTA ERROR PARECE QUE EN FINA, KOSOVO,MICRONESIA Y VIRGIN ISLAND NO SABE HACERLO
-#VEO TODOS LOS NOMBRES PA BICHEAR 
-nombres<- unique(nadadoresParticipantes$name) #NO REPETIR CLARO
-print(nombres)
-
-#Verificar qué nombres no fueron convertidos por si me olvido alguno
-no_convertidos <- nadadoresParticipantes %>%
-  filter(is.na(iso2)) %>%
-  select(name)
-print(no_convertidos)
-
-#nombres problemáticos
-manual <- data.frame(
-  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
-  iso2 = c("FI", "XK", "FM", "VI")  
-)
-
-#Combina
-nadadoresParticipantes <- nadadoresParticipantes %>%
-  left_join(manual, by = c("name" = "nombre"), suffix = c("", ".nuevo")) %>%
-  mutate(iso2 = ifelse(is.na(iso2), iso2.nuevo, iso2)) %>%
-  select(-iso2.nuevo)  #Eliminar columna 
-
-
-no_convertidos_final <- nadadoresParticipantes %>%
-  filter(is.na(iso2)) %>%
-  select(name)
-print(no_convertidos_final)
-#wue ya no hay ninguno no convertido
-
-# Agregar variable de continente como hace la pagina
-nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
-#vuelve a fallar
-
-#continentess no asignados
-continentes_no_asignados <- nadadoresParticipantes %>%
-  filter(is.na(continent)) %>%
-  select(iso2)
-print(continentes_no_asignados)
-
-#solo es XK(KOSOVO, Esta en europa para los catetos)
-#manualmente el continente para Kosovo (XK)
-nadadoresParticipantes <- nadadoresParticipantes %>%
-  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
-
-#todos los continentes están asignados
-continentes_final <- nadadoresParticipantes %>%
-  filter(is.na(continent)) %>%
-  select(iso2)
-
-#siii
-print(continentes_final)
-
-
-
-#nadadores por país
-resumen_paises <- nadadoresParticipantes %>%
-  group_by(name, iso2, continent) %>%
-  summarise(num_nadadores = n(), .groups = "drop") %>%
-  arrange(desc(num_nadadores))  # Ordenar por número de nadadores
-##esto esta muy guay podemos usarlo pa mas cosas ya que ya esta hecho
-resumen_paises
-
-#Crear un gráfico;metemos colores
-paleta <- c("Americas" = "#0084ff", "Asia" = "#44bec7", 
-                "Europe" = "#ffc300", "Oceania" = "#fa3c4c")
-
-oda_bar <- resumen_paises %>% 
-  ggplot(aes(x = reorder(name, num_nadadores), y = num_nadadores, fill = continent)) + 
-  geom_flag(y = -10, aes(image = iso2), size = 0.05) +  
-  geom_bar(stat = "identity") + 
-  labs(title = "Participación de Nadadores por País",
-       subtitle = "Datos de nadadores en competiciones",
-       x = "País",
-       y = "Número de Nadadores") +
-  scale_fill_manual(values = paleta) +  # colores personalizados
-  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Aumentar el límite superior
-  coord_flip() +  # Para hacer el gráfico horizontal
-  theme_minimal()
-
-# Imprimir el gráfico
-print(oda_bar)
-
-##lo de las banderas se me escapa y mira q he metido lo del flag pero creo que hay que crear una columna nueva donde aparezca los url de las banderas
-
-```
-
-Como tal se podria reducir y mejorar el gráfico para que sea más interpretable
