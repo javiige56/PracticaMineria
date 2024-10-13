@@ -308,7 +308,12 @@ De esta gráfica nos surgen muchas preguntas, vamos a analizar esto más a fondo
 * H1: El tiempo de reacción es menor en hombres que en mujeres.
 
 
-
+```{r}
+t.test(reactiontime~gender,data=nadadoresParticipantes)
+```
+De manera similar a antes, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
+Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevanciaa la hora de los resultados finales. Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente? 
+No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el d de Cohen). Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
 
 ### Tiempo de reacción. Distancias largas vs distancias cortas.
 
@@ -330,6 +335,13 @@ ggtitle("Distribución. Reaction time: 800m free vs 50m free")
 Aquí también podemos hacer un test de hipótesis.
 *Podemos comparar a los chicos para ver si es cierto lo supuesto*
 
+
+```{r}
+#he usado este aqui pero no lo veo yo muy asumible lo de normal (no se si vale bien asique no hago analisis)
+t.test(reactiontime~distance,data=nadadorasComparacionReactionTime)
+```
+
+
 ### Calles usadas
 
 Veamos cómo se distribuyen las calles usadas:
@@ -340,6 +352,11 @@ theme_bw()
 ```
 
 Se observa que las calles menos usadas son tanto la 0 como la 9.
+
+##ideas q me surgen para este apartado
+¿Cuál es la distribución general de los tiempos de reacción entre los nadadores en diferentes calles?¿Por eso eligen esas calles?
+¿Hay alguna evaluación entre la calle utilizada y el rendimiento de los nadadores (tiempos finales, posiciones)?¿Los nadadores de élite prefieren más las calles centrales en comparación con los nadadores de nivel medio?
+
 
 ### Points
 
