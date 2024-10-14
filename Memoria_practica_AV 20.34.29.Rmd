@@ -353,12 +353,9 @@ theme_bw()
 
 Se observa que las calles menos usadas son tanto la 0 como la 9.
 
-##ideas q me surgen para este apartado
-¿Cuál es la distribución general de los tiempos de reacción entre los nadadores en diferentes calles?¿Por eso eligen esas calles?
-¿Hay alguna evaluación entre la calle utilizada y el rendimiento de los nadadores (tiempos finales, posiciones)?¿Los nadadores de élite prefieren más las calles centrales en comparación con los nadadores de nivel medio?
 
 
-### Points
+### Puntos. Mejor nadador por prueba nadada. MVP de los mundiales.
 
 Veamos ahora cómo se distribuyen los puntos:
 
@@ -369,6 +366,39 @@ ggtitle("Distribución. points")
 ```
 
 Observamos que la mayoría de puntos se encuentran a partir de los 750/800 puntos, y esto, tiene sentido si razonamos que para entrar a los mundiales de natación, se necesitan unas marcas mínimas (una cantidad de puntos preestablecida). Luego es normal encontrar una gran cantidad de datos que tengan más de 750 puntos ya que había un "corte" para la inscripción en la competición. Esto hace que la gráfica no esté más distribuida por todos los posibles valores de puntos.
+
+Ahora nos surge la siguiente pregunta: *¿Quién rindió mejor en los campeonatos?*. 
+
+Podemos buscar el nadador que hizo más puntos:
+
+```{r}
+datos2015[which.max(datos2015$points), ]
+```
+
+Observamos que la nadadora que cosechó más puntos en una prueba fue Katie Ledecky en los 1500 metros. Buscando, casualmente observamos que batió el récord[https://www.rtve.es/deportes/20150803/ledecky-bate-record-del-mundo-1500-libres/1193160.shtml] del mundo en dicha prueba. 
+
+Ahora, vamos a buscar al nadador que, en promedio, consiguió más puntos, podríamos denominarlo el *MVP* del Mundial Kazán 2015. Para ello: 
+
+```{r}
+#Usamos nadadoresPruebas, donde tenemos cada nadador y la prueba que realizó. 
+
+media_puntos <- aggregate(nadadoresPruebas$points ~ nadadoresPruebas$athleteid, data = nadadoresPruebas, FUN = mean)
+media_puntos <- media_puntos[order(media_puntos$`nadadoresPruebas$points`, decreasing = TRUE), ]
+media_puntos<- rename(media_puntos, "athleteid"="nadadoresPruebas$athleteid")
+media_puntos<-rename(media_puntos, "meanPoints"="nadadoresPruebas$points")
+
+media_puntos
+```
+
+El atleta con id 108588	es el que hizo más puntos, veamos quien es: 
+
+```{r}
+nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
+```
+
+Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200 braza. 
+
+(seguimos el proximo dia aquí buscando quién rindió mejor, si los chicos o las chicas.)
 
 ### Daytime
 
@@ -409,6 +439,44 @@ nadadoras800free <- nadadoras800free %>%
 
 Ahora vamos a representar cómo fue la carrera:
 
+```{r, echo=FALSE}
+mmy_theme <- function() {
+
+  # Colors
+  color.background = "white"
+  color.text = "#22211d"
+
+  # Begin construction of chart
+  theme_bw(base_size=15) +
+
+    # Format background colors
+    theme(panel.background = element_rect(fill=color.background, color=color.background)) +
+    theme(plot.background  = element_rect(fill=color.background, color=color.background)) +
+    theme(panel.border     = element_rect(color=color.background)) +
+    theme(strip.background = element_rect(fill=color.background, color=color.background)) +
+
+    # Format the grid
+    theme(panel.grid.major.y = element_blank()) +
+    theme(panel.grid.minor.y = element_blank()) +
+    theme(axis.ticks       = element_blank()) +
+
+    # Format the legend
+    theme(legend.position = "none") +
+
+    # Format title and axis labels
+    theme(plot.title       = element_text(color=color.text, size=20, face = "bold")) +
+    theme(axis.title.x     = element_text(size=14, color="black", face = "bold")) +
+    theme(axis.title.y     = element_text(size=14, color="black", face = "bold", vjust=1.25)) +
+    theme(axis.text.x      = element_text(size=10, vjust=0.5, hjust=0.5, color = color.text)) +
+    theme(axis.text.y      = element_text(size=10, color = color.text)) +
+    theme(strip.text       = element_text(face = "bold")) +
+
+    # Plot margins
+    theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm"))
+}
+```
+
+
 ```{r}
 # Ordenar los datos por tiempo
 nadadoras800free <- nadadoras800free %>%
@@ -419,11 +487,23 @@ nadadoras800free <- nadadoras800free %>%
   group_by(splitdistance) %>%
   mutate(Posicion = rank(cumswimtime, ties.method = "first"))
 
+
+
 ggplot(nadadoras800free, aes(x = splitdistance, y = Posicion, group = lastname)) +
   geom_line(aes(color = lastname, alpha = 1), size = 2) +
   geom_point(aes(color = lastname, alpha = 1), size = 4) +
   scale_y_reverse(breaks = 1:nrow(nadadoras800free))
 ```
+
+Observamos como Ledecky lidera toda la carrera, Boyle alcanza al paso de los 100 metros la segunda posición y la mantiene. La pelea por la última medalla en juego dura hasta los 700 metros, donde un adelantamiento de Carlin a Ashwood hace que la nadadora Jaz Carlin alcance el bronce olímpico.
+
+
+
+
+
+
+
+
 
 
 # PCA's
@@ -450,7 +530,12 @@ pruebawide <- prueba800libresPreliminar %>%
 pruebawide
 ```
 
-Lo tenemos!
+Ahora que ya tenemos nuestra tabla hecha, vamos a hacer el PCA: 
+
+```{r}
+
+```
+
 
 
 # ideas que me surgen:
