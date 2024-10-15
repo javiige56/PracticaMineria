@@ -387,7 +387,7 @@ media_puntos <- media_puntos[order(media_puntos$`nadadoresPruebas$points`, decre
 media_puntos<- rename(media_puntos, "athleteid"="nadadoresPruebas$athleteid")
 media_puntos<-rename(media_puntos, "meanPoints"="nadadoresPruebas$points")
 
-media_puntos
+head(media_puntos,5)
 ```
 
 El atleta con id 108588	es el que hizo más puntos, veamos quien es: 
@@ -396,9 +396,33 @@ El atleta con id 108588	es el que hizo más puntos, veamos quien es:
 nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
 ```
 
-Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200 braza. 
+Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200 braza. Veamos quiénes fueron los integrantes del podio: 
 
-(seguimos el proximo dia aquí buscando quién rindió mejor, si los chicos o las chicas.)
+```{r}
+nadadoresParticipantes[nadadoresParticipantes$athleteid==102630 | nadadoresParticipantes$athleteid==105594, ]
+```
+
+Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie Ledecky. 
+
+### Puntos. Hombres vs Mujeres
+A continuación, vamos a comparar los puntos realizados por hombres y mujeres, para ver si podemos sacar alguna conclusión. 
+
+Primeramente, vamos a ver la función de densidad:
+
+```{r}
+ggplot(nadadoresPruebas, aes(x = points, colour=gender)) +
+geom_density() +
+ggtitle("Distribución. Puntos por sexo")
+
+```
+
+A priori, parece haber dos distribuciones muy igualadas. 
+
+SEGUIR AQUÍ CON EL ESTUDIO.
+
+### Puntos. ¿La edad influye?
+Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
+
 
 ### Daytime
 
@@ -409,6 +433,7 @@ ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.5, colour="red", fill=
 ```
 
 Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
+
 
 ## Prueba 800m Libre femenino.
 
@@ -439,44 +464,6 @@ nadadoras800free <- nadadoras800free %>%
 
 Ahora vamos a representar cómo fue la carrera:
 
-```{r, echo=FALSE}
-mmy_theme <- function() {
-
-  # Colors
-  color.background = "white"
-  color.text = "#22211d"
-
-  # Begin construction of chart
-  theme_bw(base_size=15) +
-
-    # Format background colors
-    theme(panel.background = element_rect(fill=color.background, color=color.background)) +
-    theme(plot.background  = element_rect(fill=color.background, color=color.background)) +
-    theme(panel.border     = element_rect(color=color.background)) +
-    theme(strip.background = element_rect(fill=color.background, color=color.background)) +
-
-    # Format the grid
-    theme(panel.grid.major.y = element_blank()) +
-    theme(panel.grid.minor.y = element_blank()) +
-    theme(axis.ticks       = element_blank()) +
-
-    # Format the legend
-    theme(legend.position = "none") +
-
-    # Format title and axis labels
-    theme(plot.title       = element_text(color=color.text, size=20, face = "bold")) +
-    theme(axis.title.x     = element_text(size=14, color="black", face = "bold")) +
-    theme(axis.title.y     = element_text(size=14, color="black", face = "bold", vjust=1.25)) +
-    theme(axis.text.x      = element_text(size=10, vjust=0.5, hjust=0.5, color = color.text)) +
-    theme(axis.text.y      = element_text(size=10, color = color.text)) +
-    theme(strip.text       = element_text(face = "bold")) +
-
-    # Plot margins
-    theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm"))
-}
-```
-
-
 ```{r}
 # Ordenar los datos por tiempo
 nadadoras800free <- nadadoras800free %>%
@@ -497,7 +484,7 @@ ggplot(nadadoras800free, aes(x = splitdistance, y = Posicion, group = lastname))
 
 Observamos como Ledecky lidera toda la carrera, Boyle alcanza al paso de los 100 metros la segunda posición y la mantiene. La pelea por la última medalla en juego dura hasta los 700 metros, donde un adelantamiento de Carlin a Ashwood hace que la nadadora Jaz Carlin alcance el bronce olímpico.
 
-
+## Datos NA.
 
 
 
@@ -518,7 +505,7 @@ Lo primero que debemos hacer es cargar los datos:
 prueba800libresPreliminar<- datos2015[datos2015$distance==800 & datos2015$gender=="F" & datos2015$stroke=="FREE" & datos2015$round=="PRE", ]
 
 prueba800libresPreliminar <- prueba800libresPreliminar %>%
-    select(lastname,firstname,gender, reactiontime, splitdistance, splitswimtime, edad, swimtime)
+    select(reactiontime, splitdistance, splitswimtime, edad, swimtime)
 ```
 
 Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedemos con el nombre, apellido y parciales
@@ -528,21 +515,34 @@ pruebawide <- prueba800libresPreliminar %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
 pruebawide
+#omito los valores nulos: 
+pruebawide<- na.omit(pruebawide)
 ```
 
 Ahora que ya tenemos nuestra tabla hecha, vamos a hacer el PCA: 
 
 ```{r}
+prcomp(pruebawide, scale=T)
+summary(prcomp(pruebawide,scale=T))
+```
+Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza. Con pc2 un 5%, luego con esas dos podemos explicar un 90% de los datos.
 
+(aquí sacar conclusiones pero primero preguntar mañana a Carmen)
+
+Ahora, veamos cómo se ven los datos: 
+
+
+```{r}
+plot(prcomp(pruebawide,scale=T)$x[,1:2])
 ```
 
 
 
-# ideas que me surgen:
+# Tareas por hacer e ideas surgidas:
  - Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos. 
- - Ver cosas acerca del tiempo de reacción, a priori los hombres tienen mejor reactiontime.
- - Visualización de la final del 800m libres femenimo. (hecho)
- - Elaborar PCA.
+ - Ver si hay relación entre puntos y edad. 
+ - ¿Qué hacemos con los datos nulos?
+ - Sacar conclusiones del PCA.
 
 
 

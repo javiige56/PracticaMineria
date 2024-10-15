@@ -11,7 +11,7 @@
 
 <meta name="author" content="4to mates" />
 
-<meta name="date" content="2024-10-14" />
+<meta name="date" content="2024-10-16" />
 
 <title>Mundial de natación de Kazán 2015</title>
 
@@ -1499,7 +1499,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">Mundial de natación de Kazán 2015</h1>
 <h4 class="author">4to mates</h4>
-<h4 class="date">2024-10-14</h4>
+<h4 class="date">2024-10-16</h4>
 
 </div>
 
@@ -3171,9 +3171,32 @@ es:</p>
 ## 1082    1810   FIN       50          1 BREAST         26.51   20
 ## 1083    1033   PRE      200          1 BREAST         29.77   20</code></pre>
 <p>Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200
-braza.</p>
-<p>(seguimos el proximo dia aquí buscando quién rindió mejor, si los
-chicos o las chicas.)</p>
+braza. Veamos quiénes fueron los integrantes del podio:</p>
+<pre class="r"><code>nadadoresParticipantes[nadadoresParticipantes$athleteid==102630 | nadadoresParticipantes$athleteid==105594, ]</code></pre>
+<pre><code>##      athleteid      lastname firstname  birthdate gender          name code
+## 849     102630 VAN DER BURGH   CAMERON 1988-05-25      M  South Africa  RSA
+## 1046    105594       LEDECKY     KATIE 1997-03-17      F United States  USA
+##      eventid heat lane points reactiontime swimtime split cumswimtime
+## 849        6    8    5    993         0.63    58.59     1       27.11
+## 1046       5    5    4    964         0.69   241.73     1       27.79
+##      splitdistance daytime round distance relaycount stroke splitswimtime edad
+## 849             50    1134   PRE      100          1 BREAST         27.11   27
+## 1046            50    1103   PRE      400          1   FREE         27.79   18
+##      grupo_edad
+## 849    18 y más
+## 1046   18 y más</code></pre>
+<p>Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie
+Ledecky.</p>
+</div>
+<div id="puntos.-hombres-vs-mujeres" class="section level3">
+<h3>Puntos. Hombres vs Mujeres</h3>
+<p>A continuación, vamos a comparar los puntos realizados por hombres y
+mujeres, para ver si podemos sacar alguna conclusión.</p>
+</div>
+<div id="puntos.-la-edad-influye" class="section level3">
+<h3>Puntos. ¿La edad influye?</h3>
+<p>Una buena manera de medir el rendimiento con respecto a la edad del
+nadador, es verlo a través de los puntos obtenidos.</p>
 </div>
 <div id="daytime" class="section level3">
 <h3>Daytime</h3>
@@ -3230,6 +3253,9 @@ de los 100 metros la segunda posición y la mantiene. La pelea por la
 última medalla en juego dura hasta los 700 metros, donde un
 adelantamiento de Carlin a Ashwood hace que la nadadora Jaz Carlin
 alcance el bronce olímpico.</p>
+</div>
+<div id="datos-na." class="section level2">
+<h2>Datos NA.</h2>
 </div>
 </div>
 <div id="pcas" class="section level1">
