@@ -20,8 +20,6 @@ library(tidyr)
 ```
 
 # Introducción 
-hola
-
 El conjunto de datos obtenidos abarca los resultados del Campeonato Mundial de Natación Kazán 2015, con los correspondientes datos de cada nadador y prueba.
 
 Los datos han sido extraídos de [Omega](http://www.omegatiming.com/File/Download?id=00010F0200FFFFFFFFFFFFFFFFFFFF08), la plataforma oficial de tiempos de la World Aquatics.
@@ -152,6 +150,8 @@ geom_density() +
 ggtitle("Distribución. Edades.")
 ```
 
+La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años. Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez
+
 ### Géneros participantes. 
 
 Veamos el número exacto de mujeres y hombres en la competición:
@@ -203,6 +203,7 @@ chisq.test(tabla3)
 
 
 Los resultados sugieren que el género y la edad (si son menores de 18 años) están significativamente relacionados en tu conjunto de datos de nadadores. Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
+
 Veamos números,
 ```{r}
 tabla3
@@ -216,17 +217,77 @@ porcentajes <- (tabla3[2, ] / totales) * 100
 
 porcentajes
 ```
-
-
 Aproximadamente 2 de cada 10 mujeres son menores de 18 años, mientras que solamente 1 de cada 10 hombres es menor de 18 años.
 
 
+### Nacionalidades. 
+```{r}
+##YA ESTA ARREGLADO
+#installed.packages("dyplr")
+library(ggplot2)
+library(ggimage)
+library(countrycode)
+#bueno explico pa tontos como se hace 
 
-### Nacionalidades. (meter aquí el código de salma.)
+# NUESTRA TABLA ES nadadoresParticipantes
+# Agregar el código ISO de dos dígitos, DIRAS PORQUE NO USAS CODE ESQ EN R PONE QUE TIENE Q SER DE DOS ASIQ ES LO Q TOCA HAY Q CONVERTIR 
+#ASI LO PONE LA WEB 
+nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
+#UY SALTA ERROR PARECE QUE EN FINA, KOSOVO,MICRONESIA Y VIRGIN ISLAND NO SABE HACERLO
+#VEO TODOS LOS NOMBRES PA BICHEAR 
+nombres<- unique(nadadoresParticipantes$name) #NO REPETIR CLARO
+print(nombres)
 
-Veamos un resumen de los datos sobre nacionalidades:
 
 
+#nombres problemáticos
+manual <- data.frame(
+  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
+  iso2 = c("FI", "XK", "FM", "VI")  
+)
+
+
+
+# Agregar variable de continente como hace la pagina
+nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
+#vuelve a fallar
+
+
+#solo es XK(KOSOVO, Esta en europa para los catetos)
+#manualmente el continente para Kosovo (XK)
+nadadoresParticipantes <- nadadoresParticipantes %>%
+  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
+
+
+
+#nadadores por país
+resumen_paises <- nadadoresParticipantes %>%
+  group_by(name, iso2, continent) %>%
+  summarise(num_nadadores = n(), .groups = "drop") %>%
+  arrange(desc(num_nadadores))  # Ordenar por número de nadadores
+##esto esta muy guay podemos usarlo pa mas cosas ya que ya esta hecho
+resumen_paises
+
+#Crear un gráfico;metemos colores
+paleta <- c("Americas" = "#0084ff", "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", "Oceania" = "#fa3c4c")
+
+oda_bar <- resumen_paises %>% 
+  ggplot(aes(x = reorder(name, num_nadadores), y = num_nadadores, fill = continent)) + 
+  geom_flag(y = -10, aes(image = iso2), size = 0.05) +  
+  geom_bar(stat = "identity") + 
+  labs(title = "Participación de Nadadores por País",
+       subtitle = "Datos de nadadores en competiciones",
+       x = "País",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # colores personalizados
+  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Aumentar el límite superior
+  coord_flip() +  # Para hacer el gráfico horizontal
+  theme_minimal()
+
+# Imprimir el gráfico
+print(oda_bar)
+```
 
 
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
@@ -258,7 +319,8 @@ Los nadadores mayores de 18 años tienen una participación significativamente m
 La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
 La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
 
-*(no se como mirarlo solo para chicas(lo intente no me pegueis))*
+Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores. Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años). Esta diferencia podría deberse a varios factores como la disponibilidad de competiciones para adultos o la preferencia de los nadadores más experimentados por distancias clásicas. Además, se observa una tendencia de disminución en la participación a medida que las distancias aumentan. Esto es común, ya que las distancias más largas suelen requerir más resistencia, y menos personas optan por competir en estas.
+
 
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
@@ -333,14 +395,36 @@ ggtitle("Distribución. Reaction time: 800m free vs 50m free")
 
 ```
 
+El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros. Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
+La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes o outliers en los datos de tiempo de reacción.
+Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia. Esto es esperado, ya que la carrera de 50 metros es más corta y requiere reacciones más rápidas y explosivas.
+En cuanto a la de 800 metros, la curva muestra una mayor dispersión en los tiempos de reacción, con una densidad más amplia. Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde las nadadoras pueden no necesitar un tiempo de reacción tan rápido.
+
+
 Aquí también podemos hacer un test de hipótesis.
 *Podemos comparar a los chicos para ver si es cierto lo supuesto*
 
 
 ```{r}
-#he usado este aqui pero no lo veo yo muy asumible lo de normal (no se si vale bien asique no hago analisis)
 t.test(reactiontime~distance,data=nadadorasComparacionReactionTime)
 ```
+Veamos nuestros resultados del test. Por un lado tenemos el valor del estadístico t calculado, como es un valor negativo indica que la media del primer grupo (50 metros) es menor que la del segundo grupo (800 metros).El valor del p-valor (que es extremadamente bajo) indica que hay una diferencia estadísticamente significativa entre las medias de los dos grupos. 
+Los nadadores que participan en distancias más cortas (50 metros) tienen un tiempo de reacción más rápido en comparación con aquellos que nadan distancias más largas (800 metros).Luego, habiamos identificado correctamente la tendencia del gráfico, en términos estadísticos.
+
+
+A continuación, realizamos el mismo estudio pero con hombres y vemos si la situación es similar.
+
+```{r}
+nadadoresComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="M" & nadadoresPruebas$stroke=="FREE", ]
+```
+
+```{r}
+ggplot(nadadoresComparacionReactionTime, aes(x = reactiontime,group=distance)) +
+geom_density() +
+ggtitle("Distribución para Hombres. Reaction time: 800m free vs 50m free")
+
+```
+
 
 
 ### Calles usadas
@@ -353,6 +437,21 @@ theme_bw()
 ```
 
 Se observa que las calles menos usadas son tanto la 0 como la 9.
+
+
+¿Habrá alguna relación entre la calle usada y el tiempo de reacción? Todo parece indicar que no. Veámoslo.
+```{r}
+#me pareció guay este gráfico, alonso sabes interpretarlo? aupa
+
+ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
+  geom_histogram(binwidth = 0.01, alpha = 0.7, position = "identity") +
+  facet_wrap(~ lane) +  # Crear facetas por calle
+  theme_bw() +
+  labs(title = "Distribución de Tiempos de Reacción por Calle",
+       x = "Tiempo de Reacción",
+       y = "Frecuencia") +
+  scale_fill_brewer(palette = "Set1") 
+```
 
 
 
@@ -423,6 +522,24 @@ SEGUIR AQUÍ CON EL ESTUDIO.
 
 ### Puntos. ¿La edad influye?
 Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
+
+```{r}
+#QUERIA PONERLO CON COLORES Q SE VEA MEJOR EL GRAFICO DE CALOR(POR SER CREATIVOS Y TAL)
+resumen_puntos <- nadadoresPruebas %>%
+  group_by(edad, points) %>%
+  summarise(frecuencia = n(), .groups = 'drop')
+
+
+ggplot(resumen_puntos, aes(x = edad, y = points)) +
+  geom_tile(aes(fill = frecuencia), color = "white") +
+  scale_fill_gradient(low = "pink", high = "red") +  
+  theme_bw() +
+  labs(title = "Gráfico de Calor: Edades y Puntos Obtenidos",
+       x = "Edad",
+       y = "Puntos Obtenidos") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
 
 
 ### Daytime
