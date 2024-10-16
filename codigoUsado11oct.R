@@ -24,6 +24,7 @@ chisq.test(tabla1)
 tabla1<-table(nadadoresParticipantes$edad<18,nadadoresParticipantes$gender)
 tabla1
 
+hola
 
 chisq.test(tabla1)
 

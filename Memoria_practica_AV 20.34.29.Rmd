@@ -19,7 +19,8 @@ library(ggplot2)
 library(tidyr)
 ```
 
-# Introducción
+# Introducción 
+hola
 
 El conjunto de datos obtenidos abarca los resultados del Campeonato Mundial de Natación Kazán 2015, con los correspondientes datos de cada nadador y prueba.
 
