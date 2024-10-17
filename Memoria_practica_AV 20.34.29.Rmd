@@ -292,7 +292,179 @@ print(oda_bar)
 
 Como este gráfico es poco interpretable, vamos a realizar un gráfico reduciendo la dimensión, juntando en un grupo llamado 'Otros' a aquellos países con menos de 5 nadadores.
 *añadirlo*
+###ESTUDIO DE PUNTOS POR PAISES 
 Veamos el número de puntos por países
+
+##Modelo de regresión lineal para tiempo de reaccion vs tiempo
+*poner aqui todo juntos en un pairs*
+Empezamos viendo la relación lineal (que ya sabemos que será alta) entre puntos y tiempo. Es evidente que a mayor tiempo, hay menos puntos. Veámoslo
+```{r}
+nadadoresPruebas50crol<- nadadoresPruebas[nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=='FREE', ]
+t= nadadoresPruebas50crol$swimtime
+p= nadadoresPruebas50crol$points
+cor(t,p)
+#verlo pero 
+```
+Esto no es de mucho estudio, ya que es lo lógico.
+
+Veamos los puntos respecto al tiempo de reacción:
+
+```{r}
+nadadoresPruebas<- na.omit(nadadoresPruebas)
+x= nadadoresPruebas$points
+y=nadadoresPruebas$reactiontime
+```
+
+
+```{r}
+cor(x,y)
+```
+
+Parecen no estar correlacionadas el tiempo de reaccion y los puntos de manera lineal. Pero a lo mejor, en pruebas específicas , como las pruebas de distancias cortas la correlación es mayor.
+
+```{r}
+nadadoresPruebas50<- nadadoresPruebas[nadadoresPruebas$distance==50, ]
+X=nadadoresPruebas50$reactiontime
+Y=nadadoresPruebas50$points
+cor(X,Y)
+```
+Ya tenemos nuestro objetivo de estudio ya que para comenzar con la modelización estadística, debemos contextualizar el problema, definiendo objetivos y variables.
+
+Queremos investigar si existe relación entre el tiempo de reacción y puntos. Una pregunta que puede surgirnos es, ¿A mayores valores del tiempo de reacción, hay mayores valores de puntos? Luego, nuestro objetivo será saber si hay algún tipo de relación lineal, y las variables, por ende, serán tiempo de reacción y puntos.
+La variable tiempo de reacción, será nuestra variable independiente, y puntos será la variable dependiente.
+
+A continuación, procedemos a realizar una inspección gráfica simple, para identificar tendencias.
+
+```{r}
+plot(X,Y,xlab="Tiempo de reacción",ylab="Puntos")
+```
+
+```{r}
+cov(X,Y)
+```
+
+Esta covarianza, positiva y grande en valor absoluto, nos indica que hay relación negativa entre las variables(ya lo habíamos intuido pero gracias al signo lo hemos confirmado).
+
+A pesar de la confirmación, en este momento nos surge un problema, pues, la covarianza toma valores en todos los números reales, dependiendo de las magnitudes del tiempo de reacción y puntos, y de sus unidades . Por eso, calcularemos el coeficiente de correlación lineal, que se obtiene tipificando la covarianza, es decir, dividiendo la covarianza entre las desviaciones típicas muestrales (obteniendo un coeficiente entre -1 y 1)
+
+```{r}
+cor(X,Y)
+```
+
+
+De manera adicional, podemos incluir histogramas marginales en cada eje del gráfico, para ello usamos las librerías `ggplot2` y `ggExtra`.
+
+```{r}
+datos<-data.frame(x=X,y=Y)
+
+p<-ggplot(datos, aes(x = X, y = Y)) +
+  geom_point()
+#vemos la nube de puntos 
+print(p)
+#Especificamos que se añadan histogramas en los márgenes
+ggMarginal(p, type = "histogram")
+
+```
+
+Como hemos visto, si la relacion lineal es  fuerte tiene sentido querer ajustar una recta a la nube de puntos. Es decir, considerar un modelo de regresion lineal simple.
+
+La función que ajusta el modelo de regresión lineal simple en R es `lm`(con parametros B_0,B_1 y sigma^2), directamente hacemos un `summary` para que nos devuelva la información más importante, aunque realmente `lm` calcula muchas cosas: estimaciones, residuos, predicciones, etc.
+
+
+```{r}
+lm=lm(Y~X)
+summary(lm)
+```
+
+Podemos añadir la recta de regresión al gráfico usando el comando `abline`, y el objeto donde hemos guardado el ajuste de la recta, en este caso `lm4`:
+
+```{r}
+#representamos
+plot(X,Y)
+#añadimos la recta de regresion
+abline(lm)
+```
+
+Los coeficientes de la regresión estimados también están en el objeto donde hemos guardado el ajuste, en `lm`
+
+```{r}
+#generamos un vector con los coeficientes de la regresion
+coeficientes=lm$coefficients
+#comprobamos que es lo mismo que nos salía en el summary
+coeficientes
+```
+Sabemos que el valor de los puntos cuando X=0, es decir, que el tiempo de reacción sea cero, es de 1809 aproximadamente. Este parámetro no tendría sentido, pues el tiempo de reacción nunca va a ser cero.
+Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor que aumenta X, Y aumenta lo indicado.
+
+Una vez tenemos los coeficientes de la regresión estimados calculamos los residuos o errores de predicción. 
+
+```{r}
+ajuste= coeficientes[1]+coeficientes[2]*X
+
+residuos=Y-ajuste
+
+```
+
+Nos falta ver la estimación de uno de nuestros parámetros de nuestro modelo, pero sabemos que si el modelo de regresión es bueno es posible conseguir una estimación de la varianza a partir de la suma de cuadrados
+residual SSE. 
+En este caso, tenemos que las observaciones Yi provienen de diferentes poblaciones, porque tienen diferentes medias, pero con la misma varianza. Por lo tanto, el término de desviación va a estar medido por los residuos. Consideramos la suma al cuadrado de estos residuos, que sabemos que es mínima (SSE).
+Puesto que en el modelo de regresión lineal simple se estiman 2 parámetros, los grados de libertad asociados a SSE son n−2. Se define el cuadrado medio residual, MSE=s^2 , como un estimador de la varianza (sigma^2).
+
+Pero el cuadrado medio residual también está en el objeto donde hemos guardado el ajuste, en `lm4`
+
+```{r}
+s=summary(lm4)$sigma
+MSE=s^2
+MSE
+#tenemos la recta ajustada:estimamos B_0, b_1 Y sigma^2
+```
+
+Para hacer inferencias consideramos la distribución en el muestreo de ambos estimadores de B_0 y B_1. Este procedimiento requiere que tengamos en cuenta la suposición de normalidad sobre los errores.
+
+Para calcular de forma automática los intervalos de confianza sobre los parámetros, $\beta_0$ y $\beta_1$ podemos usar la función `confint` de R, dentro de esta función podemos especificar el nivel de confianza requerido:
+
+```{r}
+#recordar que los intervalos de confianza de B0 y B1 se sacan con un estadistico T-student
+round(confint(lm,level=0.98),3)
+```
+Ya sabemos el intervalo de confianza en un 98% de los parámetros de nuestro modelo. 
+
+Vamos a proceder a hacer inferencias sobre la variable respuesta, es decir, sobre los puntos. Es una manera interesante de emplear el modelo visto.
+
+El atleta con id 108588	es el que hizo más puntos, veamos quien es: 
+
+```{r}
+nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
+```
+
+Viendo esto supongamos que queremos predecir para un nuevo valor de X, es decir, el tiempo de reacción de 0,57 del nadador anterior y ver sus puntos.  Vemos como calcular con R esta predicción de forma automática:
+```{r}
+#hacerlo directamente
+new1 <- data.frame(X=0.57)
+#new1
+predict(lm,newdata=new1,se.fit=TRUE)
+#primera fila sale la esperanza de la estimacion puntual, y en la segunda sale la raiz de la varianza de la estimacion 
+
+
+```
+Según los resultados teóricos que hemos visto, esta predicción media sigue una distribución normal, con valor esperado y con varianza estimada:
+
+Justo el valor `s.predic` es el que nos devuelve la función `predict` de R, para 0.57.
+Comprobamos si es consistente con el nadador
+
+```{r}
+nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
+```
+
+
+Por tanto el intervalo de confianza al 98\% de confianza para el valor esperado de las ventas con el valor X=0.57 , es: 
+
+```{r echo=TRUE}
+#intervalos t student para el valor medio para x0
+y.hat-qt(0.99,n-2)*s.predic
+y.hat+qt(0.99,n-2)*s.predic
+```
+
 
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
 
@@ -558,6 +730,7 @@ Luego, podemos observar de manera clara que, cada día de competición constaba 
 
 
 ## Prueba 800m Libre femenino.
+VISUALIZAR TIPOS DE NADADORES VIENDO LOS PARCIALES
 
 Veamos qué nadadores nadaron el 800 libre femenino:
 
