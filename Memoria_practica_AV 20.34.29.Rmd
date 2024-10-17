@@ -99,7 +99,7 @@ Bien, ahora, visualicemos otra vez el resumen:
 summary(datos2015)
 ```
 
-Bien, ahora podemos observar muchas más cosas, observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos. Vemos también que se nadaron pruebas de espalda, braza, mariposa, crol y estilos Individual. También observamos que las pruebas las disputaron hombres y mujeres. Podemos observar tamibén que el menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
+Bien, ahora podemos observar muchas más cosas, observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos. Vemos también que se nadaron pruebas de espalda, braza, mariposa, crol y estilos Individual. También observamos que las pruebas las disputaron hombres y mujeres. Podemos observar también que el menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
 Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no nos estorben.
 
@@ -107,7 +107,7 @@ Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tant
 
 ### Edad
 
-Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada edad, ya que birthdate no nos va a dar tanto juego.
+Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada edad, ya que será más representativo que trabajar con la variable birthdate. La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial. Es decir, el 24 de Julio de 2015. 
 
 ```{r}
 datos2015$birthdate <- as.Date(datos2015$birthdate)
@@ -131,9 +131,10 @@ summary(nadadoresParticipantes$edad)
 
 Observamos que la edad máxima fue de 38 años, la media fue de 21.32 años, y el participante con menos edad fue de 10 años. Además, el 50% de los participantes estaban entre 19 y 24 años de edad.
 
-Aquí un enlace a la [noticia](https://www.rtve.es/deportes/20150807/nina-10-anos-alzain-tareq-asombra-a-natacion-mundial/1195782.shtml#:~:text=Se%20llama%20Alzain%20Tareq%2C%20tiene,estrella%20medi%C3%A1tica%20de%20la%20jornada.) sobre la joven nadadora de 10 años.
+Nos puede resultar extraño que haya un nadador de 10 años de edad. Por tanto, procedemos a contrastar la información. De esta forma, podemos ver si de verdad existe este atleta o es un dato mal tomado de nuestra base de datos. Confirmamos la información, entre otras fuentes, con esta noticia, de la cual añadimos el enlace sobre la joven nadadora de 10 años.
+[noticia](https://www.rtve.es/deportes/20150807/nina-10-anos-alzain-tareq-asombra-a-natacion-mundial/1195782.shtml#:~:text=Se%20llama%20Alzain%20Tareq%2C%20tiene,estrella%20medi%C3%A1tica%20de%20la%20jornada.) 
 
-Podríamos echar un vistazo y ver si la noticia se refiere a los datos que tenemos:
+Confirmamos mediante su nombre, apellidos y edad, que la noticia se refiere a los datos que tenemos.
 
 ```{r}
 datos_edad_10 <- datos2015[datos2015$edad == 10, ]
@@ -142,7 +143,7 @@ datos_edad_10
 
 Se trata de una nadadora de Bahrain que nadó el 50 mariposa y el 50 libres. Luego podemos concluir que es un dato atípico pero no es erróneo. 
 
-Vamos a ver cómo se distribuyen las edades. 
+De acuerdo con esta nueva variable, vemos cómo se distribuyen las edades. 
 
 ```{r}
 ggplot(nadadoresParticipantes, aes(x = edad)) +
@@ -150,7 +151,7 @@ geom_density() +
 ggtitle("Distribución. Edades.")
 ```
 
-La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años. Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez
+La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años. Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
 
 ### Géneros participantes. 
 
@@ -171,7 +172,7 @@ ggplot(nadadoresParticipantes, aes(x = edad, colour = gender)) +
 ```
 
 
-Según observamos la gráfica observamos que la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres. Esta diferencia en la distribución de edades entre los géneros puede llevarte a realizar distintos test estadísticos para confirmar si la diferencia es significativa. 
+Según observamos la gráfica observamos que la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres. Esta diferencia en la distribución de edades entre los géneros nos conduce a realizar distintos test estadísticos para confirmar si la diferencia realmente es significativa. 
 
 
 ```{r}
@@ -202,7 +203,7 @@ chisq.test(tabla3)
 ```
 
 
-Los resultados sugieren que el género y la edad (si son menores de 18 años) están significativamente relacionados en tu conjunto de datos de nadadores. Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
+Los resultados sugieren que el género y la minoría de edad si que están significativamente relacionados en nuestro conjunto de datos de nadadores. Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
 
 Veamos números,
 ```{r}
@@ -217,7 +218,7 @@ porcentajes <- (tabla3[2, ] / totales) * 100
 
 porcentajes
 ```
-Aproximadamente 2 de cada 10 mujeres son menores de 18 años, mientras que solamente 1 de cada 10 hombres es menor de 18 años.
+De esta forma, ya habiendo confirmado una diferencia significativa. Podemos ver, de manera más representativa, como existe el doble de proporción de mujeres menores de edad en comparación con los hombres. Dicho en otras palabras, 2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres.
 
 
 ### Nacionalidades. 
@@ -290,12 +291,136 @@ oda_bar <- resumen_paises %>%
 print(oda_bar)
 ```
 
-Como este gráfico es poco interpretable, vamos a realizar un gráfico reduciendo la dimensión, juntando en un grupo llamado 'Otros' a aquellos países con menos de 5 nadadores.
+
+Vemos también este mismo gráfico, pero separando los países por continentes.
+
+
+```{r}
+paleta <- c("Americas" = "#0084ff", 
+            "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", 
+            "Oceania" = "#fa3c4c")
+
+oda_bar1 <- resumen_paises %>% 
+  ggplot(aes(x = reorder(name, num_nadadores), 
+             y = num_nadadores, 
+             fill = continent)) + 
+  geom_flag(y = -10, aes(image = iso2), size = 0.05) +  
+  geom_bar(stat = "identity") + 
+  labs(title = "Participación de Nadadores por País",
+       subtitle = "Datos de nadadores en competiciones",
+       x = "País",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # Colores personalizados
+  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Ajustar el límite superior
+  coord_flip() +  # Gráfico horizontal
+  theme_minimal() +
+  facet_wrap(~ continent, scales = "free_y")  # Separar por continentes
+
+# Imprimir el gráfico
+print(oda_bar1)
+
+```
+
+Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países. 
+Por ello, realizaremos un gráfico reduciendo la dimensión, juntando en un grupo llamado 'Otros' a aquellos países con menos de 10 nadadores.
 *añadirlo*
+
+
+```{r}
+paleta <- c("Americas" = "#0084ff", 
+            "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", 
+            "Oceania" = "#fa3c4c", 
+            "Otros" = "#d3d3d3")  # Color para 'Otros'
+
+
+
+# Crear una nueva columna que agrupe países con menos de 10 nadadores en "Otros"
+resumen_paises <- resumen_paises %>%
+  mutate(name_group = ifelse(num_nadadores < 10, "Otros", name))
+
+# Crear el gráfico
+oda_bar3 <- resumen_paises %>% 
+  ggplot(aes(x = reorder(name_group, num_nadadores), 
+             y = num_nadadores, 
+             fill = continent)) + 
+  geom_flag(y = -10, aes(image = iso2), size = 0.05, 
+            data = subset(resumen_paises, name_group != "Otros")) +  # Solo poner banderas a países específicos
+  geom_bar(stat = "identity") + 
+  labs(title = "Participación de Nadadores por País",
+       subtitle = "Países con menos de 10 nadadores agrupados en 'Otros'",
+       x = "País",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # Colores personalizados
+  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Ajustar el límite superior
+  coord_flip() +  # Gráfico horizontal
+  theme_minimal()
+
+# Imprimir el gráfico
+print(oda_bar3)
+
+```
+```{r}
+paleta <- c("Americas" = "#0084ff", 
+            "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", 
+            "Oceania" = "#fa3c4c")
+
+# Crear el histograma de cantidad de nadadores por continente
+histograma_nadadores <- resumen_paises %>% 
+  ggplot(aes(x = continent, y = num_nadadores, fill = continent)) + 
+  geom_bar(stat = "identity") +  # Sumar cantidad de nadadores por continente
+  labs(title = "Cantidad de Nadadores por Continente",
+       x = "Continente",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # Colores personalizados por continente
+  theme_minimal()
+
+# Imprimir el histograma
+print(histograma_nadadores)
+
+```
+Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía. 
+Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking. Es decir, si existe una correlación entre el origen y los puestos clasificatorios de mayor nivel. 
+
+LO DE ABAJO DA ERROR, HAY Q MIRAR PERO ESTARIA GUAY PA VER SI DONDE HAY MUCHOS NADADORES GANAN (COMO DEBERIA SER) O SI GANAN EN SITIOS DONDE HAY POKITOS :)))
+```{r}
+# Instalar el paquete si no lo tienes
+# install.packages("countrycode")
+
+library(countrycode)
+
+# Añadir columna de continentes según el país
+nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$pais, "country.name", "continent")
+
+# Agrupar por continente y calcular la correlación de puntuaciones
+correlacion_continentes <- nadadoresParticipantes %>%
+  group_by(continent) %>%
+  summarise(correlacion = cor(points, use = "complete.obs"))
+
+print(correlacion_continentes)
+
+# Crear un gráfico de dispersión de puntuaciones por continente
+ggplot(nadadoresParticipantes, aes(x = continent, y = puntos, color = continent)) +
+  geom_jitter(width = 0.2, height = 0, size = 3, alpha = 0.6) +  # Para visualizar mejor
+  labs(title = "Distribución de Puntuaciones por Continente",
+       x = "Continente",
+       y = "Puntuaciones") +
+  theme_minimal()
+
+
+```
+
+
 ###ESTUDIO DE PUNTOS POR PAISES 
 Veamos el número de puntos por países
 
 ##Modelo de regresión lineal para tiempo de reaccion vs tiempo
+```{r}
+pairs(nadadoresPruebas$points,splitswimtime)
+```
+
 *poner aqui todo juntos en un pairs*
 Empezamos viendo la relación lineal (que ya sabemos que será alta) entre puntos y tiempo. Es evidente que a mayor tiempo, hay menos puntos. Veámoslo
 ```{r}
