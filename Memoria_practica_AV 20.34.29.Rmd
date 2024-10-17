@@ -221,6 +221,7 @@ Aproximadamente 2 de cada 10 mujeres son menores de 18 años, mientras que solam
 
 
 ### Nacionalidades. 
+Vamos a ver la cantidad de nadadores por país.
 ```{r}
 ##YA ESTA ARREGLADO
 #installed.packages("dyplr")
@@ -289,6 +290,9 @@ oda_bar <- resumen_paises %>%
 print(oda_bar)
 ```
 
+Como este gráfico es poco interpretable, vamos a realizar un gráfico reduciendo la dimensión, juntando en un grupo llamado 'Otros' a aquellos países con menos de 5 nadadores.
+*añadirlo*
+Veamos el número de puntos por países
 
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
 
@@ -529,7 +533,7 @@ resumen_puntos <- nadadoresPruebas %>%
   group_by(edad, points) %>%
   summarise(frecuencia = n(), .groups = 'drop')
 
-
+# Crear el gráfico de calor
 ggplot(resumen_puntos, aes(x = edad, y = points)) +
   geom_tile(aes(fill = frecuencia), color = "white") +
   scale_fill_gradient(low = "pink", high = "red") +  
@@ -676,7 +680,7 @@ kmedias
  - Sacar conclusiones del PCA.
  - Hacer el clustering.
  - Hacer un pca del 100 braza masculino y clustering
- - Hacer un pca del 50 mariposa masculino y clustering
-  
+ - Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCA)
+ -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
   
   
