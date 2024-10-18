@@ -410,7 +410,7 @@ nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "co
 
 ```
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ? (javi)
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
@@ -985,8 +985,8 @@ kmedias
  - ¿Qué hacemos con los datos nulos?
  - Sacar conclusiones del PCA.
  - Hacer el clustering.
- - Hacer un pca del 100 braza masculino y clustering
+ - Hacer un pca del 100 braza masculino y clustering (Javi)
  - Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCA)
- -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
+ -EDA el grafico de paises en vez de por numero de personas, el numero de puntos (Javi)
   
   
