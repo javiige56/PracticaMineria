@@ -1,6 +1,5 @@
 
 
-
 boxplot(nadadoresParticipantes$edad)
 summary(boxplot(nadadoresParticipantes$edad))
 summary(nadadoresParticipantes$edad)
@@ -134,6 +133,7 @@ print(oda_bar)
 
 
 #Como tal se podria reducir y mejorar el gráfico para que sea más interpretable
+
 
 
 

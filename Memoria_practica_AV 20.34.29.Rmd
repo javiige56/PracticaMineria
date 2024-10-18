@@ -17,6 +17,8 @@ library(dplyr)
 library(rstatix)
 library(ggplot2)
 library(tidyr)
+library(ggimage)
+library(countrycode)
 ```
 
 # Introducción 
@@ -224,12 +226,9 @@ De esta forma, ya habiendo confirmado una diferencia significativa. Podemos ver,
 ### Nacionalidades. 
 Vamos a ver la cantidad de nadadores por país.
 ```{r}
-##YA ESTA ARREGLADO
-#installed.packages("dyplr")
 library(ggplot2)
 library(ggimage)
 library(countrycode)
-#bueno explico pa tontos como se hace 
 
 # NUESTRA TABLA ES nadadoresParticipantes
 # Agregar el código ISO de dos dígitos, DIRAS PORQUE NO USAS CODE ESQ EN R PONE QUE TIENE Q SER DE DOS ASIQ ES LO Q TOCA HAY Q CONVERTIR 
@@ -386,13 +385,8 @@ Nos preguntamos en esta situación, si los Europeos tendrán los puestos más al
 
 LO DE ABAJO DA ERROR, HAY Q MIRAR PERO ESTARIA GUAY PA VER SI DONDE HAY MUCHOS NADADORES GANAN (COMO DEBERIA SER) O SI GANAN EN SITIOS DONDE HAY POKITOS :)))
 ```{r}
-# Instalar el paquete si no lo tienes
-# install.packages("countrycode")
-
-library(countrycode)
-
 # Añadir columna de continentes según el país
-nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$pais, "country.name", "continent")
+nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "country.name", "continent")
 
 # Agrupar por continente y calcular la correlación de puntuaciones
 correlacion_continentes <- nadadoresParticipantes %>%
@@ -412,11 +406,277 @@ ggplot(nadadoresParticipantes, aes(x = continent, y = puntos, color = continent)
 
 ```
 
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
 
-###ESTUDIO DE PUNTOS POR PAISES 
+```{r}
+#Crear una nueva columna para clasificar por edad
+nadadoresParticipantes <- nadadoresParticipantes %>%
+  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
+
+#Resumir el número de participantes en cada prueba por grupo de edad(CODIGO DE GOOGLE)
+resumen_pruebas <- nadadoresParticipantes %>%
+  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
+  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
+  ungroup() %>%  # Quitar agrupación
+  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
+
+# Mostrar el resumen
+resumen_pruebas
+
+```
+
+Tenemos la distancia de 100 metros, con 405 participantes. Es la distancia más popular entre los nadadores mayores de 18 años. Le sigue la distancia de 209 participantes, la de 200 metros.
+200 metros: Con 209 participantes, sigue siendo una distancia muy popular.
+La participación disminuye considerablemente en distancias más largas, como 1500 metros con solo 13 participantes.
+Para los menores de 18 años tenemos carreras de 100 metros con 75 participantes, esta es la distancia más frecuentada, aunque significativamente menos que el grupo de 18 años o más.
+La participación en distancias más largas, como 400 metros, es aún más baja, con solo 19 participantes.
+
+Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
+La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
+La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
+
+Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores. Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años). Esta diferencia podría deberse a varios factores como la disponibilidad de competiciones para adultos o la preferencia de los nadadores más experimentados por distancias clásicas. Además, se observa una tendencia de disminución en la participación a medida que las distancias aumentan. Esto es común, ya que las distancias más largas suelen requerir más resistencia, y menos personas optan por competir en estas.
+
+
+
+## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
+
+Primeramente, vamos a elaborar una tabla que refleje nadadores y pruebas nadadas (lo único que vamos a desechar son los parciales (filas) en caso de que la prueba sea de más de 50 metros.)
+
+Para ello, primeramente debemos saber si cada prueba y cada tipo de prueba (preliminar, final o seminifinal), tiene un id de evento distinto, para ello seleccionamos algún nadador que haya nadado en la misma prueba varias rondas:
+
+```{r}
+ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2015$code=="AUS", ]
+head(ejemplo,6)
+```
+
+Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio:
+
+```{r}
+nadadoresPruebas <- datos2015 %>%
+  distinct(eventid, athleteid, .keep_all = TRUE)
+
+```
+
+Los datos creados, reflejan nadadores y pruebas nadadas.
+
+### Tiempo de reacción. Hombres vs Mujeres
+
+Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores:
+
+```{r}
+ggplot(nadadoresPruebas, aes(x = reactiontime)) +
+geom_density() +
+ggtitle("Distribución. reactiontime")
+
+```
+
+Parece que los datos siguen una distribución normal a priori. Vamos a ir más alla para intentar sacar conclusiones más profundas.
+
+Vamos a comparar a comparar las funciones de densidad de chicos y chicas en general:
+
+```{r message=FALSE, warning=FALSE}
+ggplot(nadadoresPruebas, aes(x=reactiontime, colour=gender))+
+geom_density()+
+  ggtitle("Distribución. Hombres vs Mujeres")
+```
+
+De esta gráfica nos surgen muchas preguntas, vamos a analizar esto más a fondo. Hagamos un test de hipótesis donde: 
+
+* H0: El tiempo de reacción es igual en mujeres y hombres.
+* H1: El tiempo de reacción es menor en hombres que en mujeres.
+
+
+```{r}
+t.test(reactiontime~gender,data=nadadoresParticipantes)
+```
+De manera similar a antes, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
+Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevanciaa la hora de los resultados finales. Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente? 
+No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el d de Cohen). Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
+
+### Tiempo de reacción. Distancias largas vs distancias cortas.
+
+Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 800m libres y 50m libres:
+
+Primeramente calculamos el conjunto de datos:
+
+```{r}
+nadadorasComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="F" & nadadoresPruebas$stroke=="FREE", ]
+```
+
+```{r}
+ggplot(nadadorasComparacionReactionTime, aes(x = reactiontime,group=distance)) +
+geom_density() +
+ggtitle("Distribución. Reaction time: 800m free vs 50m free")
+
+```
+
+El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros. Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
+La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes o outliers en los datos de tiempo de reacción.
+Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia. Esto es esperado, ya que la carrera de 50 metros es más corta y requiere reacciones más rápidas y explosivas.
+En cuanto a la de 800 metros, la curva muestra una mayor dispersión en los tiempos de reacción, con una densidad más amplia. Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde las nadadoras pueden no necesitar un tiempo de reacción tan rápido.
+
+
+Aquí también podemos hacer un test de hipótesis.
+*Podemos comparar a los chicos para ver si es cierto lo supuesto*
+
+
+```{r}
+t.test(reactiontime~distance,data=nadadorasComparacionReactionTime)
+```
+Veamos nuestros resultados del test. Por un lado tenemos el valor del estadístico t calculado, como es un valor negativo indica que la media del primer grupo (50 metros) es menor que la del segundo grupo (800 metros).El valor del p-valor (que es extremadamente bajo) indica que hay una diferencia estadísticamente significativa entre las medias de los dos grupos. 
+Los nadadores que participan en distancias más cortas (50 metros) tienen un tiempo de reacción más rápido en comparación con aquellos que nadan distancias más largas (800 metros).Luego, habiamos identificado correctamente la tendencia del gráfico, en términos estadísticos.
+
+
+A continuación, realizamos el mismo estudio pero con hombres y vemos si la situación es similar.
+
+```{r}
+nadadoresComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="M" & nadadoresPruebas$stroke=="FREE", ]
+```
+
+```{r}
+ggplot(nadadoresComparacionReactionTime, aes(x = reactiontime,group=distance)) +
+geom_density() +
+ggtitle("Distribución para Hombres. Reaction time: 800m free vs 50m free")
+
+```
+
+
+
+### Calles usadas
+
+Veamos cómo se distribuyen las calles usadas:
+
+```{r}
+ggplot(nadadoresPruebas, aes(nadadoresPruebas$lane)) + geom_bar(fill = "orange") +
+theme_bw()
+```
+
+Se observa que las calles menos usadas son tanto la 0 como la 9.
+
+
+¿Habrá alguna relación entre la calle usada y el tiempo de reacción? Todo parece indicar que no. Veámoslo.
+```{r}
+#me pareció guay este gráfico, alonso sabes interpretarlo? aupa
+
+ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
+  geom_histogram(binwidth = 0.01, alpha = 0.7, position = "identity") +
+  facet_wrap(~ lane) +  # Crear facetas por calle
+  theme_bw() +
+  labs(title = "Distribución de Tiempos de Reacción por Calle",
+       x = "Tiempo de Reacción",
+       y = "Frecuencia") +
+  scale_fill_brewer(palette = "Set1") 
+```
+
+
+
+### Daytime
+
+Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
+
+```{r}
+ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.5, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
+```
+
+Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
+
+
+##Estudios relacionados con los puntos. ´
+
+Veamos las posibles relaciones de puntos con las demás variables:
+
+### Mejor nadador por prueba nadada. MVP de los mundiales.
+
+Veamos ahora cómo se distribuyen los puntos:
+
+```{r}
+ggplot(nadadoresPruebas, aes(x = points)) +
+geom_density() +
+ggtitle("Distribución. points")
+```
+
+Observamos que la mayoría de puntos se encuentran a partir de los 750/800 puntos, y esto, tiene sentido si razonamos que para entrar a los mundiales de natación, se necesitan unas marcas mínimas (una cantidad de puntos preestablecida). Luego es normal encontrar una gran cantidad de datos que tengan más de 750 puntos ya que había un "corte" para la inscripción en la competición. Esto hace que la gráfica no esté más distribuida por todos los posibles valores de puntos.
+
+Ahora nos surge la siguiente pregunta: *¿Quién rindió mejor en los campeonatos?*. 
+
+Podemos buscar el nadador que hizo más puntos:
+
+```{r}
+datos2015[which.max(datos2015$points), ]
+```
+
+Observamos que la nadadora que cosechó más puntos en una prueba fue Katie Ledecky en los 1500 metros. Buscando, casualmente observamos que batió el récord[https://www.rtve.es/deportes/20150803/ledecky-bate-record-del-mundo-1500-libres/1193160.shtml] del mundo en dicha prueba. 
+
+Ahora, vamos a buscar al nadador que, en promedio, consiguió más puntos, podríamos denominarlo el *MVP* del Mundial Kazán 2015. Para ello: 
+
+```{r}
+#Usamos nadadoresPruebas, donde tenemos cada nadador y la prueba que realizó. 
+
+media_puntos <- aggregate(nadadoresPruebas$points ~ nadadoresPruebas$athleteid, data = nadadoresPruebas, FUN = mean)
+media_puntos <- media_puntos[order(media_puntos$`nadadoresPruebas$points`, decreasing = TRUE), ]
+media_puntos<- rename(media_puntos, "athleteid"="nadadoresPruebas$athleteid")
+media_puntos<-rename(media_puntos, "meanPoints"="nadadoresPruebas$points")
+
+head(media_puntos,5)
+```
+
+El atleta con id 108588	es el que hizo más puntos, veamos quien es: 
+
+```{r}
+nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
+```
+
+Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200 braza. Veamos quiénes fueron los integrantes del podio: 
+
+```{r}
+nadadoresParticipantes[nadadoresParticipantes$athleteid==102630 | nadadoresParticipantes$athleteid==105594, ]
+```
+
+Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie Ledecky. 
+
+### Puntos. Hombres vs Mujeres
+A continuación, vamos a comparar los puntos realizados por hombres y mujeres, para ver si podemos sacar alguna conclusión. 
+
+Primeramente, vamos a ver la función de densidad:
+
+```{r}
+ggplot(nadadoresPruebas, aes(x = points, colour=gender)) +
+geom_density() +
+ggtitle("Distribución. Puntos por sexo")
+
+```
+
+A priori, parece haber dos distribuciones muy igualadas. 
+
+SEGUIR AQUÍ CON EL ESTUDIO.
+
+### Puntos. ¿La edad influye?
+Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
+
+```{r}
+#QUERIA PONERLO CON COLORES Q SE VEA MEJOR EL GRAFICO DE CALOR(POR SER CREATIVOS Y TAL)
+resumen_puntos <- nadadoresPruebas %>%
+  group_by(edad, points) %>%
+  summarise(frecuencia = n(), .groups = 'drop')
+
+# Crear el gráfico de calor
+ggplot(resumen_puntos, aes(x = edad, y = points)) +
+  geom_tile(aes(fill = frecuencia), color = "white") +
+  scale_fill_gradient(low = "pink", high = "red") +  
+  theme_bw() +
+  labs(title = "Gráfico de Calor: Edades y Puntos Obtenidos",
+       x = "Edad",
+       y = "Puntos Obtenidos") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
+
+
+###Estudio de puntos por país. 
 Veamos el número de puntos por países
 
-##Modelo de regresión lineal para tiempo de reaccion vs tiempo
+###Modelo de regresión lineal para tiempo de reaccion vs tiempo
 ```{r}
 pairs(nadadoresPruebas$points,splitswimtime)
 ```
@@ -591,267 +851,6 @@ y.hat+qt(0.99,n-2)*s.predic
 ```
 
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
-
-```{r}
-#Crear una nueva columna para clasificar por edad
-nadadoresParticipantes <- nadadoresParticipantes %>%
-  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
-
-#Resumir el número de participantes en cada prueba por grupo de edad(CODIGO DE GOOGLE)
-resumen_pruebas <- nadadoresParticipantes %>%
-  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
-  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
-  ungroup() %>%  # Quitar agrupación
-  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
-
-# Mostrar el resumen
-resumen_pruebas
-
-```
-
-Tenemos la distancia de 100 metros, con 405 participantes. Es la distancia más popular entre los nadadores mayores de 18 años. Le sigue la distancia de 209 participantes, la de 200 metros.
-200 metros: Con 209 participantes, sigue siendo una distancia muy popular.
-La participación disminuye considerablemente en distancias más largas, como 1500 metros con solo 13 participantes.
-Para los menores de 18 años tenemos carreras de 100 metros con 75 participantes, esta es la distancia más frecuentada, aunque significativamente menos que el grupo de 18 años o más.
-La participación en distancias más largas, como 400 metros, es aún más baja, con solo 19 participantes.
-
-Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
-La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
-La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
-
-Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores. Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años). Esta diferencia podría deberse a varios factores como la disponibilidad de competiciones para adultos o la preferencia de los nadadores más experimentados por distancias clásicas. Además, se observa una tendencia de disminución en la participación a medida que las distancias aumentan. Esto es común, ya que las distancias más largas suelen requerir más resistencia, y menos personas optan por competir en estas.
-
-
-
-## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
-
-Primeramente, vamos a elaborar una tabla que refleje nadadores y pruebas nadadas (lo único que vamos a desechar son los parciales (filas) en caso de que la prueba sea de más de 50 metros.)
-
-Para ello, primeramente debemos saber si cada prueba y cada tipo de prueba (preliminar, final o seminifinal), tiene un id de evento distinto, para ello seleccionamos algún nadador que haya nadado en la misma prueba varias rondas:
-
-```{r}
-ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2015$code=="AUS", ]
-head(ejemplo,6)
-```
-
-Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio:
-
-```{r}
-nadadoresPruebas <- datos2015 %>%
-  distinct(eventid, athleteid, .keep_all = TRUE)
-
-```
-
-Los datos creados, reflejan nadadores y pruebas nadadas.
-
-### Tiempo de reacción. Hombres vs Mujeres
-
-Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores:
-
-```{r}
-ggplot(nadadoresPruebas, aes(x = reactiontime)) +
-geom_density() +
-ggtitle("Distribución. reactiontime")
-
-```
-
-Parece que los datos siguen una distribución normal a priori. Vamos a ir más alla para intentar sacar conclusiones más profundas.
-
-Vamos a comparar a comparar las funciones de densidad de chicos y chicas en general:
-
-```{r message=FALSE, warning=FALSE}
-ggplot(nadadoresPruebas, aes(x=reactiontime, colour=gender))+
-geom_density()+
-  ggtitle("Distribución. Hombres vs Mujeres")
-```
-
-De esta gráfica nos surgen muchas preguntas, vamos a analizar esto más a fondo. Hagamos un test de hipótesis donde: 
-
-* H0: El tiempo de reacción es igual en mujeres y hombres.
-* H1: El tiempo de reacción es menor en hombres que en mujeres.
-
-
-```{r}
-t.test(reactiontime~gender,data=nadadoresParticipantes)
-```
-De manera similar a antes, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
-Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevanciaa la hora de los resultados finales. Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente? 
-No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el d de Cohen). Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
-
-### Tiempo de reacción. Distancias largas vs distancias cortas.
-
-Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 800m libres y 50m libres:
-
-Primeramente calculamos el conjunto de datos:
-
-```{r}
-nadadorasComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="F" & nadadoresPruebas$stroke=="FREE", ]
-```
-
-```{r}
-ggplot(nadadorasComparacionReactionTime, aes(x = reactiontime,group=distance)) +
-geom_density() +
-ggtitle("Distribución. Reaction time: 800m free vs 50m free")
-
-```
-
-El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros. Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
-La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes o outliers en los datos de tiempo de reacción.
-Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia. Esto es esperado, ya que la carrera de 50 metros es más corta y requiere reacciones más rápidas y explosivas.
-En cuanto a la de 800 metros, la curva muestra una mayor dispersión en los tiempos de reacción, con una densidad más amplia. Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde las nadadoras pueden no necesitar un tiempo de reacción tan rápido.
-
-
-Aquí también podemos hacer un test de hipótesis.
-*Podemos comparar a los chicos para ver si es cierto lo supuesto*
-
-
-```{r}
-t.test(reactiontime~distance,data=nadadorasComparacionReactionTime)
-```
-Veamos nuestros resultados del test. Por un lado tenemos el valor del estadístico t calculado, como es un valor negativo indica que la media del primer grupo (50 metros) es menor que la del segundo grupo (800 metros).El valor del p-valor (que es extremadamente bajo) indica que hay una diferencia estadísticamente significativa entre las medias de los dos grupos. 
-Los nadadores que participan en distancias más cortas (50 metros) tienen un tiempo de reacción más rápido en comparación con aquellos que nadan distancias más largas (800 metros).Luego, habiamos identificado correctamente la tendencia del gráfico, en términos estadísticos.
-
-
-A continuación, realizamos el mismo estudio pero con hombres y vemos si la situación es similar.
-
-```{r}
-nadadoresComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="M" & nadadoresPruebas$stroke=="FREE", ]
-```
-
-```{r}
-ggplot(nadadoresComparacionReactionTime, aes(x = reactiontime,group=distance)) +
-geom_density() +
-ggtitle("Distribución para Hombres. Reaction time: 800m free vs 50m free")
-
-```
-
-
-
-### Calles usadas
-
-Veamos cómo se distribuyen las calles usadas:
-
-```{r}
-ggplot(nadadoresPruebas, aes(nadadoresPruebas$lane)) + geom_bar(fill = "orange") +
-theme_bw()
-```
-
-Se observa que las calles menos usadas son tanto la 0 como la 9.
-
-
-¿Habrá alguna relación entre la calle usada y el tiempo de reacción? Todo parece indicar que no. Veámoslo.
-```{r}
-#me pareció guay este gráfico, alonso sabes interpretarlo? aupa
-
-ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
-  geom_histogram(binwidth = 0.01, alpha = 0.7, position = "identity") +
-  facet_wrap(~ lane) +  # Crear facetas por calle
-  theme_bw() +
-  labs(title = "Distribución de Tiempos de Reacción por Calle",
-       x = "Tiempo de Reacción",
-       y = "Frecuencia") +
-  scale_fill_brewer(palette = "Set1") 
-```
-
-
-
-### Puntos. Mejor nadador por prueba nadada. MVP de los mundiales.
-
-Veamos ahora cómo se distribuyen los puntos:
-
-```{r}
-ggplot(nadadoresPruebas, aes(x = points)) +
-geom_density() +
-ggtitle("Distribución. points")
-```
-
-Observamos que la mayoría de puntos se encuentran a partir de los 750/800 puntos, y esto, tiene sentido si razonamos que para entrar a los mundiales de natación, se necesitan unas marcas mínimas (una cantidad de puntos preestablecida). Luego es normal encontrar una gran cantidad de datos que tengan más de 750 puntos ya que había un "corte" para la inscripción en la competición. Esto hace que la gráfica no esté más distribuida por todos los posibles valores de puntos.
-
-Ahora nos surge la siguiente pregunta: *¿Quién rindió mejor en los campeonatos?*. 
-
-Podemos buscar el nadador que hizo más puntos:
-
-```{r}
-datos2015[which.max(datos2015$points), ]
-```
-
-Observamos que la nadadora que cosechó más puntos en una prueba fue Katie Ledecky en los 1500 metros. Buscando, casualmente observamos que batió el récord[https://www.rtve.es/deportes/20150803/ledecky-bate-record-del-mundo-1500-libres/1193160.shtml] del mundo en dicha prueba. 
-
-Ahora, vamos a buscar al nadador que, en promedio, consiguió más puntos, podríamos denominarlo el *MVP* del Mundial Kazán 2015. Para ello: 
-
-```{r}
-#Usamos nadadoresPruebas, donde tenemos cada nadador y la prueba que realizó. 
-
-media_puntos <- aggregate(nadadoresPruebas$points ~ nadadoresPruebas$athleteid, data = nadadoresPruebas, FUN = mean)
-media_puntos <- media_puntos[order(media_puntos$`nadadoresPruebas$points`, decreasing = TRUE), ]
-media_puntos<- rename(media_puntos, "athleteid"="nadadoresPruebas$athleteid")
-media_puntos<-rename(media_puntos, "meanPoints"="nadadoresPruebas$points")
-
-head(media_puntos,5)
-```
-
-El atleta con id 108588	es el que hizo más puntos, veamos quien es: 
-
-```{r}
-nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
-```
-
-Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200 braza. Veamos quiénes fueron los integrantes del podio: 
-
-```{r}
-nadadoresParticipantes[nadadoresParticipantes$athleteid==102630 | nadadoresParticipantes$athleteid==105594, ]
-```
-
-Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie Ledecky. 
-
-### Puntos. Hombres vs Mujeres
-A continuación, vamos a comparar los puntos realizados por hombres y mujeres, para ver si podemos sacar alguna conclusión. 
-
-Primeramente, vamos a ver la función de densidad:
-
-```{r}
-ggplot(nadadoresPruebas, aes(x = points, colour=gender)) +
-geom_density() +
-ggtitle("Distribución. Puntos por sexo")
-
-```
-
-A priori, parece haber dos distribuciones muy igualadas. 
-
-SEGUIR AQUÍ CON EL ESTUDIO.
-
-### Puntos. ¿La edad influye?
-Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
-
-```{r}
-#QUERIA PONERLO CON COLORES Q SE VEA MEJOR EL GRAFICO DE CALOR(POR SER CREATIVOS Y TAL)
-resumen_puntos <- nadadoresPruebas %>%
-  group_by(edad, points) %>%
-  summarise(frecuencia = n(), .groups = 'drop')
-
-# Crear el gráfico de calor
-ggplot(resumen_puntos, aes(x = edad, y = points)) +
-  geom_tile(aes(fill = frecuencia), color = "white") +
-  scale_fill_gradient(low = "pink", high = "red") +  
-  theme_bw() +
-  labs(title = "Gráfico de Calor: Edades y Puntos Obtenidos",
-       x = "Edad",
-       y = "Puntos Obtenidos") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank())
-```
-
-
-### Daytime
-
-Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
-
-```{r}
-ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.5, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
-```
-
-Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
 
 
 ## Prueba 800m Libre femenino.
