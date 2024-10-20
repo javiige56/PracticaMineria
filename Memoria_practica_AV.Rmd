@@ -986,7 +986,7 @@ kmedias
  - Sacar conclusiones del PCA.
  - Hacer el clustering.
  - Hacer un pca del 100 braza masculino y clustering (Javi)
- - Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCA)
- -EDA el grafico de paises en vez de por numero de personas, el numero de puntos (Javi)
+ - Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCA) y sacar conclusiones
+ -EDA el grafico de paises en vez de por numero de personas, el numero de puntos (Javi) 
   
   
