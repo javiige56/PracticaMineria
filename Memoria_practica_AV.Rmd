@@ -410,7 +410,45 @@ nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "co
 
 ```
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ? (javi)
+
+Vamos a ver los puntos según las nacionalidades de los nadadores, que parece ser más informativo, en esta sección
+```{r}
+puntos_por_pais <- nadadoresParticipantes %>%
+  group_by(name) %>%  
+  summarise(total_puntos = sum(points, na.rm = TRUE))  
+
+# Ver el resultado
+print(puntos_por_pais)
+
+```
+```{r}
+#Graficar los puntos por país
+ggplot(puntos_por_pais, aes(x = reorder(name, total_puntos), y = total_puntos)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Total de Puntos por País", x = "País", y = "Total de Puntos") +
+  coord_flip() +  # Voltear el gráfico para una mejor visualización
+  theme_minimal()
+
+```
+
+De la misma manera que nos ocurría antes, este gráfico es poco interpretativo. Lo vemos por continentes:
+```{r}
+puntos_por_continente <- nadadoresParticipantes %>%
+  group_by(continent) %>%  #agrupar por continente
+  summarise(total_puntos = sum(points, na.rm = TRUE))  #Sumar puntos por continente
+
+print(puntos_por_continente)
+```
+```{r}
+#Graficar los puntos por continente
+ggplot(puntos_por_continente, aes(x = reorder(continent, total_puntos), y = total_puntos, fill = continent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Total de Puntos por Continente", x = "Continente", y = "Total de Puntos") +
+  coord_flip() + 
+  theme_minimal()
+```
+
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
@@ -789,75 +827,6 @@ coeficientes
 Sabemos que el valor de los puntos cuando X=0, es decir, que el tiempo de reacción sea cero, es de 1809 aproximadamente. Este parámetro no tendría sentido, pues el tiempo de reacción nunca va a ser cero.
 Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor que aumenta X, Y aumenta lo indicado.
 
-Una vez tenemos los coeficientes de la regresión estimados calculamos los residuos o errores de predicción. 
-
-```{r}
-ajuste= coeficientes[1]+coeficientes[2]*X
-
-residuos=Y-ajuste
-
-```
-
-Nos falta ver la estimación de uno de nuestros parámetros de nuestro modelo, pero sabemos que si el modelo de regresión es bueno es posible conseguir una estimación de la varianza a partir de la suma de cuadrados
-residual SSE. 
-En este caso, tenemos que las observaciones Yi provienen de diferentes poblaciones, porque tienen diferentes medias, pero con la misma varianza. Por lo tanto, el término de desviación va a estar medido por los residuos. Consideramos la suma al cuadrado de estos residuos, que sabemos que es mínima (SSE).
-Puesto que en el modelo de regresión lineal simple se estiman 2 parámetros, los grados de libertad asociados a SSE son n−2. Se define el cuadrado medio residual, MSE=s^2 , como un estimador de la varianza (sigma^2).
-
-Pero el cuadrado medio residual también está en el objeto donde hemos guardado el ajuste, en `lm4`
-
-```{r}
-s=summary(lm)$sigma
-MSE=s^2
-MSE
-#tenemos la recta ajustada:estimamos B_0, b_1 Y sigma^2
-```
-
-Para hacer inferencias consideramos la distribución en el muestreo de ambos estimadores de B_0 y B_1. Este procedimiento requiere que tengamos en cuenta la suposición de normalidad sobre los errores.
-
-Para calcular de forma automática los intervalos de confianza sobre los parámetros, $\beta_0$ y $\beta_1$ podemos usar la función `confint` de R, dentro de esta función podemos especificar el nivel de confianza requerido:
-
-```{r}
-#recordar que los intervalos de confianza de B0 y B1 se sacan con un estadistico T-student
-round(confint(lm,level=0.98),3)
-```
-Ya sabemos el intervalo de confianza en un 98% de los parámetros de nuestro modelo. 
-
-Vamos a proceder a hacer inferencias sobre la variable respuesta, es decir, sobre los puntos. Es una manera interesante de emplear el modelo visto.
-
-El atleta con id 108588	es el que hizo más puntos, veamos quien es: 
-
-```{r}
-nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
-```
-
-Viendo esto supongamos que queremos predecir para un nuevo valor de X, es decir, el tiempo de reacción de 0,57 del nadador anterior y ver sus puntos.  Vemos como calcular con R esta predicción de forma automática:
-```{r}
-#hacerlo directamente
-new1 <- data.frame(X=0.57)
-#new1
-predict(lm,newdata=new1,se.fit=TRUE)
-#primera fila sale la esperanza de la estimacion puntual, y en la segunda sale la raiz de la varianza de la estimacion 
-
-
-```
-Según los resultados teóricos que hemos visto, esta predicción media sigue una distribución normal, con valor esperado y con varianza estimada:
-
-Justo el valor `s.predic` es el que nos devuelve la función `predict` de R, para 0.57.
-Comprobamos si es consistente con el nadador
-
-```{r}
-nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
-```
-
-
-Por tanto el intervalo de confianza al 98\% de confianza para el valor esperado de las ventas con el valor X=0.57 , es: 
-
-```{r echo=TRUE}
-#intervalos t student para el valor medio para x0
-#y.hat-qt(0.99,n-2)*s.predic
-#y.hat+qt(0.99,n-2)*s.predic
-```
-
 
 
 
@@ -978,15 +947,47 @@ kmedias
 ```
 
 
+## PCA. 50 mariposa masculino
+Cargamos los datos:
 
+```{r}
+prueba50MariposaMasc<- datos2015[datos2015$distance==50 & datos2015$gender=="M" & datos2015$stroke=="FLY", ]
+
+prueba50MariposaMasc <- prueba50MariposaMasc %>%
+    dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad, swimtime)
+```
+
+De manera análoga, creamos una tabla en la que nos quedamos con el nombre, apellido y parciales
+
+```{r}
+pruebita <- prueba50MariposaMasc %>%
+  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
+              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+pruebita
+#omito los valores nulos: 
+pruebita<- na.omit(pruebawide)
+```
+
+Hacemos el PCA: 
+
+```{r}
+prcomp(pruebita[,-1], scale=T)
+summary(prcomp(pruebita[,-1],scale=T))
+```
+Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza. Con PC2 un 5%.Con esas dos podemos explicar un 90% de los datos.
+
+
+```{r}
+plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
+```
 # Tareas por hacer e ideas surgidas:
  - Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos. 
  - Ver si hay relación entre puntos y edad. 
  - ¿Qué hacemos con los datos nulos?
  - Sacar conclusiones del PCA.
  - Hacer el clustering.
- - Hacer un pca del 100 braza masculino y clustering (Javi)
- - Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCA) y sacar conclusiones
- -EDA el grafico de paises en vez de por numero de personas, el numero de puntos (Javi) 
+ - Hacer un pca del 100 braza masculino y clustering
+ - Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho)
+ -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
   
   
