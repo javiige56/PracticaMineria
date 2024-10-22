@@ -8,6 +8,9 @@ output:
     toc: yes
     toc_float:
       collapsed: true
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
 ```{r setup, include=FALSE}
@@ -22,14 +25,15 @@ library(countrycode)
 library(ggExtra)
 ```
 
-# Introducción 
-El conjunto de datos obtenidos abarca los resultados del Campeonato Mundial de Natación Kazán 2015, con los correspondientes datos de cada nadador y prueba.
+# Introducción
 
+¿Con qué datos vamos a tratar?
+
+El conjunto de datos consiste en los resultados del Campeonato Mundial de Natación Kazán del año 2015, con los correspondientes datos de cada nadador y prueba.
 Los datos han sido extraídos de [Omega](http://www.omegatiming.com/File/Download?id=00010F0200FFFFFFFFFFFFFFFFFFFF08), la plataforma oficial de tiempos de la World Aquatics.
-
 El conjunto de datos contiene información sobre los nadadores (fecha de nacimiento, país, id), y sobre la prueba nadada (tiempo de reacción, parciales, tiempo total, estilo, serie).
 
-Según la descripción oficial de los datos, las variables que conforman el conjunto de datos son:
+Las variables o atributos que conforman el conjunto de datos son:
 
 -   athleteid: id del nadador (único)
 -   lastname: Apellidos del nadador
@@ -68,7 +72,7 @@ Una vez nuestro programa los ha leído, vamos a echar nuestro primer vistazo:
 dim(datos2015)
 ```
 
-Tenemos en total 11423 filas y 22 variables o columnas.
+Las dimensiones de la tabla son 11423 filas y 22 variables o columnas.
 
 Veámos la primera ocurrencia de nuestra tabla:
 
@@ -76,7 +80,9 @@ Veámos la primera ocurrencia de nuestra tabla:
 head(datos2015,1)
 ```
 
-Observamos Noel Borshi, nadadora albanesa nacida un 13 de febrero de 1996, que tiene como id el número (100784). Noel Borshi nadó la prueba 1 en la serie 1 y carril 4. Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65s y pasó por el primer parcial (50m) en 29.63 segundos.
+Observamos Noel Borshi, nadadora albanesa nacida un 13 de febrero de 1996, que tiene como id el número (100784).
+Noel Borshi nadó la prueba 1 en la serie 1 y carril 4.
+Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65s y pasó por el primer parcial (50m) en 29.63 segundos.
 
 # Análisis exploratorio de datos
 
@@ -88,7 +94,9 @@ A continuación, vamos a ver un resumen de los datos:
 summary(datos2015)
 ```
 
-De aquí, podemos obsevar que tenemos algunos valores nulos (NA's), además se puede observar que, durante toda la competición, como máximo hubo 12 series y como mínimo 1. Que la piscina disponía de 10 carriles numerados del 0 al 9. También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
+De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, como máximo hubo 12 series y como mínimo 1.
+Que la piscina disponía de 10 carriles numerados del 0 al 9.
+También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 
 Observamos que tenemos algunas variables categóricas, luego vamos a cargar la libreria "dyplr" y vamos a intentar visualizarlas de una mejor manera:
 
@@ -96,13 +104,14 @@ Observamos que tenemos algunas variables categóricas, luego vamos a cargar la l
 datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke)
 ```
 
-Bien, ahora, visualicemos otra vez el resumen:
+Visualicemos de nuevo el resumen:
 
 ```{r}
 summary(datos2015)
 ```
 
-Bien, ahora podemos observar muchas más cosas, observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos. Vemos también que se nadaron pruebas de espalda, braza, mariposa, crol y estilos Individual. También observamos que las pruebas las disputaron hombres y mujeres. Podemos observar también que el menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
+Observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos.
+También se nadaron pruebas de espalda, braza, mariposa, crol y estilos individual, las pruebas las disputaron hombres y mujeres, el menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
 Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no nos estorben.
 
@@ -110,7 +119,9 @@ Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tant
 
 ### Edad
 
-Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada edad, ya que será más representativo que trabajar con la variable birthdate. La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial. Es decir, el 24 de Julio de 2015. 
+Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada *edad*, ya que será más representativo que trabajar con la variable birthdate.
+La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial.
+Es decir, el 24 de Julio de 2015.
 
 ```{r}
 datos2015$birthdate <- as.Date(datos2015$birthdate)
@@ -132,10 +143,14 @@ Bien, ahora, vamos a observar qué sucede con las edades:
 summary(nadadoresParticipantes$edad)
 ```
 
-Observamos que la edad máxima fue de 38 años, la media fue de 21.32 años, y el participante con menos edad fue de 10 años. Además, el 50% de los participantes estaban entre 19 y 24 años de edad.
+Observamos que la edad máxima fue de 38 años, la media fue de 21.32 años, y el participante con menos edad fue de 10 años.
+Además, el 50% de los participantes estaban entre 19 y 24 años de edad.
 
-Nos puede resultar extraño que haya un nadador de 10 años de edad. Por tanto, procedemos a contrastar la información. De esta forma, podemos ver si de verdad existe este atleta o es un dato mal tomado de nuestra base de datos. Confirmamos la información, entre otras fuentes, con esta noticia, de la cual añadimos el enlace sobre la joven nadadora de 10 años.
-[noticia](https://www.rtve.es/deportes/20150807/nina-10-anos-alzain-tareq-asombra-a-natacion-mundial/1195782.shtml#:~:text=Se%20llama%20Alzain%20Tareq%2C%20tiene,estrella%20medi%C3%A1tica%20de%20la%20jornada.) 
+Nos puede resultar extraño que haya un nadador de 10 años de edad.
+Por tanto, procedemos a contrastar la información.
+De esta forma, podemos ver si de verdad existe este atleta o es un dato mal tomado de nuestra base de datos.
+Confirmamos la información, entre otras fuentes, con esta noticia, de la cual añadimos el enlace sobre la joven nadadora de 10 años.
+[noticia](https://www.rtve.es/deportes/20150807/nina-10-anos-alzain-tareq-asombra-a-natacion-mundial/1195782.shtml#:~:text=Se%20llama%20Alzain%20Tareq%2C%20tiene,estrella%20medi%C3%A1tica%20de%20la%20jornada.)
 
 Confirmamos mediante su nombre, apellidos y edad, que la noticia se refiere a los datos que tenemos.
 
@@ -144,9 +159,10 @@ datos_edad_10 <- datos2015[datos2015$edad == 10, ]
 datos_edad_10
 ```
 
-Se trata de una nadadora de Bahrain que nadó el 50 mariposa y el 50 libres. Luego podemos concluir que es un dato atípico pero no es erróneo. 
+Se trata de una nadadora de Bahrain que nadó el 50 mariposa y el 50 libres.
+Luego podemos concluir que es un dato atípico pero no es erróneo.
 
-De acuerdo con esta nueva variable, vemos cómo se distribuyen las edades. 
+De acuerdo con esta nueva variable, vemos cómo se distribuyen las edades.
 
 ```{r}
 ggplot(nadadoresParticipantes, aes(x = edad)) +
@@ -154,9 +170,10 @@ geom_density() +
 ggtitle("Distribución. Edades.")
 ```
 
-La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años. Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
+La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años.
+Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
 
-### Géneros participantes. 
+### Géneros participantes.
 
 Veamos el número exacto de mujeres y hombres en la competición:
 
@@ -174,16 +191,17 @@ ggplot(nadadoresParticipantes, aes(x = edad, colour = gender)) +
     geom_density()
 ```
 
-
-Según observamos la gráfica observamos que la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres. Esta diferencia en la distribución de edades entre los géneros nos conduce a realizar distintos test estadísticos para confirmar si la diferencia realmente es significativa. 
-
+Según observamos la gráfica observamos que la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres.
+Esta diferencia en la distribución de edades entre los géneros nos conduce a realizar distintos test estadísticos para confirmar si la diferencia realmente es significativa.
 
 ```{r}
 t.test(edad~gender,data=nadadoresParticipantes)
 
 ```
 
-Hemos comparado las medias de edad entre mujeres (grupo F) y hombres (grupo M), tomando como hipótesis nula que las medias de edad entre mujeres y hombres son iguales, y cómo hipótesis alternativa que las medias de edad entre mujeres y hombres son diferentes. Aunque el resultado del t-test muestra que hay una diferencia estadísticamente significativa(el p-valor es muy pequeño) entre las edades medias de hombres y mujeres (aproximadamente 1.16 años), en términos prácticos, esta diferencia es relativamente pequeña. En este caso, puede no ser relevante en términos de la experiencia o desempeño de los nadadores.
+Hemos comparado las medias de edad entre mujeres (grupo F) y hombres (grupo M), tomando como hipótesis nula que las medias de edad entre mujeres y hombres son iguales, y cómo hipótesis alternativa que las medias de edad entre mujeres y hombres son diferentes.
+Aunque el resultado del t-test muestra que hay una diferencia estadísticamente significativa(el p-valor es muy pequeño) entre las edades medias de hombres y mujeres (aproximadamente 1.16 años), en términos prácticos, esta diferencia es relativamente pequeña.
+En este caso, puede no ser relevante en términos de la experiencia o desempeño de los nadadores.
 
 No obstante, proseguimos en nuestro análisis exploratorio.
 
@@ -191,24 +209,28 @@ No obstante, proseguimos en nuestro análisis exploratorio.
 tabla1<-table(nadadoresParticipantes$edad>30,nadadoresParticipantes$gender)
 chisq.test(tabla1)
 ```
-Por el resultado del siguiente test aplicado,podemos concluir con que no hay asociación significativa: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros  datos. En términos sencillos,la edad no parece estar relacionada con el género de los nadadores en cuanto a si son mayores de 30 años.
+
+Por el resultado del siguiente test aplicado,podemos concluir con que no hay asociación significativa: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros datos.
+En términos sencillos,la edad no parece estar relacionada con el género de los nadadores en cuanto a si son mayores de 30 años.
 
 ```{r}
 tabla2<-table(nadadoresParticipantes$edad<20,nadadoresParticipantes$gender)
 chisq.test(tabla2)
 ```
 
-Hay una diferencia considerable entre las frecuencias observadas (cuántos hombres y mujeres son menores de 20 años) y las frecuencias esperadas bajo la hipótesis nula (que no hay asociación entre edad y género para menores de 20 años). Esto sugiere ir un paso más allá, ¿Hay más mujeres menores de edad que hombres menores de edad?
-  
+Hay una diferencia considerable entre las frecuencias observadas (cuántos hombres y mujeres son menores de 20 años) y las frecuencias esperadas bajo la hipótesis nula (que no hay asociación entre edad y género para menores de 20 años).
+Esto sugiere ir un paso más allá, ¿Hay más mujeres menores de edad que hombres menores de edad?
+
 ```{r}
 tabla3<-table(nadadoresParticipantes$edad<18,nadadoresParticipantes$gender)
 chisq.test(tabla3)
 ```
 
-
-Los resultados sugieren que el género y la minoría de edad si que están significativamente relacionados en nuestro conjunto de datos de nadadores. Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
+Los resultados sugieren que el género y la minoría de edad si que están significativamente relacionados en nuestro conjunto de datos de nadadores.
+Esto podría tener implicaciones para el análisis del rendimiento y la participación en competiciones.
 
 Veamos números,
+
 ```{r}
 tabla3
 
@@ -221,11 +243,15 @@ porcentajes <- (tabla3[2, ] / totales) * 100
 
 porcentajes
 ```
-De esta forma, ya habiendo confirmado una diferencia significativa. Podemos ver, de manera más representativa, como existe el doble de proporción de mujeres menores de edad en comparación con los hombres. Dicho en otras palabras, 2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres.
 
+De esta forma, ya habiendo confirmado una diferencia significativa.
+Podemos ver, de manera más representativa, como existe el doble de proporción de mujeres menores de edad en comparación con los hombres.
+Dicho en otras palabras, 2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres.
 
-### Nacionalidades. 
+### Nacionalidades.
+
 Vamos a ver la cantidad de nadadores por país.
+
 ```{r}
 library(ggplot2)
 library(ggimage)
@@ -291,9 +317,7 @@ oda_bar <- resumen_paises %>%
 print(oda_bar)
 ```
 
-
 Vemos también este mismo gráfico, pero separando los países por continentes.
-
 
 ```{r}
 paleta <- c("Americas" = "#0084ff", 
@@ -322,10 +346,9 @@ print(oda_bar1)
 
 ```
 
-Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países. 
+Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países.
 Por ello, realizaremos un gráfico reduciendo la dimensión, juntando en un grupo llamado 'Otros' a aquellos países con menos de 10 nadadores.
 *añadirlo*
-
 
 ```{r}
 paleta <- c("Americas" = "#0084ff", 
@@ -362,7 +385,6 @@ print(oda_bar3)
 
 ```
 
-
 ```{r}
 paleta <- c("Americas" = "#0084ff", 
             "Asia" = "#44bec7", 
@@ -383,10 +405,13 @@ histograma_nadadores <- resumen_paises %>%
 print(histograma_nadadores)
 
 ```
-Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía. 
-Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking. Es decir, si existe una correlación entre el origen y los puestos clasificatorios de mayor nivel. 
+
+Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía.
+Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking.
+Es decir, si existe una correlación entre el origen y los puestos clasificatorios de mayor nivel.
 
 LO DE ABAJO DA ERROR, HAY Q MIRAR PERO ESTARIA GUAY PA VER SI DONDE HAY MUCHOS NADADORES GANAN (COMO DEBERIA SER) O SI GANAN EN SITIOS DONDE HAY POKITOS :)))
+
 ```{r}
 # Añadir columna de continentes según el país
 nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "country.name", "continent")
@@ -410,8 +435,8 @@ nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "co
 
 ```
 
-
 Vamos a ver los puntos según las nacionalidades de los nadadores, que parece ser más informativo, en esta sección
+
 ```{r}
 puntos_por_pais <- nadadoresParticipantes %>%
   group_by(name) %>%  
@@ -421,6 +446,7 @@ puntos_por_pais <- nadadoresParticipantes %>%
 print(puntos_por_pais)
 
 ```
+
 ```{r}
 #Graficar los puntos por país
 ggplot(puntos_por_pais, aes(x = reorder(name, total_puntos), y = total_puntos)) +
@@ -431,7 +457,9 @@ ggplot(puntos_por_pais, aes(x = reorder(name, total_puntos), y = total_puntos)) 
 
 ```
 
-De la misma manera que nos ocurría antes, este gráfico es poco interpretativo. Lo vemos por continentes:
+De la misma manera que nos ocurría antes, este gráfico es poco interpretativo.
+Lo vemos por continentes:
+
 ```{r}
 puntos_por_continente <- nadadoresParticipantes %>%
   group_by(continent) %>%  #agrupar por continente
@@ -439,6 +467,7 @@ puntos_por_continente <- nadadoresParticipantes %>%
 
 print(puntos_por_continente)
 ```
+
 ```{r}
 #Graficar los puntos por continente
 ggplot(puntos_por_continente, aes(x = reorder(continent, total_puntos), y = total_puntos, fill = continent)) +
@@ -467,7 +496,9 @@ resumen_pruebas
 
 ```
 
-Tenemos la distancia de 100 metros, con 405 participantes. Es la distancia más popular entre los nadadores mayores de 18 años. Le sigue la distancia de 209 participantes, la de 200 metros.
+Tenemos la distancia de 100 metros, con 405 participantes.
+Es la distancia más popular entre los nadadores mayores de 18 años.
+Le sigue la distancia de 209 participantes, la de 200 metros.
 200 metros: Con 209 participantes, sigue siendo una distancia muy popular.
 La participación disminuye considerablemente en distancias más largas, como 1500 metros con solo 13 participantes.
 Para los menores de 18 años tenemos carreras de 100 metros con 75 participantes, esta es la distancia más frecuentada, aunque significativamente menos que el grupo de 18 años o más.
@@ -477,9 +508,11 @@ Los nadadores mayores de 18 años tienen una participación significativamente m
 La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
 La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
 
-Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores. Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años). Esta diferencia podría deberse a varios factores como la disponibilidad de competiciones para adultos o la preferencia de los nadadores más experimentados por distancias clásicas. Además, se observa una tendencia de disminución en la participación a medida que las distancias aumentan. Esto es común, ya que las distancias más largas suelen requerir más resistencia, y menos personas optan por competir en estas.
-
-
+Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores.
+Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años).
+Esta diferencia podría deberse a varios factores como la disponibilidad de competiciones para adultos o la preferencia de los nadadores más experimentados por distancias clásicas.
+Además, se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
+Esto es común, ya que las distancias más largas suelen requerir más resistencia, y menos personas optan por competir en estas.
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
@@ -513,7 +546,8 @@ ggtitle("Distribución. reactiontime")
 
 ```
 
-Parece que los datos siguen una distribución normal a priori. Vamos a ir más alla para intentar sacar conclusiones más profundas.
+Parece que los datos siguen una distribución normal a priori.
+Vamos a ir más alla para intentar sacar conclusiones más profundas.
 
 Vamos a comparar a comparar las funciones de densidad de chicos y chicas en general:
 
@@ -523,18 +557,21 @@ geom_density()+
   ggtitle("Distribución. Hombres vs Mujeres")
 ```
 
-De esta gráfica nos surgen muchas preguntas, vamos a analizar esto más a fondo. Hagamos un test de hipótesis donde: 
+De esta gráfica nos surgen muchas preguntas, vamos a analizar esto más a fondo.
+Hagamos un test de hipótesis donde:
 
-* H0: El tiempo de reacción es igual en mujeres y hombres.
-* H1: El tiempo de reacción es menor en hombres que en mujeres.
-
+-   H0: El tiempo de reacción es igual en mujeres y hombres.
+-   H1: El tiempo de reacción es menor en hombres que en mujeres.
 
 ```{r}
 t.test(reactiontime~gender,data=nadadoresParticipantes)
 ```
+
 De manera similar a antes, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
-Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevanciaa la hora de los resultados finales. Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente? 
-No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el d de Cohen). Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
+Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevanciaa la hora de los resultados finales.
+Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente?
+No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el d de Cohen).
+Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
 
 ### Tiempo de reacción. Distancias largas vs distancias cortas.
 
@@ -553,22 +590,24 @@ ggtitle("Distribución. Reaction time: 800m free vs 50m free")
 
 ```
 
-El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros. Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
+El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros.
+Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
 La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes o outliers en los datos de tiempo de reacción.
-Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia. Esto es esperado, ya que la carrera de 50 metros es más corta y requiere reacciones más rápidas y explosivas.
-En cuanto a la de 800 metros, la curva muestra una mayor dispersión en los tiempos de reacción, con una densidad más amplia. Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde las nadadoras pueden no necesitar un tiempo de reacción tan rápido.
-
+Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia.
+Esto es esperado, ya que la carrera de 50 metros es más corta y requiere reacciones más rápidas y explosivas.
+En cuanto a la de 800 metros, la curva muestra una mayor dispersión en los tiempos de reacción, con una densidad más amplia.
+Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde las nadadoras pueden no necesitar un tiempo de reacción tan rápido.
 
 Aquí también podemos hacer un test de hipótesis.
 *Podemos comparar a los chicos para ver si es cierto lo supuesto*
 
-
 ```{r}
 t.test(reactiontime~distance,data=nadadorasComparacionReactionTime)
 ```
-Veamos nuestros resultados del test. Por un lado tenemos el valor del estadístico t calculado, como es un valor negativo indica que la media del primer grupo (50 metros) es menor que la del segundo grupo (800 metros).El valor del p-valor (que es extremadamente bajo) indica que hay una diferencia estadísticamente significativa entre las medias de los dos grupos. 
-Los nadadores que participan en distancias más cortas (50 metros) tienen un tiempo de reacción más rápido en comparación con aquellos que nadan distancias más largas (800 metros).Luego, habiamos identificado correctamente la tendencia del gráfico, en términos estadísticos.
 
+Veamos nuestros resultados del test.
+Por un lado tenemos el valor del estadístico t calculado, como es un valor negativo indica que la media del primer grupo (50 metros) es menor que la del segundo grupo (800 metros).El valor del p-valor (que es extremadamente bajo) indica que hay una diferencia estadísticamente significativa entre las medias de los dos grupos.
+Los nadadores que participan en distancias más cortas (50 metros) tienen un tiempo de reacción más rápido en comparación con aquellos que nadan distancias más largas (800 metros).Luego, habiamos identificado correctamente la tendencia del gráfico, en términos estadísticos.
 
 A continuación, realizamos el mismo estudio pero con hombres y vemos si la situación es similar.
 
@@ -583,8 +622,6 @@ ggtitle("Distribución para Hombres. Reaction time: 800m free vs 50m free")
 
 ```
 
-
-
 ### Calles usadas
 
 Veamos cómo se distribuyen las calles usadas:
@@ -596,8 +633,10 @@ theme_bw()
 
 Se observa que las calles menos usadas son tanto la 0 como la 9.
 
+¿Habrá alguna relación entre la calle usada y el tiempo de reacción?
+Todo parece indicar que no.
+Veámoslo.
 
-¿Habrá alguna relación entre la calle usada y el tiempo de reacción? Todo parece indicar que no. Veámoslo.
 ```{r}
 #me pareció guay este gráfico, alonso sabes interpretarlo? aupa
 
@@ -611,8 +650,6 @@ ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
   scale_fill_brewer(palette = "Set1") 
 ```
 
-
-
 ### Daytime
 
 Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
@@ -623,8 +660,8 @@ ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.5, colour="red", fill=
 
 Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
 
-
-##Estudios relacionados con los puntos. ´
+##Estudios relacionados con los puntos.
+´
 
 Veamos las posibles relaciones de puntos con las demás variables:
 
@@ -638,9 +675,11 @@ geom_density() +
 ggtitle("Distribución. points")
 ```
 
-Observamos que la mayoría de puntos se encuentran a partir de los 750/800 puntos, y esto, tiene sentido si razonamos que para entrar a los mundiales de natación, se necesitan unas marcas mínimas (una cantidad de puntos preestablecida). Luego es normal encontrar una gran cantidad de datos que tengan más de 750 puntos ya que había un "corte" para la inscripción en la competición. Esto hace que la gráfica no esté más distribuida por todos los posibles valores de puntos.
+Observamos que la mayoría de puntos se encuentran a partir de los 750/800 puntos, y esto, tiene sentido si razonamos que para entrar a los mundiales de natación, se necesitan unas marcas mínimas (una cantidad de puntos preestablecida).
+Luego es normal encontrar una gran cantidad de datos que tengan más de 750 puntos ya que había un "corte" para la inscripción en la competición.
+Esto hace que la gráfica no esté más distribuida por todos los posibles valores de puntos.
 
-Ahora nos surge la siguiente pregunta: *¿Quién rindió mejor en los campeonatos?*. 
+Ahora nos surge la siguiente pregunta: *¿Quién rindió mejor en los campeonatos?*.
 
 Podemos buscar el nadador que hizo más puntos:
 
@@ -648,9 +687,11 @@ Podemos buscar el nadador que hizo más puntos:
 datos2015[which.max(datos2015$points), ]
 ```
 
-Observamos que la nadadora que cosechó más puntos en una prueba fue Katie Ledecky en los 1500 metros. Buscando, casualmente observamos que batió el récord[https://www.rtve.es/deportes/20150803/ledecky-bate-record-del-mundo-1500-libres/1193160.shtml] del mundo en dicha prueba. 
+Observamos que la nadadora que cosechó más puntos en una prueba fue Katie Ledecky en los 1500 metros.
+Buscando, casualmente observamos que batió el récord[<https://www.rtve.es/deportes/20150803/ledecky-bate-record-del-mundo-1500-libres/1193160.shtml>] del mundo en dicha prueba.
 
-Ahora, vamos a buscar al nadador que, en promedio, consiguió más puntos, podríamos denominarlo el *MVP* del Mundial Kazán 2015. Para ello: 
+Ahora, vamos a buscar al nadador que, en promedio, consiguió más puntos, podríamos denominarlo el *MVP* del Mundial Kazán 2015.
+Para ello:
 
 ```{r}
 #Usamos nadadoresPruebas, donde tenemos cada nadador y la prueba que realizó. 
@@ -663,22 +704,24 @@ media_puntos<-rename(media_puntos, "meanPoints"="nadadoresPruebas$points")
 head(media_puntos,5)
 ```
 
-El atleta con id 108588	es el que hizo más puntos, veamos quien es: 
+El atleta con id 108588 es el que hizo más puntos, veamos quien es:
 
 ```{r}
 nadadoresPruebas[nadadoresPruebas$athleteid==108588	, ]
 ```
 
-Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200 braza. Veamos quiénes fueron los integrantes del podio: 
+Luego, el MVP fue el británico Adam Peaty, que nadó 50, 100 y 200 braza.
+Veamos quiénes fueron los integrantes del podio:
 
 ```{r}
 nadadoresParticipantes[nadadoresParticipantes$athleteid==102630 | nadadoresParticipantes$athleteid==105594, ]
 ```
 
-Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie Ledecky. 
+Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie Ledecky.
 
 ### Puntos. Hombres vs Mujeres
-A continuación, vamos a comparar los puntos realizados por hombres y mujeres, para ver si podemos sacar alguna conclusión. 
+
+A continuación, vamos a comparar los puntos realizados por hombres y mujeres, para ver si podemos sacar alguna conclusión.
 
 Primeramente, vamos a ver la función de densidad:
 
@@ -689,11 +732,12 @@ ggtitle("Distribución. Puntos por sexo")
 
 ```
 
-A priori, parece haber dos distribuciones muy igualadas. 
+A priori, parece haber dos distribuciones muy igualadas.
 
 SEGUIR AQUÍ CON EL ESTUDIO.
 
 ### Puntos. ¿La edad influye?
+
 Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
 ```{r}
@@ -714,11 +758,11 @@ ggplot(resumen_puntos, aes(x = edad, y = points)) +
         panel.grid.minor = element_blank())
 ```
 
-
-###Estudio de puntos por país. 
+###Estudio de puntos por país.
 Veamos el número de puntos por países
 
 ###Modelo de regresión lineal para tiempo de reaccion vs tiempo
+
 ```{r}
 # Esto no funciona porque las dos variables continuas tienen distinto tamaño
 # Hay que gestionar los NAs previamente
@@ -727,8 +771,10 @@ Veamos el número de puntos por países
 # pairs(nadadoresPruebas$points,splitswimtime)
 ```
 
-*poner aqui todo juntos en un pairs*
-Empezamos viendo la relación lineal (que ya sabemos que será alta) entre puntos y tiempo. Es evidente que a mayor tiempo, hay menos puntos. Veámoslo
+*poner aqui todo juntos en un pairs* Empezamos viendo la relación lineal (que ya sabemos que será alta) entre puntos y tiempo.
+Es evidente que a mayor tiempo, hay menos puntos.
+Veámoslo
+
 ```{r}
 nadadoresPruebas50crol<- nadadoresPruebas[nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=='FREE', ]
 t= nadadoresPruebas50crol$swimtime
@@ -736,6 +782,7 @@ p= nadadoresPruebas50crol$points
 cor(t,p)
 #verlo pero 
 ```
+
 Esto no es de mucho estudio, ya que es lo lógico.
 
 Veamos los puntos respecto al tiempo de reacción:
@@ -746,12 +793,12 @@ x= nadadoresPruebas$points
 y=nadadoresPruebas$reactiontime
 ```
 
-
 ```{r}
 cor(x,y)
 ```
 
-Parecen no estar correlacionadas el tiempo de reaccion y los puntos de manera lineal. Pero a lo mejor, en pruebas específicas , como las pruebas de distancias cortas la correlación es mayor.
+Parecen no estar correlacionadas el tiempo de reaccion y los puntos de manera lineal.
+Pero a lo mejor, en pruebas específicas , como las pruebas de distancias cortas la correlación es mayor.
 
 ```{r}
 nadadoresPruebas50<- nadadoresPruebas[nadadoresPruebas$distance==50, ]
@@ -759,9 +806,12 @@ X=nadadoresPruebas50$reactiontime
 Y=nadadoresPruebas50$points
 cor(X,Y)
 ```
+
 Ya tenemos nuestro objetivo de estudio ya que para comenzar con la modelización estadística, debemos contextualizar el problema, definiendo objetivos y variables.
 
-Queremos investigar si existe relación entre el tiempo de reacción y puntos. Una pregunta que puede surgirnos es, ¿A mayores valores del tiempo de reacción, hay mayores valores de puntos? Luego, nuestro objetivo será saber si hay algún tipo de relación lineal, y las variables, por ende, serán tiempo de reacción y puntos.
+Queremos investigar si existe relación entre el tiempo de reacción y puntos.
+Una pregunta que puede surgirnos es, ¿A mayores valores del tiempo de reacción, hay mayores valores de puntos?
+Luego, nuestro objetivo será saber si hay algún tipo de relación lineal, y las variables, por ende, serán tiempo de reacción y puntos.
 La variable tiempo de reacción, será nuestra variable independiente, y puntos será la variable dependiente.
 
 A continuación, procedemos a realizar una inspección gráfica simple, para identificar tendencias.
@@ -776,12 +826,12 @@ cov(X,Y)
 
 Esta covarianza, positiva y grande en valor absoluto, nos indica que hay relación negativa entre las variables(ya lo habíamos intuido pero gracias al signo lo hemos confirmado).
 
-A pesar de la confirmación, en este momento nos surge un problema, pues, la covarianza toma valores en todos los números reales, dependiendo de las magnitudes del tiempo de reacción y puntos, y de sus unidades . Por eso, calcularemos el coeficiente de correlación lineal, que se obtiene tipificando la covarianza, es decir, dividiendo la covarianza entre las desviaciones típicas muestrales (obteniendo un coeficiente entre -1 y 1)
+A pesar de la confirmación, en este momento nos surge un problema, pues, la covarianza toma valores en todos los números reales, dependiendo de las magnitudes del tiempo de reacción y puntos, y de sus unidades .
+Por eso, calcularemos el coeficiente de correlación lineal, que se obtiene tipificando la covarianza, es decir, dividiendo la covarianza entre las desviaciones típicas muestrales (obteniendo un coeficiente entre -1 y 1)
 
 ```{r}
 cor(X,Y)
 ```
-
 
 De manera adicional, podemos incluir histogramas marginales en cada eje del gráfico, para ello usamos las librerías `ggplot2` y `ggExtra`.
 
@@ -797,10 +847,10 @@ ggMarginal(p, type = "histogram")
 
 ```
 
-Como hemos visto, si la relacion lineal es  fuerte tiene sentido querer ajustar una recta a la nube de puntos. Es decir, considerar un modelo de regresion lineal simple.
+Como hemos visto, si la relacion lineal es fuerte tiene sentido querer ajustar una recta a la nube de puntos.
+Es decir, considerar un modelo de regresion lineal simple.
 
-La función que ajusta el modelo de regresión lineal simple en R es `lm`(con parametros B_0,B_1 y sigma^2), directamente hacemos un `summary` para que nos devuelva la información más importante, aunque realmente `lm` calcula muchas cosas: estimaciones, residuos, predicciones, etc.
-
+La función que ajusta el modelo de regresión lineal simple en R es `lm`(con parametros B_0,B_1 y sigma\^2), directamente hacemos un `summary` para que nos devuelva la información más importante, aunque realmente `lm` calcula muchas cosas: estimaciones, residuos, predicciones, etc.
 
 ```{r}
 lm=lm(Y~X)
@@ -824,13 +874,13 @@ coeficientes=lm$coefficients
 #comprobamos que es lo mismo que nos salía en el summary
 coeficientes
 ```
-Sabemos que el valor de los puntos cuando X=0, es decir, que el tiempo de reacción sea cero, es de 1809 aproximadamente. Este parámetro no tendría sentido, pues el tiempo de reacción nunca va a ser cero.
+
+Sabemos que el valor de los puntos cuando X=0, es decir, que el tiempo de reacción sea cero, es de 1809 aproximadamente.
+Este parámetro no tendría sentido, pues el tiempo de reacción nunca va a ser cero.
 Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor que aumenta X, Y aumenta lo indicado.
 
-
-
-
 ## Prueba 800m Libre femenino.
+
 VISUALIZAR TIPOS DE NADADORES VIENDO LOS PARCIALES
 
 Veamos qué nadadores nadaron el 800 libre femenino:
@@ -841,7 +891,7 @@ nadadoras800free<-nadadoresPruebas[nadadoresPruebas$distance==800 & nadadoresPru
 dim(nadadoras800free)
 ```
 
-Tenemos que 52 chicas nadaron el 800 libres, algunas de ellas dos veces ya que pasaron a la final. 
+Tenemos que 52 chicas nadaron el 800 libres, algunas de ellas dos veces ya que pasaron a la final.
 
 Nos vamos a fijar en la final, para ello, filtramos otra vez los datos:
 
@@ -850,7 +900,7 @@ nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & da
 
 ```
 
-Ahora, vamos a definir una tabla en la que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial: 
+Ahora, vamos a definir una tabla en la que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial:
 
 ```{r}
 nadadoras800free <- nadadoras800free %>%
@@ -878,16 +928,10 @@ ggplot(nadadoras800free, aes(x = splitdistance, y = Posicion, group = lastname))
   scale_y_reverse(breaks = 1:nrow(nadadoras800free))
 ```
 
-Observamos como Ledecky lidera toda la carrera, Boyle alcanza al paso de los 100 metros la segunda posición y la mantiene. La pelea por la última medalla en juego dura hasta los 700 metros, donde un adelantamiento de Carlin a Ashwood hace que la nadadora Jaz Carlin alcance el bronce olímpico.
+Observamos como Ledecky lidera toda la carrera, Boyle alcanza al paso de los 100 metros la segunda posición y la mantiene.
+La pelea por la última medalla en juego dura hasta los 700 metros, donde un adelantamiento de Carlin a Ashwood hace que la nadadora Jaz Carlin alcance el bronce olímpico.
 
 ## Datos NA.
-
-
-
-
-
-
-
 
 # PCA's
 
@@ -916,24 +960,25 @@ pruebawide
 pruebawide<- na.omit(pruebawide)
 ```
 
-Ahora que ya tenemos nuestra tabla hecha, vamos a hacer el PCA: 
+Ahora que ya tenemos nuestra tabla hecha, vamos a hacer el PCA:
 
 ```{r}
 prcomp(pruebawide[,-1], scale=T)
 summary(prcomp(pruebawide[,-1],scale=T))
 ```
-Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza. Con pc2 un 5%, luego con esas dos podemos explicar un 90% de los datos.
+
+Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza.
+Con pc2 un 5%, luego con esas dos podemos explicar un 90% de los datos.
 
 (aquí sacar conclusiones pero primero preguntar mañana a Carmen)
 
-Ahora, veamos cómo se ven los datos: 
-
+Ahora, veamos cómo se ven los datos:
 
 ```{r}
 plot(prcomp(pruebawide[,-1],scale=T)$x[,1:2])
 ```
 
-
+## PCA 100 mariposa femenino (Javier)
 
 
 
@@ -946,8 +991,8 @@ kmedias=kmeans(prcomp(pruebawide[,-1],scale=T)$x[,1:2], centers=2, nstar=25)
 kmedias
 ```
 
-
 ## PCA. 50 mariposa masculino
+
 Cargamos los datos:
 
 ```{r}
@@ -968,26 +1013,29 @@ pruebita
 pruebita<- na.omit(pruebawide)
 ```
 
-Hacemos el PCA: 
+Hacemos el PCA:
 
 ```{r}
 prcomp(pruebita[,-1], scale=T)
 summary(prcomp(pruebita[,-1],scale=T))
 ```
-Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza. Con PC2 un 5%.Con esas dos podemos explicar un 90% de los datos.
 
+Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza.
+Con PC2 un 5%.Con esas dos podemos explicar un 90% de los datos.
 
 ```{r}
 plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
 ```
+
 # Tareas por hacer e ideas surgidas:
- - Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos. 
- - Ver si hay relación entre puntos y edad. 
- - ¿Qué hacemos con los datos nulos?
- - Sacar conclusiones del PCA.
- - Hacer el clustering.
- - Hacer un pca del 100 braza masculino y clustering
- - Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho)
- -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
-  
-  
+
+-   Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos.
+-   Ver si hay relación entre puntos y edad.
+-   ¿Qué hacemos con los datos nulos?
+-   Sacar conclusiones del PCA.
+-   Hacer el clustering.
+-   Hacer un pca del 100 braza masculino y clustering
+-   Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho) -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
+
+
+# PCA 
