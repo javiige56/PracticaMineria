@@ -945,7 +945,7 @@ Lo primero que debemos hacer es cargar los datos:
 prueba800libresPreliminar<- datos2015[datos2015$distance==800 & datos2015$gender=="F" & datos2015$stroke=="FREE" & datos2015$round=="PRE", ]
 
 prueba800libresPreliminar <- prueba800libresPreliminar %>%
-    dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad, swimtime)
+    dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad)
 ```
 
 Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedemos con el nombre, apellido y parciales
@@ -954,7 +954,7 @@ Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedem
 pruebawide <- prueba800libresPreliminar %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
-#row.names(pruebawide) <- pruebawide$lastname # esto es para llamar a las filas con el nombre de los nadadores
+row.names(pruebawide) <- pruebawide$lastname # esto es para llamar a las filas con el nombre de los nadadores
 pruebawide
 #omito los valores nulos: 
 pruebawide<- na.omit(pruebawide)
@@ -970,28 +970,27 @@ summary(prcomp(pruebawide[,-1],scale=T))
 Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza.
 Con pc2 un 5%, luego con esas dos podemos explicar un 90% de los datos.
 
-(aquí sacar conclusiones pero primero preguntar mañana a Carmen)
 
 Ahora, veamos cómo se ven los datos:
 
 ```{r}
-plot(prcomp(pruebawide[,-1],scale=T)$x[,1:2])
+plot(prcomp(pruebawide[,-1],scale=T)$x[,1:2], type="n")
+text(prcomp(pruebawide[,-1],scale=T)$x[,1:2],rownames(pruebawide))
+
+
+```
+
+Bien, así observamos los nombres. Veamos cómo queda el biplot:
+
+```{r}
+biplot(prcomp(pruebawide[,-1],scale=T))
 ```
 
 ## PCA 100 mariposa femenino (Javier)
 
 
 
-
-# Cluster
-
-```{r}
-kmedias=kmeans(prcomp(pruebawide[,-1],scale=T)$x[,1:2], centers=2, nstar=25)
-
-kmedias
-```
-
-## PCA. 50 mariposa masculino
+## PCA. 50 mariposa masculino (Salma)
 
 Cargamos los datos:
 
@@ -1037,5 +1036,11 @@ plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
 -   Hacer un pca del 100 braza masculino y clustering
 -   Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho) -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
 
+# Cluster(queda por explicar)
 
-# PCA 
+```{r}
+kmedias=kmeans(prcomp(pruebawide[,-1],scale=T)$x[,1:2], centers=2, nstar=25)
+
+kmedias
+```
+
