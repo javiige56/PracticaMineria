@@ -380,21 +380,21 @@ paleta <- c("Americas" = "#0084ff",
 # Crear una nueva columna que agrupe países con menos de 10 nadadores en "Otros"
 resumen_paises4 <- resumen_paises %>%
    filter(num_nadadores >= 10)
-
+resumen_paises4
 
 # Crear el gráfico
 oda_bar3 <- resumen_paises4 %>% 
   ggplot(aes(x = reorder(name_group, num_nadadores), 
-             y = num_nadadores, 
-             fill = continent)) + 
-  geom_flag(y = -10, aes(image = iso2), size = 0.05) + 
+           y = num_nadadores, 
+           fill = continent)) + 
+  geom_flag(y = -5, aes(image = iso2), size = 0.05) + 
   geom_bar(stat = "identity") + 
   labs(title = "Participación de Nadadores por País",
        subtitle = "Países con menos de 10 nadadores ocultados",
        x = "País",
        y = "Número de Nadadores") +
-  scale_fill_manual(values = paleta) +  # Colores personalizados
-  expand_limits(y = c(0, max(resumen_paises4$num_nadadores) + 10)) +  # Ajustar el límite superior
+ scale_fill_manual(values = paleta) +  # Colores personalizados
+  expand_limits(y = c(0, max(resumen_paises4) + 10)) +  # Ajustar el límite superior
   coord_flip() +  # Gráfico horizontal
   theme_minimal()
 
@@ -491,7 +491,7 @@ Esta información nos podría ser de gran ayuda para dar un posible enfoque a la
 nadadoresParticipantes <- nadadoresParticipantes %>%
   mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
 
-#Resumir el número de participantes en cada prueba por grupo de edad(CODIGO DE GOOGLE)
+#Resumir el número de participantes en cada prueba por grupo de edad
 resumen_pruebas <- nadadoresParticipantes %>%
   group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
   summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
@@ -516,10 +516,36 @@ La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 part
 La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
 
 Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores.
-Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años).
-Esta diferencia podría deberse a varios factores como la disponibilidad de competiciones para adultos o la preferencia de los nadadores más experimentados por distancias clásicas.
-Además, se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
-Esto es común, ya que las distancias más largas suelen requerir más resistencia, y menos personas optan por competir en estas.
+Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años). 
+Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años. Por tanto, hay más de la mitad de los participantes en el segundo grupo. Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
+
+
+Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas. Debemos analizar los resultados según sus frecuencias relativas. 
+
+```{r}
+total_menores_18 <- nadadoresParticipantes %>%
+  filter(edad < 18) %>%  # Filtrar solo los menores de 18
+  summarise(total = n())  # Contar el número total de participantes
+
+# Mostrar el resultado
+print(total_menores_18) 
+
+total_mayores<- nadadoresParticipantes %>%
+  filter(edad >= 18) %>%  # Filtrar solo los menores de 18
+  summarise(total = n())  # Contar el número total de participantes
+
+# Mostrar el resultado
+print(total_mayores)
+resumen_relativo <- resumen_pruebas %>%
+  mutate(
+    frecuencia_relativa = ifelse(grupo_edad == "Menores de 18", 
+                                 round(num_participantes / 174, 3),  # División para "Menores de 18" con 3 decimales
+                                 round(num_participantes / 936, 3))  # División para "18 y más" con 3 decimales
+  )
+
+print(resumen_relativo)
+```
+Como podemos observar mejor aquí, las diferencias con la edad entre las pruebas a las que se presentan los participantes no son representativas. En torno al 43% de los mayores y menores de edad se presentan a la prueba de 100 metros, mientras que para la de 200 metros son en torno a un 22-25%. La diferencia en este caso es de un 3%, y en el resto de pruebas es poco representativo debido a la poca cantidad de participantes en ellas. Por tanto, parece ser que no existe una relación entre tipo de prueba y edad. 
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
