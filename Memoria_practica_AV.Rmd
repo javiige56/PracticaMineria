@@ -746,10 +746,47 @@ plot(lmPuntosCalle)
 Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
 
 ```{r}
-ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.5, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
+ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.7, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
 ```
 
 Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
+
+```{r}
+# Función para convertir
+convertir_a_hhmm <- function(tiempo_numerico) {
+  # Convertir el número a un string y separar horas y minutos
+  horas <- tiempo_numerico %/% 100
+  minutos <- tiempo_numerico %% 100
+  
+  # Crear un objeto de tiempo en formato hh:mm
+  tiempo_formateado <- sprintf("%02d:%02d", horas, minutos)
+  return(tiempo_formateado)
+}
+
+# Aplicar la función a todos los tiempos
+tiempos_hhmm <- sapply(nadadoresPruebas$daytime, convertir_a_hhmm)
+head(tiempos_hhmm)
+
+```
+Ahora representamos estos tiempos en una gráfica. De esta manera, el lector puede visualizarlo sin tener que imaginar su conversión, como en el gráfico de antes.
+```{r}
+# Crear la columna 'tiempo_hhmm'
+nadadoresPruebas$tiempo_hhmm <- sapply(nadadoresPruebas$daytime, convertir_a_hhmm)
+
+# Convertir la nueva columna 'tiempo_hhmm' a formato POSIXct
+nadadoresPruebas$tiempo_hhmm <- as.POSIXct(nadadoresPruebas$tiempo_hhmm, format = "%H:%M")
+
+# Ahora puedes hacer el histograma
+ggplot(nadadoresPruebas, aes(x = tiempo_hhmm)) +
+  geom_histogram(binwidth = 3600, color = "black", fill = "blue") +  # binwidth en segundos (3600 segundos = 1 hora)
+  scale_x_datetime(date_labels = "%H:%M", breaks = "1 hour") +  # Etiquetas de tiempo
+  labs(title = "Frecuencia de Tiempos",
+       x = "Tiempo (hh:mm)",
+       y = "Frecuencia") +
+  theme_minimal()
+
+```
+Con este gráfico, podemos ver como la gran parte de los participantes compiten a primera hora de la mañana. Nos podríamos preguntar si según el tipo de carrera los horarios se establecen a distintas horas del día, o si el buen o mal desempeño puede ser a causa de estos horarios. 
 
 ##Estudios relacionados con los puntos.
 ´
@@ -824,8 +861,18 @@ ggtitle("Distribución. Puntos por sexo")
 ```
 
 A priori, parece haber dos distribuciones muy igualadas.
+```{r}
+modelo= lm(points ~ gender, data = nadadoresParticipantes)
 
-SEGUIR AQUÍ CON EL ESTUDIO.
+summary(modelo)
+
+# Realizar ANOVA
+anova_puntos_genero <- aov(points ~ gender, data = nadadoresParticipantes)
+
+# Ver el resumen del resultado
+summary(anova_puntos_genero)
+
+```
 
 ### Puntos. ¿La edad influye?
 
@@ -840,7 +887,7 @@ resumen_puntos <- nadadoresPruebas %>%
 # Crear el gráfico de calor
 ggplot(resumen_puntos, aes(x = edad, y = points)) +
   geom_tile(aes(fill = frecuencia), color = "white") +
-  scale_fill_gradient(low = "pink", high = "red") +  
+  scale_fill_gradient(low = "pink", high = "darkred",limits = c(min(resumen_puntos$frecuencia), max(resumen_puntos$frecuencia)))+
   theme_bw() +
   labs(title = "Gráfico de Calor: Edades y Puntos Obtenidos",
        x = "Edad",
