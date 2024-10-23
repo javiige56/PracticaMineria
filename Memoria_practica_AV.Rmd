@@ -215,7 +215,7 @@ tabla1<-table(nadadoresParticipantes$edad>30,nadadoresParticipantes$gender)
 chisq.test(tabla1)
 ```
 
-Por el resultado del siguiente test aplicado,podemos concluir con que no hay asociación significativa: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros datos.
+Por el resultado del siguiente test aplicado,podemos concluir con que **no hay asociación significativa**: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros datos.
 En términos sencillos,la edad no parece estar relacionada con el género de los nadadores en cuanto a si son mayores de 30 años.
 
 ```{r}
@@ -573,9 +573,9 @@ t.test(reactiontime~gender,data=nadadoresParticipantes)
 ```
 
 De manera similar a antes, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
-Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevanciaa la hora de los resultados finales.
+Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevancia a la hora de los resultados finales.
 Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente?
-No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el d de Cohen).
+No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el de Cohen).
 Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
 
 ### Tiempo de reacción. Distancias largas vs distancias cortas.
@@ -953,7 +953,7 @@ prueba800libresPreliminar <- prueba800libresPreliminar %>%
     dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad)
 ```
 
-Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedemos con el nombre, apellido y parciales
+Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedemos con el nombre, apellido y parciales.
 
 ```{r}
 pruebawide <- prueba800libresPreliminar %>%
@@ -994,7 +994,27 @@ biplot(prcomp(pruebawide[,-1],scale=T))
 ## PCA 100 mariposa femenino (Javier)
 
 ```{r}
-prueba100MariposaFem <- datos2015[datos$distance]
+#Todas las pruebas de atletas femeninas, de distacia igual a 100m y de estilo de nado mariposa
+prueba100MariposaFem <- datos2015[datos2015$distance==100 & datos2015$gender=="F" & datos2015$stroke=="FLY",]
+
+prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad, swimtime)
+```
+
+```{r}
+prueba <- prueba100MariposaFem %>%
+  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
+              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+row.names(prueba) <- prueba$lastname # esto es para llamar a las filas con el nombre de los nadadores
+prueba
+#omito los valores nulos: 
+prueba <- na.omit(prueba)
+```
+
+Realizamos el PCA:
+
+```{r}
+prcomp(prueba[,-1], scale=T) 
+summary(prcomp(prueba[,-1],scale=T))
 ```
 
 ## PCA. 50 mariposa masculino (Salma)
@@ -1027,7 +1047,8 @@ summary(prcomp(pruebita[,-1],scale=T))
 ```
 
 Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza.
-Con PC2 un 5%.Con esas dos podemos explicar un 90% de los datos.
+Con PC2 un 5%.
+Con esas dos podemos explicar un 90% de los datos.
 
 ```{r}
 plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
