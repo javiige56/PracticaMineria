@@ -25,10 +25,12 @@ library(countrycode)
 library(ggExtra)
 ```
 
-# Introducción
+#1. Introducción.
 
-¿Con qué datos vamos a tratar?
+En este proyecto, se analizarán los resultados del mundial de natación de 2015 con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos. Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable 
 
+
+En primer lugar, vemos con qué datos vamos a tratar. 
 El conjunto de datos consiste en los resultados del Campeonato Mundial de Natación Kazán del año 2015, con los correspondientes datos de cada nadador y prueba.
 Los datos han sido extraídos de [Omega](http://www.omegatiming.com/File/Download?id=00010F0200FFFFFFFFFFFFFFFFFFFF08), la plataforma oficial de tiempos de la World Aquatics.
 El conjunto de datos contiene información sobre los nadadores (fecha de nacimiento, país, id), y sobre la prueba nadada (tiempo de reacción, parciales, tiempo total, estilo, serie).
@@ -112,7 +114,7 @@ summary(datos2015)
 Observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos.
 También se nadaron pruebas de espalda, braza, mariposa, crol y estilos individual, las pruebas las disputaron hombres y mujeres, el menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
-Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no nos estorben.
+Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no causen interferencia en nuestros datos.
 
 ## Estudio sobre el número de nadadores, su género, país y edad.
 
@@ -135,8 +137,24 @@ Ahora, vamos a crear una nueva tabla en la cual vamos a obtener sólamente los n
 nadadoresParticipantes <- datos2015 %>%
   distinct(athleteid, .keep_all = TRUE)
 ```
+```{r}
+summary(nadadoresParticipantes)
+```
 
-Bien, ahora, vamos a observar qué sucede con las edades:
+Esta nueva tabla no repite a los nadadores. Pero debemos tener en cuenta para futuras observaciones, que sólo nos da los resultados de la ronda preliminar en el primer split, ya que es la primera observación que se toma de cada participante.
+
+Dicho esto, si queremos para posibles análisis de rendimiento también el desempeño de cada nadador en su ronda final, haremos otra partición de los datos.
+```{r}
+nadadoresRondaFinal <- datos2015%>%
+  filter(round == "FIN") %>%
+  distinct(athleteid, .keep_all = TRUE)
+```
+```{r}
+nadadoresRondaFinal
+```
+De esta forma, esta partición de los datos nos muestra a los nadadores no repetidos, con los eventos observados en su ronda final en el primer split.
+
+Procedemos ahora a analizar los datos conforme con la edad de los participantes. Para ello, utilizamos la primera partición. Es decir, la de los nadadores en su primer split en la ronda preliminar. 
 
 ```{r}
 summary(nadadoresParticipantes$edad)
@@ -173,7 +191,7 @@ ggtitle("Distribución. Edades.")
 La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años.
 Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
 
-### Géneros participantes.
+### Análisis de géneros participantes.
 
 Veamos el número exacto de mujeres y hombres en la competición:
 
@@ -253,7 +271,7 @@ De esta forma, ya habiendo confirmado una diferencia significativa.
 Podemos ver, de manera más representativa, como existe el doble de proporción de mujeres menores de edad en comparación con los hombres.
 Dicho en otras palabras, 2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres.
 
-### Nacionalidades.
+### Análisis de nacionalidades.
 
 Vamos a ver la cantidad de nadadores por país.
 
@@ -262,31 +280,26 @@ library(ggplot2)
 library(ggimage)
 library(countrycode)
 
-# NUESTRA TABLA ES nadadoresParticipantes
-# Agregar el código ISO de dos dígitos, DIRAS PORQUE NO USAS CODE ESQ EN R PONE QUE TIENE Q SER DE DOS ASIQ ES LO Q TOCA HAY Q CONVERTIR 
-#ASI LO PONE LA WEB 
+# Utilizamos la tabla nadadoresParticipantes
+# Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
 nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
-#UY SALTA ERROR PARECE QUE EN FINA, KOSOVO,MICRONESIA Y VIRGIN ISLAND NO SABE HACERLO
-#VEO TODOS LOS NOMBRES PA BICHEAR 
-nombres<- unique(nadadoresParticipantes$name) #NO REPETIR CLARO
+#Vemos que salta error EN FINA, KOSOVO,MICRONESIA Y VIRGIN ISLAND
+#Por tanto, revisamos los datos 
+nombres<- unique(nadadoresParticipantes$name) #Para no repetir
 print(nombres)
 
 
-
-#nombres problemáticos
+#Nombres problemáticos
 manual <- data.frame(
   nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
   iso2 = c("FI", "XK", "FM", "VI")  
 )
 
-
-
-# Agregar variable de continente como hace la pagina
+# Agregamos la variable continente 
 nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
 #vuelve a fallar
 
-
-#solo es XK(KOSOVO, Esta en europa para los catetos)
+#solo es XK(KOSOVO, que está en Europa)
 #manualmente el continente para Kosovo (XK)
 nadadoresParticipantes <- nadadoresParticipantes %>%
   mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
@@ -298,10 +311,10 @@ resumen_paises <- nadadoresParticipantes %>%
   group_by(name, iso2, continent) %>%
   summarise(num_nadadores = n(), .groups = "drop") %>%
   arrange(desc(num_nadadores))  # Ordenar por número de nadadores
-##esto esta muy guay podemos usarlo pa mas cosas ya que ya esta hecho
+
 resumen_paises
 
-#Crear un gráfico;metemos colores
+#Creamos un gráfico con colores
 paleta <- c("Americas" = "#0084ff", "Asia" = "#44bec7", 
             "Europe" = "#ffc300", "Oceania" = "#fa3c4c")
 
@@ -359,29 +372,29 @@ Por ello, realizaremos un gráfico reduciendo la dimensión, juntando en un grup
 paleta <- c("Americas" = "#0084ff", 
             "Asia" = "#44bec7", 
             "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c", 
-            "Otros" = "#d3d3d3")  # Color para 'Otros'
+            "Oceania" = "#fa3c4c" 
+            ) 
 
 
 
 # Crear una nueva columna que agrupe países con menos de 10 nadadores en "Otros"
-resumen_paises <- resumen_paises %>%
-  mutate(name_group = ifelse(num_nadadores < 10, "Otros", name))
+resumen_paises4 <- resumen_paises %>%
+   filter(num_nadadores >= 10)
+
 
 # Crear el gráfico
-oda_bar3 <- resumen_paises %>% 
+oda_bar3 <- resumen_paises4 %>% 
   ggplot(aes(x = reorder(name_group, num_nadadores), 
              y = num_nadadores, 
              fill = continent)) + 
-  geom_flag(y = -10, aes(image = iso2), size = 0.05, 
-            data = subset(resumen_paises, name_group != "Otros")) +  # Solo poner banderas a países específicos
+  geom_flag(y = -10, aes(image = iso2), size = 0.05) + 
   geom_bar(stat = "identity") + 
   labs(title = "Participación de Nadadores por País",
-       subtitle = "Países con menos de 10 nadadores agrupados en 'Otros'",
+       subtitle = "Países con menos de 10 nadadores ocultados",
        x = "País",
        y = "Número de Nadadores") +
   scale_fill_manual(values = paleta) +  # Colores personalizados
-  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Ajustar el límite superior
+  expand_limits(y = c(0, max(resumen_paises4$num_nadadores) + 10)) +  # Ajustar el límite superior
   coord_flip() +  # Gráfico horizontal
   theme_minimal()
 
