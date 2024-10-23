@@ -426,34 +426,9 @@ print(histograma_nadadores)
 
 Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía.
 Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking.
-Es decir, si existe una correlación entre el origen y los puestos clasificatorios de mayor nivel.
+Es decir, si existe mayor proporción de ganadores en los países con más densidad de participantes. 
 
-LO DE ABAJO DA ERROR, HAY Q MIRAR PERO ESTARIA GUAY PA VER SI DONDE HAY MUCHOS NADADORES GANAN (COMO DEBERIA SER) O SI GANAN EN SITIOS DONDE HAY POKITOS :)))
-
-```{r}
-# Añadir columna de continentes según el país
-nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "country.name", "continent")
-# Esta línea no funciona, lo pone todo a NA
-
-# Agrupar por continente y calcular la correlación de puntuaciones
-# correlacion_continentes <- nadadoresParticipantes %>%
-#   group_by(continent) %>%
-#   summarise(correlacion = cor(points, use = "complete.obs"))
-# 
-# print(correlacion_continentes)
-# 
-# # Crear un gráfico de dispersión de puntuaciones por continente
-# ggplot(nadadoresParticipantes, aes(x = continent, y = puntos, color = continent)) +
-#   geom_jitter(width = 0.2, height = 0, size = 3, alpha = 0.6) +  # Para visualizar mejor
-#   labs(title = "Distribución de Puntuaciones por Continente",
-#        x = "Continente",
-#        y = "Puntuaciones") +
-#   theme_minimal()
-
-
-```
-
-Vamos a ver los puntos según las nacionalidades de los nadadores, que parece ser más informativo, en esta sección
+Para ello, analizaremos los puntos según las nacionalidades de los nadadores.
 
 ```{r}
 puntos_por_pais <- nadadoresParticipantes %>%
@@ -495,7 +470,21 @@ ggplot(puntos_por_continente, aes(x = reorder(continent, total_puntos), y = tota
   theme_minimal()
 ```
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. ?
+```{r}
+ggplot(na.omit(nadadoresParticipantes), aes(x = points, colour = continent)) +
+# Añadir la capa de la densidad de probabilidad.
+    geom_density()
+
+ggplot(na.omit(nadadoresParticipantes), aes(x=continent, y=points, color=continent)) +
+  geom_boxplot()
+```
+Como podemos observar, parece ser que los Europeos son mejores en el desempeño de las pruebas de natación. Además, presentan una distribución más centrada a la media y sus valores más altos están bastante alejados del resto de los del resto de participantes de otros continentes. 
+Podríamos interpretar que América tiene la segunda distribución más centrada en comparación con el resto de continentes. La esperanza está cercana a Oceanía por debajo pero con menor dispersión.
+Oceanía también presenta una media bastante alta y cercana a la de Europa. sin embargo, se puede ver como su dispersión es bastante elevada por lo que presenta nadadores de diversa cualificación.
+La peor esperanza la tiene África, muy por debajo este valor del resto de los continentes. Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
+Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones. 
+
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. 
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
