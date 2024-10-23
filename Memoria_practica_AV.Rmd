@@ -563,7 +563,7 @@ Bien, vemos que el australiano nadó tanto las preliminares, como las semifinale
 ```{r}
 nadadoresPruebas <- datos2015 %>%
   distinct(eventid, athleteid, .keep_all = TRUE)
-
+nadadoresPruebas
 ```
 
 Los datos creados, reflejan nadadores y pruebas nadadas.
@@ -582,7 +582,7 @@ ggtitle("Distribución. reactiontime")
 Parece que los datos siguen una distribución normal a priori.
 Vamos a ir más alla para intentar sacar conclusiones más profundas.
 
-Vamos a comparar a comparar las funciones de densidad de chicos y chicas en general:
+Vamos a comparar las funciones de densidad de chicos y chicas en general:
 
 ```{r message=FALSE, warning=FALSE}
 ggplot(nadadoresPruebas, aes(x=reactiontime, colour=gender))+
@@ -600,7 +600,7 @@ Hagamos un test de hipótesis donde:
 t.test(reactiontime~gender,data=nadadoresParticipantes)
 ```
 
-De manera similar a antes, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
+De manera similar a lo realizado previamente, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
 Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevancia a la hora de los resultados finales.
 Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente?
 No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el de Cohen).
@@ -625,14 +625,13 @@ ggtitle("Distribución. Reaction time: 800m free vs 50m free")
 
 El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros.
 Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
-La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes o outliers en los datos de tiempo de reacción.
+La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes u outliers en los datos de tiempo de reacción.
 Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia.
 Esto es esperado, ya que la carrera de 50 metros es más corta y requiere reacciones más rápidas y explosivas.
 En cuanto a la de 800 metros, la curva muestra una mayor dispersión en los tiempos de reacción, con una densidad más amplia.
 Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde las nadadoras pueden no necesitar un tiempo de reacción tan rápido.
 
 Aquí también podemos hacer un test de hipótesis.
-*Podemos comparar a los chicos para ver si es cierto lo supuesto*
 
 ```{r}
 t.test(reactiontime~distance,data=nadadorasComparacionReactionTime)
@@ -640,7 +639,7 @@ t.test(reactiontime~distance,data=nadadorasComparacionReactionTime)
 
 Veamos nuestros resultados del test.
 Por un lado tenemos el valor del estadístico t calculado, como es un valor negativo indica que la media del primer grupo (50 metros) es menor que la del segundo grupo (800 metros).El valor del p-valor (que es extremadamente bajo) indica que hay una diferencia estadísticamente significativa entre las medias de los dos grupos.
-Los nadadores que participan en distancias más cortas (50 metros) tienen un tiempo de reacción más rápido en comparación con aquellos que nadan distancias más largas (800 metros).Luego, habiamos identificado correctamente la tendencia del gráfico, en términos estadísticos.
+Las nadadoras que participan en distancias más cortas (50 metros) tienen un tiempo de reacción más rápido en comparación con aquellas que nadan distancias más largas (800 metros).Luego, habíamos identificado correctamente la tendencia del gráfico, en términos estadísticos.
 
 A continuación, realizamos el mismo estudio pero con hombres y vemos si la situación es similar.
 
@@ -654,6 +653,30 @@ geom_density() +
 ggtitle("Distribución para Hombres. Reaction time: 800m free vs 50m free")
 
 ```
+```{r}
+t.test(reactiontime~distance,data=nadadoresComparacionReactionTime)
+```
+Al realizar el t-test para este grupo, vemos también como la diferencia es significativa entre el tiempo de reacción para la prueba de 50 metros y la de 800.
+
+La diferencia entre estos dos extremos en las pruebas es muy significativa, pero queremos saber también como se distribuyen todas. Es decir, cuál es la diferencia entre las pruebas de 50 metros, las de 100, 200, etc. Para ello, realizaremos un gráfico de densidad conjunto. 
+
+```{r}
+ggplot(na.omit(nadadoresPruebas), aes(x = reactiontime, color = as.factor(distance), fill = as.factor(distance))) +
+  geom_density(alpha = 0.5) +  # Ajustar la transparencia
+  ggtitle("Distribución comparada de Reaction time") +
+  labs(x = "Tiempo de Reacción", y = "Densidad", color = "Distancia", fill = "Distancia") +
+  theme_minimal()
+```
+Como podemos observar, nuestras suposiciones parecen ser ciertas acerca de que las medias de los tiempos de reacción aumentan según la carrera es más larga. Si bien es cierto, para distancias largas, como son 800 y 1500 metros, no se observan diferencias en torno a su valor central. Del mismo modo, para carreras de 100 y 200 tampoco se observa una diferencia signifiticativa. 
+Contrastamos esto de forma más precisa realizando el test ANOVA de diferencia de medias. 
+
+```{r}
+anova_tiempoReaccion_distancia <- aov(reactiontime ~ as.factor(distance), data = na.omit(nadadoresPruebas))
+summary(anova_tiempoReaccion_distancia)
+```
+Interpretando estos resultado, tenemos que el valor p es un valor de orden e^-16. Por ello, podemos concluir que hay diferencias significativas en los tiempos de reacción entre al menos uno de los grupos de distancia. Esto indica que, al menos una distancia tiene un tiempo de reacción diferente en comparación con las otras distancias. El valor de F es alto (56.98), sugiere que la variación entre los grupos es mucho mayor que la variación dentro de los grupos. Esto refuerza la idea de que las medias de los tiempos de reacción son significativamente diferentes entre las carreras de diferente distancia. 
+
+
 
 ### Calles usadas
 
@@ -662,13 +685,16 @@ Veamos cómo se distribuyen las calles usadas:
 ```{r}
 ggplot(nadadoresPruebas, aes(nadadoresPruebas$lane)) + geom_bar(fill = "orange") +
 theme_bw()
+
 ```
 
-Se observa que las calles menos usadas son tanto la 0 como la 9.
+Se observa que las calles menos usadas son tanto la 0 como la 9. 
+Esto es un dato que puede resultar curioso al visualizar los datos. Por tanto, informándonos acerca de ello, tenemos que competir en las calles centrales conlleva algunas ventajas frente a las calles de los extremos. 
+Competir en estas calles influye positivamente en tener menos turbulencias y ondas causadas por otros nadadores, mejor visibilidad del resto de competidores pudiendo ajustar su estrategia según lo que suceda alrededor y genera más confianza debido al sentido de dominio que aportan estas calles. 
+Por tanto, sabiendo esto nos podríamos cuestionar cuánto influye en nuestros datos el número de calle en cada resultado. 
 
 ¿Habrá alguna relación entre la calle usada y el tiempo de reacción?
-Todo parece indicar que no.
-Veámoslo.
+
 
 ```{r}
 #me pareció guay este gráfico, alonso sabes interpretarlo? aupa
@@ -682,6 +708,38 @@ ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
        y = "Frecuencia") +
   scale_fill_brewer(palette = "Set1") 
 ```
+Como podemos ver, no parece haber diferencias significativas según el tipo de calle en los tiempos de reacción. De nuevo, podemos realizar un test anova sobre la diferencia de medias. 
+
+
+```{r}
+anova_tiempoReaccion_Calles <- aov(reactiontime ~ as.factor(lane), data = na.omit(nadadoresPruebas))
+summary(anova_tiempoReaccion_Calles)
+```
+El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada. Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir. Si en las rondales finales no se ocupan las calles laterales y son las que necesitan más respuesta explosiva para lograr la victoria, parece claro que los valores de menores tiempos de reacción se localicen en las calles centrales. Del mismo modo, podrían ocurrir otros factores no conocidos. Por lo tanto, seguimos investigando acerca de ello. 
+
+Realizamos un modelo lineal para ver si existe una relación entre los puntos de los participantes y el número de calle en el que compiten.
+
+```{r}
+lmPuntosCalle = lm(nadadoresPruebas$points~nadadoresPruebas$lane)
+summary(lmPuntosCalle)
+plot(lmPuntosCalle)
+
+```
+Podemos ver como tenemos unos valores de los parámetros de nuestra aproximación con p valores muy significativos. Sin embargo, si observamos la gráfica qqplot, la tendencia no es lineal. Para conseguir un mejor ajuste, realizaremos una transformación de la variable puntos mediante Box-Cox. 
+
+```{r}
+install.packages("MASS")  
+library(MASS)
+
+boxcox(lmPuntosCalle)
+```
+El mejor ajuste que nos devuelve Box-Cox es con \lambda=2. Por tanto,
+```{r}
+lmPuntosCalle2 = lm((nadadoresPruebas$points)^2~nadadoresPruebas$lane)
+summary(lmPuntosCalle)
+plot(lmPuntosCalle)
+```
+##!!!que alguien interprete esto porque no me entero:)
 
 ### Daytime
 
