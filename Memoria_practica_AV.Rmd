@@ -100,7 +100,7 @@ summary(datos2015)
 De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, que como máximo hubo 12 series y como mínimo 1 y que la piscina disponía de 10 carriles numerados del 0 al 9.
 También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 
-Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a varaibles categóricas en R para tener una mejor visualización de ellas.
+Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a variables categóricas en R para tener una mejor visualización de ellas.
 
 ```{r}
 datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke)
@@ -210,8 +210,8 @@ Esta diferencia en la distribución de edades entre los géneros nos conduce a r
 
 #### Hipótesis:
 
-\*\*Hipótesis nula\*\* (\\(H_0\\)): Las medias de los dos grupos son iguales.
-\*\*Hipótesis alternativa\*\* (\\(H_1\\)): Las medias de los dos grupos son diferentes.
+Hipótesis nula: Las medias de los dos grupos son iguales.
+Hipótesis alternativas: Las medias de los dos grupos son diferentes.
 
 ```{r}
 t.test(edad~gender,data=nadadoresParticipantes)
@@ -229,7 +229,7 @@ tabla1<-table(nadadoresParticipantes$edad>30,nadadoresParticipantes$gender)
 chisq.test(tabla1)
 ```
 
-Por el resultado del siguiente test aplicado,podemos concluir con que **no hay asociación significativa**: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros datos.
+Por el resultado del siguiente test aplicado, podemos concluir con que **no hay asociación significativa**: Dado que el p-valor es 0.47, entre ser mayor de 30 años y el género de los nadadores en nuestros datos.
 En términos sencillos,la edad no parece estar relacionada con el género de los nadadores en cuanto a si son mayores de 30 años.
 
 ```{r}
@@ -265,7 +265,7 @@ porcentajes
 
 De esta forma, ya habiendo confirmado una diferencia significativa.
 Podemos ver, de manera más representativa, como existe el doble de proporción de mujeres menores de edad en comparación con los hombres.
-Dicho en otras palabras, 2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres.
+Dicho en otras palabras, *2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres*.
 
 ### Análisis de nacionalidades.
 
@@ -281,7 +281,6 @@ nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country
 nombres<- unique(nadadoresParticipantes$name) #Para no repetir
 print(nombres)
 
-
 #Nombres problemáticos
 manual <- data.frame(
   nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
@@ -296,7 +295,6 @@ nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "is
 #manualmente el continente para Kosovo (XK)
 nadadoresParticipantes <- nadadoresParticipantes %>%
   mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
-
 
 
 #nadadores por país
@@ -482,6 +480,26 @@ La peor esperanza la tiene África, muy por debajo este valor del resto de los c
 Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
 Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones.
 
+
+Anteriormente hemos hallado para cada contiente todos los puntos conseguidos por los nadadores de dicho continente. Lo que vamos a hacer a continuación es normalizar los puntos por continente, es decir, para cada continente tomamos todos los puntos de dicho continente y lo dividimos por todos participantes de ese continente y comparamos.
+
+```{r}
+# Agrupar por continente, sumar puntos y contar participantes
+resumenContinente <- nadadoresParticipantes %>%
+  group_by(continent) %>%
+  summarise(
+    puntos_totales_continente = sum(points, na.rm = TRUE),
+    numero_Participantes_continente = n()  # Contar los participantes
+  ) %>%
+  mutate(
+    relacion_puntos_por_participante = puntos_totales_continente / numero_Participantes_continente
+  )
+
+# Imprimir el resultado
+print(resumenContinente)
+```
+Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), despúes Asia y por último Africa.
+
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (? Salma)
 
 ```{r}
@@ -514,7 +532,7 @@ La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 part
 La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
 
 Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores.
-Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años).
+Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa (más de 5 veces mayor entre los mayores de 18 años).
 Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años.
 Por tanto, hay más de la mitad de los participantes en el segundo grupo.
 Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
@@ -550,6 +568,16 @@ Como podemos observar mejor aquí, las diferencias con la edad entre las pruebas
 En torno al 43% de los mayores y menores de edad se presentan a la prueba de 100 metros, mientras que para la de 200 metros son en torno a un 22-25%.
 La diferencia en este caso es de un 3%, y en el resto de pruebas es poco representativo debido a la poca cantidad de participantes en ellas.
 Por tanto, parece ser que no existe una relación entre tipo de prueba y edad.
+
+## Relación entre puntos y edad
+
+En esta sección vamos a comparar los puntos con la edad. Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
+
+```{r}
+nadadores_menores <- nadadoresParticipantes[nadadoresParticipantes$edad < 18]
+
+```
+
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
@@ -768,8 +796,8 @@ summary(lmPuntosCalle)
 plot(lmPuntosCalle)
 ```
 
-##!!!q
-ue alguien interprete esto porque no me entero:)
+## ue alguien interprete esto porque no me entero:)
+
 
 ### Daytime
 
@@ -862,8 +890,7 @@ summary(pruebasVespertinas$round)
 
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
 
-##Estudios relacionados con los puntos.
-´
+## Estudios relacionados con los puntos.
 
 Veamos las posibles relaciones de puntos con las demás variables:
 
@@ -971,10 +998,11 @@ ggplot(resumen_puntos, aes(x = edad, y = points)) +
         panel.grid.minor = element_blank())
 ```
 
-###Estudio de puntos por país.
+### Estudio de puntos por país.
+
 Veamos el número de puntos por países
 
-###Modelo de regresión lineal para tiempo de reaccion vs tiempo
+### Modelo de regresión lineal para tiempo de reaccion vs tiempo
 
 ```{r}
 # Esto no funciona porque las dos variables continuas tienen distinto tamaño
@@ -1189,7 +1217,6 @@ Ahora, veamos cómo se ven los datos:
 plot(prcomp(pruebawide[,-1],scale=T)$x[,1:2], type="n")
 text(prcomp(pruebawide[,-1],scale=T)$x[,1:2],rownames(pruebawide))
 
-
 ```
 
 Bien, así observamos los nombres.
@@ -1199,7 +1226,7 @@ Veamos cómo queda el biplot:
 biplot(prcomp(pruebawide[,-1],scale=T))
 ```
 
-## PCA 100 mariposa femenino (Javier)
+## PCA 100m mariposa femenino 
 
 En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
 A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime de la tabla prueba100MariposaFem.
@@ -1242,8 +1269,8 @@ summary(pca_100mariposafemenino)
 biplot(pca_100mariposafemenino)
 ```
 
-Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23,28%.
-Luego
+Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23,28%. También tenemos una gráfica del PCA realizado.
+
 
 ## PCA. 50 mariposa masculino (Salma)
 
@@ -1292,7 +1319,7 @@ plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
 -   Hacer un pca del 100 braza masculino y clustering
 -   Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho) -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
 
-# Cluster(queda por explicar)
+# Clusters
 
 ```{r}
 kmedias=kmeans(prcomp(pruebawide[,-1],scale=T)$x[,1:2], centers=2, nstar=25)
