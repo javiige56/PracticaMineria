@@ -25,12 +25,13 @@ library(countrycode)
 library(ggExtra)
 ```
 
-#1. Introducción.
+#1.
+Introducción.
 
-En este proyecto, se analizarán los resultados del mundial de natación de 2015 con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos. Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable 
+En este proyecto, se analizarán los resultados del mundial de natación de 2015 con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos.
+Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable
 
-
-En primer lugar, vemos con qué datos vamos a tratar. 
+En primer lugar, vemos con qué datos vamos a tratar.
 El conjunto de datos consiste en los resultados del Campeonato Mundial de Natación Kazán del año 2015, con los correspondientes datos de cada nadador y prueba.
 Los datos han sido extraídos de [Omega](http://www.omegatiming.com/File/Download?id=00010F0200FFFFFFFFFFFFFFFFFFFF08), la plataforma oficial de tiempos de la World Aquatics.
 El conjunto de datos contiene información sobre los nadadores (fecha de nacimiento, país, id), y sobre la prueba nadada (tiempo de reacción, parciales, tiempo total, estilo, serie).
@@ -99,14 +100,13 @@ summary(datos2015)
 De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, que como máximo hubo 12 series y como mínimo 1 y que la piscina disponía de 10 carriles numerados del 0 al 9.
 También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 
-Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a varaibles categóricas en R para tener una mejor visualización de ellas. 
-
+Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a varaibles categóricas en R para tener una mejor visualización de ellas.
 
 ```{r}
 datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke)
 ```
 
-Visualicemos ahora de nuevo el resumen: 
+Visualicemos ahora de nuevo el resumen:
 
 ```{r}
 summary(datos2015)
@@ -123,7 +123,6 @@ Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada *edad*,
 La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial.
 Es decir, el 24 de Julio de 2015.
 
-
 ```{r}
 datos2015$birthdate <- as.Date(datos2015$birthdate)
 #Calculamos la edad
@@ -135,21 +134,23 @@ datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "
 
 Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes, vamos a necesitar eliminar filas como bien hemos anunciado antes.
 
-Por ello, vamos a crear una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir. Para ello usamos la variable athleteid, la cual es única para cada participante.
+Por ello, vamos a crear una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir.
+Para ello usamos la variable athleteid, la cual es única para cada participante.
 
 ```{r}
 nadadoresParticipantes <- datos2015 %>%
   distinct(athleteid, .keep_all = TRUE)
 ```
+
 ```{r}
 summary(nadadoresParticipantes)
 ```
 
-Ahora, comenzamos nuestro estudio: 
+Ahora, comenzamos nuestro estudio:
 
 ### Edad
 
-Veamos primeramente un resumen de la edad: 
+Veamos primeramente un resumen de la edad:
 
 ```{r}
 summary(nadadoresParticipantes$edad)
@@ -418,7 +419,7 @@ print(histograma_nadadores)
 
 Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía.
 Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking.
-Es decir, si existe mayor proporción de ganadores en los países con más densidad de participantes. 
+Es decir, si existe mayor proporción de ganadores en los países con más densidad de participantes.
 
 Para ello, analizaremos los puntos según las nacionalidades de los nadadores.
 
@@ -470,13 +471,16 @@ ggplot(na.omit(nadadoresParticipantes), aes(x = points, colour = continent)) +
 ggplot(na.omit(nadadoresParticipantes), aes(x=continent, y=points, color=continent)) +
   geom_boxplot()
 ```
-Como podemos observar, parece ser que los Europeos son mejores en el desempeño de las pruebas de natación. Además, presentan una distribución más centrada a la media y sus valores más altos están bastante alejados del resto de los del resto de participantes de otros continentes. 
-Podríamos interpretar que América tiene la segunda distribución más centrada en comparación con el resto de continentes. La esperanza está cercana a Oceanía por debajo pero con menor dispersión.
-Oceanía también presenta una media bastante alta y cercana a la de Europa. sin embargo, se puede ver como su dispersión es bastante elevada por lo que presenta nadadores de diversa cualificación.
-La peor esperanza la tiene África, muy por debajo este valor del resto de los continentes. Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
-Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones. 
 
-
+Como podemos observar, parece ser que los Europeos son mejores en el desempeño de las pruebas de natación.
+Además, presentan una distribución más centrada a la media y sus valores más altos están bastante alejados del resto de los del resto de participantes de otros continentes.
+Podríamos interpretar que América tiene la segunda distribución más centrada en comparación con el resto de continentes.
+La esperanza está cercana a Oceanía por debajo pero con menor dispersión.
+Oceanía también presenta una media bastante alta y cercana a la de Europa.
+sin embargo, se puede ver como su dispersión es bastante elevada por lo que presenta nadadores de diversa cualificación.
+La peor esperanza la tiene África, muy por debajo este valor del resto de los continentes.
+Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
+Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones.
 
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (? Salma)
 
@@ -510,11 +514,13 @@ La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 part
 La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
 
 Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores.
-Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años). 
-Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años. Por tanto, hay más de la mitad de los participantes en el segundo grupo. Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
+Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa(más de 5 veces mayor entre los mayores de 18 años).
+Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años.
+Por tanto, hay más de la mitad de los participantes en el segundo grupo.
+Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
 
-
-Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas. Debemos analizar los resultados según sus frecuencias relativas. 
+Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas.
+Debemos analizar los resultados según sus frecuencias relativas.
 
 ```{r}
 total_menores_18 <- nadadoresParticipantes %>%
@@ -539,22 +545,26 @@ resumen_relativo <- resumen_pruebas %>%
 
 print(resumen_relativo)
 ```
-Como podemos observar mejor aquí, las diferencias con la edad entre las pruebas a las que se presentan los participantes no son representativas. En torno al 43% de los mayores y menores de edad se presentan a la prueba de 100 metros, mientras que para la de 200 metros son en torno a un 22-25%. La diferencia en este caso es de un 3%, y en el resto de pruebas es poco representativo debido a la poca cantidad de participantes en ellas. Por tanto, parece ser que no existe una relación entre tipo de prueba y edad. 
+
+Como podemos observar mejor aquí, las diferencias con la edad entre las pruebas a las que se presentan los participantes no son representativas.
+En torno al 43% de los mayores y menores de edad se presentan a la prueba de 100 metros, mientras que para la de 200 metros son en torno a un 22-25%.
+La diferencia en este caso es de un 3%, y en el resto de pruebas es poco representativo debido a la poca cantidad de participantes en ellas.
+Por tanto, parece ser que no existe una relación entre tipo de prueba y edad.
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
-Para poder elaborar un estudio de algunas variables como _events_, _reactiontime_, _lane_, _heats_ y _daytime_, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas. 
+Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
-Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto. Lo evaluamos seleccionando algún nadador que haya nadado en varias rondas: 
-
-
+Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
+Lo evaluamos seleccionando algún nadador que haya nadado en varias rondas:
 
 ```{r}
 ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2015$code=="AUS", ]
 head(ejemplo,6)
 ```
 
-Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio. Creamos la siguiente tabla: 
+Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio.
+Creamos la siguiente tabla:
 
 ```{r}
 nadadoresPruebas <- datos2015 %>%
@@ -649,12 +659,16 @@ geom_density() +
 ggtitle("Distribución para Hombres. Reaction time: 800m free vs 50m free")
 
 ```
+
 ```{r}
 t.test(reactiontime~distance,data=nadadoresComparacionReactionTime)
 ```
+
 Al realizar el t-test para este grupo, vemos también como la diferencia es significativa entre el tiempo de reacción para la prueba de 50 metros y la de 800.
 
-La diferencia entre estos dos extremos en las pruebas es muy significativa, pero queremos saber también como se distribuyen todas. Es decir, cuál es la diferencia entre las pruebas de 50 metros, las de 100, 200, etc. Para ello, realizaremos un gráfico de densidad conjunto. 
+La diferencia entre estos dos extremos en las pruebas es muy significativa, pero queremos saber también como se distribuyen todas.
+Es decir, cuál es la diferencia entre las pruebas de 50 metros, las de 100, 200, etc.
+Para ello, realizaremos un gráfico de densidad conjunto.
 
 ```{r}
 ggplot(na.omit(nadadoresPruebas), aes(x = reactiontime, color = as.factor(distance), fill = as.factor(distance))) +
@@ -663,16 +677,22 @@ ggplot(na.omit(nadadoresPruebas), aes(x = reactiontime, color = as.factor(distan
   labs(x = "Tiempo de Reacción", y = "Densidad", color = "Distancia", fill = "Distancia") +
   theme_minimal()
 ```
-Como podemos observar, nuestras suposiciones parecen ser ciertas acerca de que las medias de los tiempos de reacción aumentan según la carrera es más larga. Si bien es cierto, para distancias largas, como son 800 y 1500 metros, no se observan diferencias en torno a su valor central. Del mismo modo, para carreras de 100 y 200 tampoco se observa una diferencia signifiticativa. 
-Contrastamos esto de forma más precisa realizando el test ANOVA de diferencia de medias. 
+
+Como podemos observar, nuestras suposiciones parecen ser ciertas acerca de que las medias de los tiempos de reacción aumentan según la carrera es más larga.
+Si bien es cierto, para distancias largas, como son 800 y 1500 metros, no se observan diferencias en torno a su valor central.
+Del mismo modo, para carreras de 100 y 200 tampoco se observa una diferencia signifiticativa.
+Contrastamos esto de forma más precisa realizando el test ANOVA de diferencia de medias.
 
 ```{r}
 anova_tiempoReaccion_distancia <- aov(reactiontime ~ as.factor(distance), data = na.omit(nadadoresPruebas))
 summary(anova_tiempoReaccion_distancia)
 ```
-Interpretando estos resultado, tenemos que el valor p es un valor de orden e^-16. Por ello, podemos concluir que hay diferencias significativas en los tiempos de reacción entre al menos uno de los grupos de distancia. Esto indica que, al menos una distancia tiene un tiempo de reacción diferente en comparación con las otras distancias. El valor de F es alto (56.98), sugiere que la variación entre los grupos es mucho mayor que la variación dentro de los grupos. Esto refuerza la idea de que las medias de los tiempos de reacción son significativamente diferentes entre las carreras de diferente distancia. 
 
-
+Interpretando estos resultado, tenemos que el valor p es un valor de orden e\^-16.
+Por ello, podemos concluir que hay diferencias significativas en los tiempos de reacción entre al menos uno de los grupos de distancia.
+Esto indica que, al menos una distancia tiene un tiempo de reacción diferente en comparación con las otras distancias.
+El valor de F es alto (56.98), sugiere que la variación entre los grupos es mucho mayor que la variación dentro de los grupos.
+Esto refuerza la idea de que las medias de los tiempos de reacción son significativamente diferentes entre las carreras de diferente distancia.
 
 ### Calles usadas (no está claro)
 
@@ -684,13 +704,13 @@ theme_bw()
 
 ```
 
-Se observa que las calles menos usadas son tanto la 0 como la 9. 
-Esto es un dato que puede resultar curioso al visualizar los datos. Por tanto, informándonos acerca de ello, tenemos que competir en las calles centrales conlleva algunas ventajas frente a las calles de los extremos. 
-Competir en estas calles influye positivamente en tener menos turbulencias y ondas causadas por otros nadadores, mejor visibilidad del resto de competidores pudiendo ajustar su estrategia según lo que suceda alrededor y genera más confianza debido al sentido de dominio que aportan estas calles. 
-Por tanto, sabiendo esto nos podríamos cuestionar cuánto influye en nuestros datos el número de calle en cada resultado. 
+Se observa que las calles menos usadas son tanto la 0 como la 9.
+Esto es un dato que puede resultar curioso al visualizar los datos.
+Por tanto, informándonos acerca de ello, tenemos que competir en las calles centrales conlleva algunas ventajas frente a las calles de los extremos.
+Competir en estas calles influye positivamente en tener menos turbulencias y ondas causadas por otros nadadores, mejor visibilidad del resto de competidores pudiendo ajustar su estrategia según lo que suceda alrededor y genera más confianza debido al sentido de dominio que aportan estas calles.
+Por tanto, sabiendo esto nos podríamos cuestionar cuánto influye en nuestros datos el número de calle en cada resultado.
 
 ¿Habrá alguna relación entre la calle usada y el tiempo de reacción?
-
 
 ```{r}
 #me pareció guay este gráfico, alonso sabes interpretarlo? aupa
@@ -704,14 +724,20 @@ ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
        y = "Frecuencia") +
   scale_fill_brewer(palette = "Set1") 
 ```
-Como podemos ver, no parece haber diferencias significativas según el tipo de calle en los tiempos de reacción. De nuevo, podemos realizar un test anova sobre la diferencia de medias. 
 
+Como podemos ver, no parece haber diferencias significativas según el tipo de calle en los tiempos de reacción.
+De nuevo, podemos realizar un test anova sobre la diferencia de medias.
 
 ```{r}
 anova_tiempoReaccion_Calles <- aov(reactiontime ~ as.factor(lane), data = na.omit(nadadoresPruebas))
 summary(anova_tiempoReaccion_Calles)
 ```
-El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada. Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir. Si en las rondales finales no se ocupan las calles laterales y son las que necesitan más respuesta explosiva para lograr la victoria, parece claro que los valores de menores tiempos de reacción se localicen en las calles centrales. Del mismo modo, podrían ocurrir otros factores no conocidos. Por lo tanto, seguimos investigando acerca de ello. 
+
+El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada.
+Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir.
+Si en las rondales finales no se ocupan las calles laterales y son las que necesitan más respuesta explosiva para lograr la victoria, parece claro que los valores de menores tiempos de reacción se localicen en las calles centrales.
+Del mismo modo, podrían ocurrir otros factores no conocidos.
+Por lo tanto, seguimos investigando acerca de ello.
 
 Realizamos un modelo lineal para ver si existe una relación entre los puntos de los participantes y el número de calle en el que compiten.
 
@@ -721,7 +747,10 @@ summary(lmPuntosCalle)
 plot(lmPuntosCalle)
 
 ```
-Podemos ver como tenemos unos valores de los parámetros de nuestra aproximación con p valores muy significativos. Sin embargo, si observamos la gráfica qqplot, la tendencia no es lineal. Para conseguir un mejor ajuste, realizaremos una transformación de la variable puntos mediante Box-Cox. 
+
+Podemos ver como tenemos unos valores de los parámetros de nuestra aproximación con p valores muy significativos.
+Sin embargo, si observamos la gráfica qqplot, la tendencia no es lineal.
+Para conseguir un mejor ajuste, realizaremos una transformación de la variable puntos mediante Box-Cox.
 
 ```{r}
 install.packages("MASS")  
@@ -729,13 +758,18 @@ library(MASS)
 
 boxcox(lmPuntosCalle)
 ```
-El mejor ajuste que nos devuelve Box-Cox es con \lambda=2. Por tanto,
+
+El mejor ajuste que nos devuelve Box-Cox es con \lambda=2.
+Por tanto,
+
 ```{r}
 lmPuntosCalle2 = lm((nadadoresPruebas$points)^2~nadadoresPruebas$lane)
 summary(lmPuntosCalle)
 plot(lmPuntosCalle)
 ```
-##!!!que alguien interprete esto porque no me entero:)
+
+##!!!q
+ue alguien interprete esto porque no me entero:)
 
 ### Daytime
 
@@ -745,7 +779,8 @@ Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos
 ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.7, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
 ```
 
-Vemos que, aunque podríamos sacar alguna conclusión ya, el valor de la variable daytime debería tener el formato hora/minutos. Por ello, lo realizamos: 
+Vemos que, aunque podríamos sacar alguna conclusión ya, el valor de la variable daytime debería tener el formato hora/minutos.
+Por ello, lo realizamos:
 
 ```{r}
 # Función para convertir
@@ -764,7 +799,10 @@ tiempos_hhmm <- sapply(nadadoresPruebas$daytime, convertir_a_hhmm)
 head(tiempos_hhmm)
 
 ```
-Ahora representamos estos tiempos en una gráfica. De esta manera, el lector puede visualizarlo sin tener que imaginar su conversión, como en el gráfico de antes.
+
+Ahora representamos estos tiempos en una gráfica.
+De esta manera, el lector puede visualizarlo sin tener que imaginar su conversión, como en el gráfico de antes.
+
 ```{r}
 # Crear la columna 'tiempo_hhmm'
 nadadoresPruebas$tiempo_hhmm <- sapply(nadadoresPruebas$daytime, convertir_a_hhmm)
@@ -783,12 +821,13 @@ ggplot(nadadoresPruebas, aes(x = tiempo_hhmm)) +
 
 ```
 
-
-Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias van, por la mañana de 9:30 a 12:30, y por la tarde de 17:30 a 19:30. Observamos que el número de nadadores que nadan por la mañana es mucho mayor al de por la tarde. Vamos a investigar porqué: 
+Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias van, por la mañana de 9:30 a 12:30, y por la tarde de 17:30 a 19:30.
+Observamos que el número de nadadores que nadan por la mañana es mucho mayor al de por la tarde.
+Vamos a investigar porqué:
 
 #### Pruebas matinales y vespertinas.
 
-Vamos a ver un resumen de qué pruebas se nadan por la mañana y cuáles por la tarde: 
+Vamos a ver un resumen de qué pruebas se nadan por la mañana y cuáles por la tarde:
 
 ```{r}
 nadadoresPruebas$tiempo_hhmm<- as.POSIXct(nadadoresPruebas$tiempo_hhmm, format = "%H:%M")
@@ -804,14 +843,15 @@ pruebasMatinales<-subset(nadadoresPruebas, nadadoresPruebas$tiempo_hhmm >= limit
 pruebasVespertinas<-subset(nadadoresPruebas, nadadoresPruebas$tiempo_hhmm >= limite_inferior & nadadoresPruebas$tiempo_hhmm <= limite_superior)
 ```
 
-Bien, dividida ya nuestras pruebas en la sesion matinal y la vespertina, veamos un resumen de los datos: 
+Bien, dividida ya nuestras pruebas en la sesion matinal y la vespertina, veamos un resumen de los datos:
 
 ```{r}
 dim(pruebasMatinales)
 dim(pruebasVespertinas)
 ```
 
-De aquí observamos que, mientras que por las mañanas se nada un 75% de las pruebas del mundial, por las tardes sólo se nada un 25%. Veamos si hay alguna variable que nos pueda ayudar: 
+De aquí observamos que, mientras que por las mañanas se nada un 75% de las pruebas del mundial, por las tardes sólo se nada un 25%.
+Veamos si hay alguna variable que nos pueda ayudar:
 
 ```{r}
 print("Resumen de rondas nadadas en sesiones matinales.")
@@ -821,7 +861,6 @@ summary(pruebasVespertinas$round)
 ```
 
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
-
 
 ##Estudios relacionados con los puntos.
 ´
@@ -896,6 +935,7 @@ ggtitle("Distribución. Puntos por sexo")
 ```
 
 A priori, parece haber dos distribuciones muy igualadas.
+
 ```{r}
 modelo= lm(points ~ gender, data = nadadoresParticipantes)
 
@@ -1161,29 +1201,49 @@ biplot(prcomp(pruebawide[,-1],scale=T))
 
 ## PCA 100 mariposa femenino (Javier)
 
-```{r}
-#Todas las pruebas de atletas femeninas, de distacia igual a 100m y de estilo de nado mariposa
-prueba100MariposaFem <- datos2015[datos2015$distance==100 & datos2015$gender=="F" & datos2015$stroke=="FLY",]
+En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
+A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime de la tabla prueba100MariposaFem.
 
-prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad, swimtime)
+```{r}
+# Filtro de pruebas de 100m mariposa femenino
+prueba100MariposaFem <- datos2015[datos2015$distance==100 & datos2015$gender=="F" & datos2015$stroke=="FLY" & datos2015$round =="PRE",]
+
+# Selección de columnas relevantes
+prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime)
 ```
 
 ```{r}
 prueba <- prueba100MariposaFem %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
-row.names(prueba) <- prueba$lastname # esto es para llamar a las filas con el nombre de los nadadores
-prueba
-#omito los valores nulos: 
+
+#Eliminamos duplicados y NA de la columna 'lastname'
+prueba <- prueba[!duplicated(prueba$lastname) & !is.na(prueba$lastname), ]
+
+prueba <- as.data.frame(prueba)
+
+# Asignar los nombres de fila como el apellido del nadador
+row.names(prueba) <- prueba$lastname
+
+#Eliminamos filas con NA restantes
 prueba <- na.omit(prueba)
 ```
 
-Realizamos el PCA:
+Con todo esto, estamos preparados para realizar el PCA:
 
 ```{r}
-prcomp(prueba[,-1], scale=T) 
-summary(prcomp(prueba[,-1],scale=T))
+#Realizamos el PCA
+pca_100mariposafemenino <- prcomp(prueba[,-1], scale=T)
+
+# Resultados del PCA
+summary(pca_100mariposafemenino)
+
+#Visualización del PCA
+biplot(pca_100mariposafemenino)
 ```
+
+Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23,28%.
+Luego
 
 ## PCA. 50 mariposa masculino (Salma)
 
