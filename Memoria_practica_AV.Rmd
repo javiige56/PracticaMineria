@@ -86,7 +86,7 @@ Observamos Noel Borshi, nadadora albanesa nacida un 13 de febrero de 1996, que t
 Noel Borshi nadó la prueba 1 en la serie 1 y carril 4.
 Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65s y pasó por el primer parcial (50m) en 29.63 segundos.
 
-# Análisis exploratorio de datos (EDA)
+# Análisis exploratorio de datos.
 
 ## Resumen de los datos.
 
@@ -99,13 +99,14 @@ summary(datos2015)
 De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, que como máximo hubo 12 series y como mínimo 1 y que la piscina disponía de 10 carriles numerados del 0 al 9.
 También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 
-Observamos que tenemos algunas variables categóricas, luego vamos a cargar la libreria "dyplr" y vamos a intentar visualizarlas de una mejor manera:
+Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a varaibles categóricas en R para tener una mejor visualización de ellas. 
+
 
 ```{r}
 datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke)
 ```
 
-Visualicemos de nuevo el resumen:
+Visualicemos ahora de nuevo el resumen: 
 
 ```{r}
 summary(datos2015)
@@ -116,13 +117,12 @@ También se nadaron pruebas de espalda, braza, mariposa, crol y estilos individu
 
 Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no causen interferencia en nuestros datos.
 
-## Estudio sobre el número de nadadores, su género, país y edad.
-
-### Edad
+## Creación de nueva variable edad.
 
 Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada *edad*, ya que será más representativo que trabajar con la variable birthdate.
 La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial.
 Es decir, el 24 de Julio de 2015.
+
 
 ```{r}
 datos2015$birthdate <- as.Date(datos2015$birthdate)
@@ -131,7 +131,11 @@ fechaKazan<- as.Date("2015-07-24")
 datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
 ```
 
-Ahora, vamos a crear una nueva tabla en la cual vamos a obtener sólamente los nadadores (sin repetir) que participaron en la competición:
+## Estudio sobre el número de nadadores, su género, país y edad.
+
+Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes, vamos a necesitar eliminar filas como bien hemos anunciado antes.
+
+Por ello, vamos a crear una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir. Para ello usamos la variable athleteid, la cual es única para cada participante.
 
 ```{r}
 nadadoresParticipantes <- datos2015 %>%
@@ -141,20 +145,11 @@ nadadoresParticipantes <- datos2015 %>%
 summary(nadadoresParticipantes)
 ```
 
-Esta nueva tabla no repite a los nadadores. Pero debemos tener en cuenta para futuras observaciones, que sólo nos da los resultados de la ronda preliminar en el primer split, ya que es la primera observación que se toma de cada participante.
+Ahora, comenzamos nuestro estudio: 
 
-Dicho esto, si queremos para posibles análisis de rendimiento también el desempeño de cada nadador en su ronda final, haremos otra partición de los datos.
-```{r}
-nadadoresRondaFinal <- datos2015%>%
-  filter(round == "FIN") %>%
-  distinct(athleteid, .keep_all = TRUE)
-```
-```{r}
-nadadoresRondaFinal
-```
-De esta forma, esta partición de los datos nos muestra a los nadadores no repetidos, con los eventos observados en su ronda final en el primer split.
+### Edad
 
-Procedemos ahora a analizar los datos conforme con la edad de los participantes. Para ello, utilizamos la primera partición. Es decir, la de los nadadores en su primer split en la ronda preliminar. 
+Veamos primeramente un resumen de la edad: 
 
 ```{r}
 summary(nadadoresParticipantes$edad)
@@ -212,7 +207,7 @@ ggplot(nadadoresParticipantes, aes(x = edad, colour = gender)) +
 Según observamos, la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres.
 Esta diferencia en la distribución de edades entre los géneros nos conduce a realizar distintos test estadísticos para confirmar si la diferencia realmente es significativa.
 
-### Hipótesis:
+#### Hipótesis:
 
 \*\*Hipótesis nula\*\* (\\(H_0\\)): Las medias de los dos grupos son iguales.
 \*\*Hipótesis alternativa\*\* (\\(H_1\\)): Las medias de los dos grupos son diferentes.
@@ -276,9 +271,6 @@ Dicho en otras palabras, 2 de cada 10 mujeres son menores de 18 años, mientras 
 Vamos a ver la cantidad de nadadores por país.
 
 ```{r}
-library(ggplot2)
-library(ggimage)
-library(countrycode)
 
 # Utilizamos la tabla nadadoresParticipantes
 # Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
@@ -484,7 +476,9 @@ Oceanía también presenta una media bastante alta y cercana a la de Europa. sin
 La peor esperanza la tiene África, muy por debajo este valor del resto de los continentes. Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
 Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones. 
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. 
+
+
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (? Salma)
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
@@ -549,16 +543,18 @@ Como podemos observar mejor aquí, las diferencias con la edad entre las pruebas
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
-Primeramente, vamos a elaborar una tabla que refleje nadadores y pruebas nadadas (lo único que vamos a desechar son los parciales (filas) en caso de que la prueba sea de más de 50 metros.)
+Para poder elaborar un estudio de algunas variables como _events_, _reactiontime_, _lane_, _heats_ y _daytime_, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas. 
 
-Para ello, primeramente debemos saber si cada prueba y cada tipo de prueba (preliminar, final o seminifinal), tiene un id de evento distinto, para ello seleccionamos algún nadador que haya nadado en la misma prueba varias rondas:
+Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto. Lo evaluamos seleccionando algún nadador que haya nadado en varias rondas: 
+
+
 
 ```{r}
 ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2015$code=="AUS", ]
 head(ejemplo,6)
 ```
 
-Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio:
+Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio. Creamos la siguiente tabla: 
 
 ```{r}
 nadadoresPruebas <- datos2015 %>%
@@ -566,9 +562,9 @@ nadadoresPruebas <- datos2015 %>%
 nadadoresPruebas
 ```
 
-Los datos creados, reflejan nadadores y pruebas nadadas.
+Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
 
-### Tiempo de reacción. Hombres vs Mujeres
+### Reactiontime. Hombres vs Mujeres
 
 Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores:
 
@@ -606,7 +602,7 @@ Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo 
 No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el de Cohen).
 Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
 
-### Tiempo de reacción. Distancias largas vs distancias cortas.
+### Reactiontime. Distancias largas vs distancias cortas.
 
 Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 800m libres y 50m libres:
 
@@ -678,7 +674,7 @@ Interpretando estos resultado, tenemos que el valor p es un valor de orden e^-16
 
 
 
-### Calles usadas
+### Calles usadas (no está claro)
 
 Veamos cómo se distribuyen las calles usadas:
 
@@ -749,7 +745,7 @@ Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos
 ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.7, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
 ```
 
-Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias iban aproximadamente desde 930 (9:30 am) hasta las 1130 (MIRAR CÓMO HACER ESTE GRAFICO DE OTRA MANERA.)
+Vemos que, aunque podríamos sacar alguna conclusión ya, el valor de la variable daytime debería tener el formato hora/minutos. Por ello, lo realizamos: 
 
 ```{r}
 # Función para convertir
@@ -786,7 +782,46 @@ ggplot(nadadoresPruebas, aes(x = tiempo_hhmm)) +
   theme_minimal()
 
 ```
-Con este gráfico, podemos ver como la gran parte de los participantes compiten a primera hora de la mañana. Nos podríamos preguntar si según el tipo de carrera los horarios se establecen a distintas horas del día, o si el buen o mal desempeño puede ser a causa de estos horarios. 
+
+
+Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias van, por la mañana de 9:30 a 12:30, y por la tarde de 17:30 a 19:30. Observamos que el número de nadadores que nadan por la mañana es mucho mayor al de por la tarde. Vamos a investigar porqué: 
+
+#### Pruebas matinales y vespertinas.
+
+Vamos a ver un resumen de qué pruebas se nadan por la mañana y cuáles por la tarde: 
+
+```{r}
+nadadoresPruebas$tiempo_hhmm<- as.POSIXct(nadadoresPruebas$tiempo_hhmm, format = "%H:%M")
+#intervalo para las matinales
+limite_inferior1 <- as.POSIXct("09:30", format = "%H:%M")
+limite_superior1 <- as.POSIXct("13:00", format = "%H:%M")
+#intervalo para las vespertinas
+limite_inferior <- as.POSIXct("17:00", format = "%H:%M")
+limite_superior <- as.POSIXct("20:00", format = "%H:%M")
+#Creamos las tablas
+pruebasMatinales<-subset(nadadoresPruebas, nadadoresPruebas$tiempo_hhmm >= limite_inferior1 & nadadoresPruebas$tiempo_hhmm <= limite_superior1)
+
+pruebasVespertinas<-subset(nadadoresPruebas, nadadoresPruebas$tiempo_hhmm >= limite_inferior & nadadoresPruebas$tiempo_hhmm <= limite_superior)
+```
+
+Bien, dividida ya nuestras pruebas en la sesion matinal y la vespertina, veamos un resumen de los datos: 
+
+```{r}
+dim(pruebasMatinales)
+dim(pruebasVespertinas)
+```
+
+De aquí observamos que, mientras que por las mañanas se nada un 75% de las pruebas del mundial, por las tardes sólo se nada un 25%. Veamos si hay alguna variable que nos pueda ayudar: 
+
+```{r}
+print("Resumen de rondas nadadas en sesiones matinales.")
+summary(pruebasMatinales$round)
+print("Resumen de rondas nadadas en sesiones vespertinas.")
+summary(pruebasVespertinas$round)
+```
+
+Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
+
 
 ##Estudios relacionados con los puntos.
 ´
