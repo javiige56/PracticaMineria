@@ -28,6 +28,7 @@ library(countrycode)
 library(ggExtra)
 library(cluster)
 library(purrr)
+library(dendextend)
 
 ```
 
@@ -1756,7 +1757,6 @@ Como vemos, las divisiones son similares, pero no son iguales. Esto se debe al m
 
 A su vez, comparamos si los dendrogramas utilizados para agregar o dividir son isomorfos. 
 ```{r}
-library(dendextend)
 
 # Matriz de distancias
 res.dist <- dist(clusterprueba1500, method = "euclidean")
