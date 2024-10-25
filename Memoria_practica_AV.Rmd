@@ -1534,9 +1534,9 @@ La posición de los puntos en relación con las flechas de las variables te da u
 resumen200 <- datos2015[datos2015$distance==200 & datos2015$gender=="M" & datos2015$stroke=="FLY"& datos2015$round=="PRE", ]
 
 # Selección de columnas relevantes
-resumen200 <- resumen200 %>% dplyr::select(lastname,points,edad) %>%
+resumen200 <- resumen200 %>% dplyr::select(lastname,reactiontime,edad) %>%
     distinct() %>%         
-    arrange(desc(points))
+    arrange(desc(reactiontime))
 
 
 resumen200
@@ -1544,11 +1544,24 @@ resumen200
 ```
 
 Para entender mejor esto, elijo el punto 5 y el 15,  y veo como concluyo: 
-El punto 5 representa una observación con buen rendimiento en las pruebas de natación de 50, 100, 150, y 200 metros, y probablemente corresponde a un participante más joven. La edad parece tener poca o ninguna influencia negativa en su desempeño.
+El punto 5 representa una observación, probablemente correspondiente a un participante más joven, pero con un tiempo de reacción muy alto.  La edad parece tener poca o ninguna influencia negativa en su desempeño.
+
 El punto 15 representa una observación que no tiene una fuerte correlación con ninguna variable en particular. Es probable que el participante correspondiente tenga un rendimiento promedio o moderado en las pruebas de natación y que su edad no juegue un papel importante. Al estar más arriba en Dim2, podría haber alguna influencia positiva de los tiempos de natación, pero no de forma muy clara como en el caso del punto 5.
 
+De hecho el 26, parece ser un nadador con unos tiempos de reacción muy altos.
 
-
+Para ver que hemos concluido bien, represento pero con nombres
+```{r}
+# Crear un biplot con los nombres en lugar de los números
+fviz_pca_biplot(componentess, 
+                 repel = TRUE,
+                 label = "none") +  # No mostrar etiquetas por defecto
+  geom_text(data = pruebita, aes(x = componentess$x[, 1], 
+                               y = componentess$x[, 2], 
+                               label = lastname), 
+            vjust = -1)  # Ajustar el desplazamiento vertical
+```
+El punto 5 se corresponde con castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto. 
 ## PCA. 800M libres femenino
 
 Lo primero que debemos hacer es cargar los datos:
@@ -1752,8 +1765,112 @@ Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee 
 
 
 
-# Clusters
+## Clusters
 
+#Cluster 200 masculina 
+
+```{r}
+clusterprueba200 <- scale(pruebita[,-1])
+
+summary(clusterprueba200)
+```
+
+
+```{r}
+distancias <- get_dist(clusterprueba200)
+fviz_dist(distancias, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
+
+```{r}
+k200 <- kmeans(clusterprueba200, centers = 2, nstart = 25)
+str(k2)
+```
+
+
+```{r}
+fviz_cluster(k200, data = clusterprueba200)
+```
+Como vemos, con 2 clusters nos divide a los participantes según el tiempo de reacción (vemos como el 5, que ya habiamos mencionado, aparece en los más rápidos). Los medios, son más, y están en el rojo.
+
+Realmente parece que dos grupos no son suficientes. Vamos a verlo empíricamente.
+
+```{r}
+# Reproducible
+set.seed(123)
+
+fviz_nbclust(clusterprueba200, kmeans, method = "wss")
+```
+
+Parece que deberiamos aumentar el número de grupos, incluso 5 grupos. A partir de 5 grupos, parece muy baja mejora.
+
+Utilizamos otros métodos. Para ello, como el de la silueta.
+
+```{r}
+fviz_nbclust(clusterprueba200, kmeans, method = "silhouette")
+```
+
+Parece que con dos grupos, podemos excluir a valores muy discriminados en nuestro estudio. Luego, depende de si nuestro objetivo es encontrar valores peculiares.
+
+Probamos con k=5 
+
+```{r}
+k5_200 <- kmeans(clusterprueba200, centers = 5, nstart = 25)
+
+fviz_cluster(k5_200, data = clusterprueba200)
+```
+El cluster 5 representa un grupo de nadadores que tienen un comportamiento peculiar en cuanto a los tiempos de reacción, y la edad no parece ser un factor determinante para ellos.
+
+El grupo azul (cluster 4) tiene varias observaciones distribuidas más arriba a la derecha del gráfico, a lo largo de Dim1. Estos nadadores parecen tener una mayor edad y mayor tiempo de reacción. Esto tiene sentido, ya que el eje de Dim1 parece estar relacionado con el rendimiento en la prueba (donde mayor puntuación indicaría menor rendimiento).
+
+Este cluster verde está ubicado hacia el centro del gráfico, alrededor del origen de los ejes de Dim1 y Dim2. Esto sugiere que los nadadores en este grupo tienen un rendimiento promedio o neutral en las variables consideradas (edad y tiempo de reacción).
+
+Los puntos 5 y 26 están en un cluster aislado, probablemente por tener características atípicas en cuanto a su tiempo de reacción, pero con una edad no influyente.
+El cluster azul representa a nadadores mayores con tiempos de reacción más lentos, lo que afecta negativamente su rendimiento.
+Los otros clusters agrupan a los nadadores con características más cercanas entre sí en cuanto a edad y tiempos de reacción.
+
+#Cluster divisivo 200
+
+
+```{r}
+# Clustering jerárquico divisivo
+hc200 <- diana(clusterprueba200)
+
+# Coeficiente de división; cantidad de estructura de agrupación encontrada
+hc200$dc
+```
+Podemos proceder a realizar el dendograma(cercano a 1). 
+
+```{r}
+# Drendrograma
+pltree(hc200, cex = 0.6, hang = -1, main = "Dendrogram de DIANA")
+```
+Utilizamos k=5
+
+```{r}
+# Método de Ward
+# Matriz de disimilaridades
+d200 <- dist(clusterprueba200, method = "euclidean")
+hc5_200 <- hclust(d200, method = "ward.D2" )
+
+# Cortamos en 4 clusters
+sub_grp <- cutree(hc5_200, k = 5)
+
+# Visualizamos el corte en el dendrograma
+plot(hc5_200, cex = 0.6)
+rect.hclust(hc5_200, k = 5, border = 2:5)
+```
+Veamos si coincide con los clusters anteriores
+
+```{r}
+# Visualización
+#Cluster realizado con el método de división
+fviz_cluster(list(data=clusterprueba200,cluster=sub_grp))
+
+#Cluster realizado con kmeans
+fviz_cluster(k5_200, data = clusterprueba200)
+```
+
+Vemos que coinciden.
 
 #Cluster para la prueba de 1500 masculina
 
@@ -1833,14 +1950,6 @@ fviz_gap_stat(gap_stat)
 Utilizando estos dos últimos métodos, nos dan el resultado de que el número óptimo de clústers son dos en "silueta" y uno en "Gap". Puesto que cada método nos determina un número distinto de k, utilizaremos la división en grupos según el objetivo a tratar, como hemos comentado recientemente. 
 
 
-##lo de abajo ya estaba no se q es
-
-
-```{r}
-kmedias=kmeans(prcomp(pruebawide[,-1],scale=T)$x[,1:2], centers=2, nstar=25)
-
-kmedias
-```
 
 
 
