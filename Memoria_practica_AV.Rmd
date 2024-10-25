@@ -16,7 +16,9 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 # Cargamos las librerias que vamos necesitando a lo largo del codigo
-# install.packages("factoextra")
+#install.packages("factoextra")
+#install.packages("pastecs")
+library(pastecs)
 library(factoextra)
 library(dplyr)
 library(MASS)
@@ -1339,6 +1341,154 @@ La pelea por la última medalla en juego dura hasta los 700 metros, donde un ade
 
 Realizaremos ahora el análisis de componentes principales del 800m libres femenino:
 
+## PCA. 200 mariposa masculino preliminares (Salma)
+
+La idea de realizar el siguiente PCA es porque disponemos de gran cantidad de variables, algunas de las cuales están correlacionadas entre sí, lo que complica su análisis. En estas situaciones es conveniente aplicar el método de componentes principales, que permita reducir el número de variables sin pérdida sustancial de información, y consiguiendo que estas nuevas variables sean incorreladas evitando así que haya información redundante.
+
+Comenzamos,cargando los datos:
+
+```{r}
+prueba200MariposaMasc<- datos2015[datos2015$distance==200 & datos2015$gender=="M" & datos2015$stroke=="FLY"& datos2015$round=="PRE", ]
+
+prueba200MariposaMasc <- prueba200MariposaMasc %>%
+    dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad)
+```
+
+
+Creamos una tabla en la que nos quedamos con el nombre, apellidos y parciales
+
+```{r}
+pruebita <- prueba200MariposaMasc %>%
+  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
+              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+pruebita
+#omito los valores nulos: 
+pruebita<- na.omit(pruebita)
+row.names(pruebita) <- pruebita$lastname # esto es para llamar a las filas con el nombre de los nadadores
+pruebita
+```
+
+Calculas estadísticas descriptivas utilizando 'pastecs::stat.desc' para entender mejor tus datos:
+```{r}
+pastecs::stat.desc(pruebita, basic = F)
+```
+
+
+
+Se puede observar que hay grandes diferencias entre las varianzas de las variables, lo que puede afectar a los resultados de un análisis de componentes principales (ACP), debido a que las variables con mayor varianza tendrán más influencia en la generación de un componente.
+
+El ACP tiene sentido cuando hay correlación entre las variables pues permite eliminar información redundante. Si se analiza la matriz de correlaciones se puede ver, a modo de ejemplo, que hay correlaciones fuertes.Luego, procedemos con el PCA
+
+
+```{r}
+prueba200MariposaMasc2<- datos2015[datos2015$distance==200 & datos2015$gender=="M" & datos2015$stroke=="FLY"& datos2015$round=="PRE", ]
+
+prueba200MariposaMasc2 <- prueba200MariposaMasc2 %>%
+    dplyr::select( reactiontime, splitdistance, splitswimtime, edad)
+
+R <- cor(prueba200MariposaMasc2)
+corrplot::corrplot(R, method = "number", 
+                   number.cex = 0.75) # Matriz de correlaciones con números en letra pequeña
+```
+
+
+Para la obtención de los componentes principales utilizamos la función princomp. Para evitar la influencia de la diferencia en magnitud de las varianzas se puede emplear los datos originales y el argumento cor = TRUE o los datos originales estandarizados y el argumento cor = FALSE.Utilizaremos el primer caso,ya que conseguimos que la suma de las varianzas de las variables originales y la de los componentes coincida con el número de variables de la matriz de datos original.
+
+
+
+```{r}
+componentess=prcomp(pruebita[,-1], cor = TRUE)
+summary(componentess)
+```
+Los componentes están ordenados en función de la varianza que explican y el porcentaje acumulado permite decidir con cuántos componentes trabajar. En este caso con solo dos se explica el 96%, con tres el 98%, con uno el 68%...
+
+Generalmente, hay un número pequeño de componentes, los primeros, que contienen casi toda la información y el resto suele contribuir relativamente poco. Ya lo hemos visto en nuestro estudio. Podemos directamente coger 2, trabajar sobre el plano y tener una alta varianza explicada, pero vamos a demostrarlo de una manera un poco más empírica. Utilizamos  el criterio del autovalor superior a la unidad (regla de Kaiser) y el gráfico de sedimentación (scree test).
+
+Para el primero, tenemos que saber que este criterio retiene aquellos componentes cuyos valores propios son superiores a la unidad y funciona bastante bien salvo con un gran número de variables, que no es nuestro caso.Luego, será muy preciso. Las raices de los autovalores asociados a la matriz de correlaciones son las desviaciones típicas de los componentes y se encuentran en '$sdev' del objeto componentes creado con la función princomp.
+
+```{r}
+auto<-componentess$sdev^2
+auto
+```
+
+El número de componentes a retener según este criterio sería 2, ya que únicamente hay 2 autovalores mayores que uno. Como ya se ha visto, esta decisión implicaría quedarnos con un 96% de la varianza total de los datos, que es bastante.
+
+Otra manera de ver el número de componentes que escojamos, más gráfica, es un gráfico de sedimentación (scree test).
+Este gráfico muestra en el eje de ordenadas los autovalores y en el eje de abscisas los componentes. Los cambios en la pendiente nos permiten observar cuánta capacidad explicativa va aportando cada componente. 
+
+Se escoge el número de componentes a partir del cual los autovalores restantes son relativamente más pequeños en comparación con él.
+
+```{r}
+plot(componentess, type="lines", main = "Gráfico de sedimentación")
+abline(h=1, lty=3, col="red")
+```
+
+El gráfico de codo nos aconseja también quedarnos con 2 componentes. Ambos criterios ofrecen la misma conclusión, que el número de componentes a retener es 2.
+
+Una vez pasamos a la interpretación de las componentes debemos estudiar sus relaciones con cada una de las variables originales. Para ello se obtienen e interpretan las correlaciones entre los componentes (componentes$scores) y las variables. Una forma de calcularla es con la función cor:
+
+```{r}
+
+Cor_CompVar <- round(cor(pruebita[,-1], componentess$scores), 4) # con round se redondea, en este caso concreto, a 4 decimales 
+Cor_CompVar
+```
+Estos coeficientes que se acaban de calcular son los que se utilizan para interpretar los componentes. Como se ha decidido retener solo dos componentes, es conveniente crear un objeto que contenga solo las correlaciones con esos tres componentes, que será el objeto a analizar:
+
+```{r}
+Cor_CompVar_retenidos <- Cor_CompVar[, 1:2]
+Cor_CompVar_retenidos
+```
+
+Antes de seguir con la interpretación de los componentes, es conveniente analizar si con el número de componentes elegido (dos) están todas las variables bien representadas. Para ello se utiliza el coeficiente de correlación al cuadrado.El valor de la correlación al cuadrado se utiliza para estimar la calidad de la representación. Cuanto más cercano esté a la unidad, mejor será esta. 
+```{r}
+round(Cor_CompVar[,1:2]^2, 4) # con round se redondea, en este caso concreto, a 4 decimales
+```
+
+
+Estos resultados se pueden visualizar con corrplot:
+
+```{r}
+corrplot::corrplot(factoextra::get_pca_var(componentess)$cos2[, 1:2], is.corr = F)
+```
+La variable 200, por ejemplo, está explicada fundamentalmente por la dimensión 1 (componente 1), lo mismo que le ocurre a la variable 150, en menor medida. La primera, representa un color amarillo medio, lo que indica un porcentaje de varianza explicada cercano al 37%. No debería llamarnos la atención es ver que la edad esta explicada con la componente 1, en un color muy oscuro,entorno al 74%
+```{r}
+
+
+factoextra::fviz_cos2(componentess, choice = "var", 
+                      axes = 1:2, # axes recoge los componentes a utilizar
+                         title = "Cos2 de las variables para los componentes 1 a 2") 
+```
+
+
+En este caso, se representa la suma de cos2 para los 2 componentes.La proporción de variabilidad explicada por los tres componentes retenidos bastante baja.
+
+
+Procedemos, con la función fviz_pca_var del paquete factoextra, donde sobre un círculo de radio unidad, se sitúan las variables, utilizando como coordenadas sus correlaciones con cada uno de los componentes en el plano. Además, las variables se pueden colorear en función de distintas características, entre las que destacan su contribución y el valor del cos2 (por ejemplo, verde, naranja o rojo dependiendo de que sean valores bajos, medios o altos, respectivamente).
+
+En edad,la recta formada por la primera componente solo explica el 0,28% de la varianza de edad, lo que significa que está pobremente representado por esta dimensión.
+```{r}
+
+factoextra::fviz_pca_var(componentess, col.var = "cos2", 
+                         gradient.cols = c("green", "orange", "red"),
+                         repel = TRUE,
+                         title = "Cos2 de las variables en el plano 1")
+```
+
+
+
+Cuanto más cercana esté una variable al borde, mejor será la calidad de la representación en el conjunto de las dos componentes. Las variables que están cercanas al centro del círculo no están suficientemente bien representadas por esos componentes, como ocurre con reactiontime(ya lo teníamos comprobado anteriormente), pero el resto de variables están bien representadas por estas dos dimensiones.
+
+
+
+
+
+
+Esto es una manera interesante de ver que escoger dos componentes sería lo adecuado:
+
+```{r}
+plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
+```
+ 
 ## PCA. 800M libres femenino
 
 Lo primero que debemos hacer es cargar los datos:
@@ -1360,6 +1510,7 @@ pruebawide
 #omito los valores nulos: 
 pruebawide<- na.omit(pruebawide)
 row.names(pruebawide) <- pruebawide$lastname # esto es para llamar a las filas con el nombre de los nadadores
+
 
 ```
 
@@ -1392,7 +1543,7 @@ biplot(prcomp(pruebawide[,-1],scale=T))
 
 ```
 
- 
+
 ## PCA 100m mariposa femenino 
 
 En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
@@ -1438,43 +1589,6 @@ biplot(pca_100mariposafemenino)
 
 Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23,28%. También tenemos una gráfica del PCA realizado.
 
-
-## PCA. 50 mariposa masculino (Salma)
-
-Cargamos los datos:
-
-```{r}
-prueba50MariposaMasc<- datos2015[datos2015$distance==50 & datos2015$gender=="M" & datos2015$stroke=="FLY", ]
-
-prueba50MariposaMasc <- prueba50MariposaMasc %>%
-    dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad, swimtime)
-```
-
-De manera análoga, creamos una tabla en la que nos quedamos con el nombre, apellido y parciales
-
-```{r}
-pruebita <- prueba50MariposaMasc %>%
-  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
-              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
-pruebita
-#omito los valores nulos: 
-pruebita<- na.omit(pruebawide)
-```
-
-Hacemos el PCA:
-
-```{r}
-prcomp(pruebita[,-1], scale=T)
-summary(prcomp(pruebita[,-1],scale=T))
-```
-
-Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza.
-Con PC2 un 5%.
-Con esas dos podemos explicar un 90% de los datos.
-
-```{r}
-plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
-```
 
 # Tareas por hacer e ideas surgidas:
 
