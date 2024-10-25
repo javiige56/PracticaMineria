@@ -479,15 +479,15 @@ Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen Am
 
 
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (?Salma)
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. 
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
-nadadoresParticipantes <- nadadoresParticipantes %>%
+nadadoresPruebas2 <- nadadoresPruebas %>%
   mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
 
 #Resumir el número de participantes en cada prueba por grupo de edad
-resumen_pruebas <- nadadoresParticipantes %>%
+resumen_pruebas <- nadadoresPruebas2 %>%
   group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
   summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
   ungroup() %>%  # Quitar agrupación
@@ -498,20 +498,54 @@ resumen_pruebas
 
 ```
 
-Tenemos la distancia de 100 metros, con 405 participantes.
-Es la distancia más popular entre los nadadores mayores de 18 años.
-Le sigue la distancia de 209 participantes, la de 200 metros.
-200 metros: Con 209 participantes, sigue siendo una distancia muy popular.
-La participación disminuye considerablemente en distancias más largas, como 1500 metros con solo 13 participantes.
-Para los menores de 18 años tenemos carreras de 100 metros con 75 participantes, esta es la distancia más frecuentada, aunque significativamente menos que el grupo de 18 años o más.
-La participación en distancias más largas, como 400 metros, es aún más baja, con solo 19 participantes.
+Parece que nos va a servir más verlo con porcentajes:
+```{r}
+# Crear una nueva columna para clasificar por edad
+nadadoresPruebas2 <- nadadoresPruebas %>%
+  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
+
+# Contar el número total de nadadores
+total_nadadores <- nrow(nadadoresPruebas2)
+
+# Resumir el número de participantes en cada prueba por grupo de edad
+resumen_pruebas <- nadadoresPruebas2 %>%
+  group_by(grupo_edad, distance) %>%  # Agrupar por grupo de edad y prueba
+  summarise(num_participantes = n(), .groups = "drop") %>%  # Contar el número de participantes
+  mutate(porcentaje = (num_participantes / total_nadadores) * 100) %>%  # Calcular el porcentaje
+  ungroup() %>%  # Quitar agrupación
+  arrange(grupo_edad, desc(num_participantes))  # Ordenar los resultados
+
+# Mostrar el resumen
+print(resumen_pruebas)
+
+
+```
+
+Lo veo gráficamente:
+```{r}
+library(ggplot2)
+
+# Gráfico de barras para el número de participantes por grupo de edad y distancia
+ggplot(resumen_pruebas, aes(x = factor(distance), y = num_participantes, fill = grupo_edad)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Número de Participantes por Distancia y Grupo de Edad",
+       x = "Distancia (m)",
+       y = "Número de Participantes",
+       fill = "Grupo de Edad") +
+  theme_minimal()
+
+```
+
+La distancia de 100 y 50 metros es la distancia más popular entre los nadadores mayores de 18 años.
+Le sigue la distancia de 200 metros. La participación disminuye considerablemente en distancias más largas, como 1500 metros.
+Para los menores de 18 años tenemos carreras de 100 y 50 metros como las más frecuentadas, aunque menos que el grupo de 18 años o más(hay menos menores).
+La participación en distancias más largas, como 400 metros, es aún más baja en menores.
 
 Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
-La mayor diferencia se observa en la distancia de 100 metros, donde hay 405 participantes en el grupo de 18 años o más, en comparación con solo 75 en el grupo de menores de edad.
 La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
 
-Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 100 metros es la más popular entre los nadadores.
-Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa (más de 5 veces mayor entre los mayores de 18 años).
+Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 50 metros es la más popular entre los nadadores.
+Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa.
 Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años.
 Por tanto, hay más de la mitad de los participantes en el segundo grupo.
 Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
