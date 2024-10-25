@@ -16,6 +16,8 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 # Cargamos las librerias que vamos necesitando a lo largo del codigo
+# install.packages("factoextra")
+library(factoextra)
 library(dplyr)
 library(MASS)
 library(rstatix)
@@ -1501,6 +1503,7 @@ datos1500Masc <- datos2015[datos2015$distance==1500 & datos2015$gender=="M" & da
 
 # Selección de columnas relevantes
 datos1500Masc <- datos1500Masc %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime)
+datos1500Masc
 ```
 
 ```{r}
@@ -1518,6 +1521,7 @@ row.names(prueba1500) <- prueba1500$lastname
 
 #Eliminamos filas con NA restantes
 prueba1500 <- na.omit(prueba1500)
+prueba1500
 ```
 
 Con todo esto, estamos preparados para realizar el PCA:
@@ -1530,9 +1534,43 @@ pca_1500masculino <- prcomp(prueba1500[,-1], scale=T)
 # Resultados del PCA
 summary(pca_1500masculino)
 
-#Visualización del PCA
-biplot(pca_1500masculino)
 ```
+
+Por tanto, vemos el Análisis de Componentes Principales (PCA) en los datos de nadadores masculinos en la carrera de 1500 metros, excluyendo la primera variable, que es el nombre. 
+
+Observamos que el primer componente principal (PC1) tiene una desviación estándar de 5.0272 y explica el 81.52% de la varianza total. Este componente captura la mayor parte de la variabilidad en los datos, lo que sugiere que una sola dirección en el espacio de los datos contiene gran parte de la información relevante.
+Los siguientes componentes, como PC2 y PC3, explican 7.75% y 3.47% de la varianza respectivamente. Estos valores disminuyen progresivamente, lo que indica que los componentes adicionales explican cada vez menos de la variabilidad total. Así pues, los primeros dos componentes principales explican el 89,27% de la varianza. Si añadimos el tercer componente, logran explicar el 92.73% de la varianza, lo que puede ser suficiente para una interpretación efectiva de los datos.
+
+Visualizamos ahora cómo se distribuyen los datos en las dos primeras componentes principales y observamos la influencia de las variables en estas componentes.
+
+```{r}
+fviz_pca_biplot(pca_1500masculino, repel = TRUE)
+
+```
+
+Viendo el gráfico, podemos interpretar la primera componente como la rapidez en cada split de los participantes. Cuantos mayores tiempos tienen en cada split, mas desplazados estarán hacia la izquierda. Por tanto, los nadadores mas a la derecha serán aquellos con mejores resultados. 
+Vemos como el 81,5% de la varianza de los resultados está explicado por estos tiempos, como podría imaginarse en un principio.
+Si nos enfocamos en lo que explica la componente 2, vemos que mayores tiempos de los primeros splits condicionan su desplazamiento hacia abajo, y los tiempos mayores en los ultimos splits desplazan los puntos hacia arriba. Esto parece indicar que la componente 2 captura las diferencias entre el rendimiento en las etapas iniciales y finales de la prueba, posiblemente destacando la resistencia o la fatiga en los nadadores. Además, es claramente visible como el tiempo del último split (cuando se completan los 1500m) es muy influyente en la posición de estos nadadores. Es decir, los tiempos en esta última parte parecen ser muy decisivos en cuanto a su resultado final. 
+
+Si observamos la influencia del tiempo de reacción, los tiempos de reacción altos ejercen influencia a favor del eje x e y, en sus sentidos positivos. Con lo cual, el tiempo de reacción alto parece estar asociado con un rendimiento positivo en los splits y posiblemente en la resistencia hacia el final de la prueba. 
+
+Para ver si estas cuestiones se cumplen, vamos a observar si los primeros puestos del ranking de puntos de esta categoría coincide con lo visto en el gráfico. 
+
+```{r}
+# Filtro de pruebas de 1500m masculino
+resumen1500 <- datos2015[datos2015$distance==1500 & datos2015$gender=="M" & datos2015$round =="PRE",]
+
+# Selección de columnas relevantes
+resumen1500 <- resumen1500 %>% dplyr::select(lastname,points) %>%
+    distinct() %>%         
+    arrange(desc(points))
+
+
+resumen
+```
+
+Como podemos comprobar, Paltrinieri, Jaeger, Sun y Milne aparecen en los puntos más extremos del eje x. Además, se localizan en la posición central, lo que parece indicar que sus tiempos son bastante estables durante todo el recorrido. 
+Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee Sheng, observamos que efectivamente están en los extremos izquierdos del eje x. Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece indicar que obtuvieron tiempos más largos en sus splits finales, posiblemente debido a una falta de resistencia y mayor fatiga en estos tiempos, que es un factor crucial para el desarrollo de este tipo de pruebas. 
 
 
 
