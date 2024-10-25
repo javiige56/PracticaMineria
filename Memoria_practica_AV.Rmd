@@ -1450,7 +1450,11 @@ Estos resultados se pueden visualizar con corrplot:
 ```{r}
 corrplot::corrplot(factoextra::get_pca_var(componentess)$cos2[, 1:2], is.corr = F)
 ```
-La variable 200, por ejemplo, está explicada fundamentalmente por la dimensión 1 (componente 1), lo mismo que le ocurre a la variable 150, en menor medida. La primera, representa un color amarillo medio, lo que indica un porcentaje de varianza explicada cercano al 37%. No debería llamarnos la atención es ver que la edad esta explicada con la componente 1, en un color muy oscuro,entorno al 74%
+La variable correspondiente a 200m se explica principalmente por la componente 1, lo que sugiere que el rendimiento en esta distancia está fuertemente asociado a la variabilidad que captura este componente. La visualización indica que esta relación tiene un porcentaje de varianza explicada de aproximadamente 37% lo cual es significativo.La variable 150m también tiene una correlación notable con el componente 1, aunque en menor medida que la variable de 200m. Esto indica que el rendimiento en 150m también está influenciado por las mismas características que se reflejan en el componente 1. 
+
+La variable edad tiene un fuerte impacto en el componente 1, con un porcentaje de varianza explicada alrededor del 74%. Esto sugiere que este componente refleja características que son particularmente relevantes para la edad de los nadadores, implicando que, a medida que los nadadores envejecen, sus tiempos y capacidades en el agua podrían verse influidos por la edad.
+Este hallazgo es importante porque indica que la edad no solo es un factor en el rendimiento, sino que también está profundamente integrada en los componentes que explican la variabilidad del rendimiento en natación.
+
 ```{r}
 
 
@@ -1460,8 +1464,7 @@ factoextra::fviz_cos2(componentess, choice = "var",
 ```
 
 
-En este caso, se representa la suma de cos2 para los 2 componentes.La proporción de variabilidad explicada por los tres componentes retenidos bastante baja.
-
+En este caso, se representa la suma de cos2 para los 2 componentes.La proporción de variabilidad explicada por los dos componentes retenidos es bastante baja.
 
 Procedemos, con la función fviz_pca_var del paquete factoextra, donde sobre un círculo de radio unidad, se sitúan las variables, utilizando como coordenadas sus correlaciones con cada uno de los componentes en el plano. Además, las variables se pueden colorear en función de distintas características, entre las que destacan su contribución y el valor del cos2 (por ejemplo, verde, naranja o rojo dependiendo de que sean valores bajos, medios o altos, respectivamente).
 
@@ -1476,19 +1479,76 @@ factoextra::fviz_pca_var(componentess, col.var = "cos2",
 
 
 
-Cuanto más cercana esté una variable al borde, mejor será la calidad de la representación en el conjunto de las dos componentes. Las variables que están cercanas al centro del círculo no están suficientemente bien representadas por esos componentes, como ocurre con reactiontime(ya lo teníamos comprobado anteriormente), pero el resto de variables están bien representadas por estas dos dimensiones.
+Cuanto más cercana esté una variable al borde, mejor será la calidad de la representación en el conjunto de las dos componentes. 
 
+La variable reactiontime también se observa en una posición cercana al centro del círculo, lo que sugiere que su variabilidad no está suficientemente capturada por los dos componentes principales. Esto refuerza la idea de que el tiempo de reacción podría requerir un análisis más profundo o considerar otros componentes adicionales para una representación más adecuada.
+Por el contrario, otras variables relacionadas con las distancias (como las variables de 50m, 100m, 150m, y 200m) están más alejadas del centro, lo que indica que están bien representadas por los dos primeros componentes. Esto sugiere que estos componentes capturan la mayor parte de la variabilidad del rendimiento en natación en estas distancias.
 
+Ya estamos preparados para interpretar las componentes:
 
-
-
-
-Esto es una manera interesante de ver que escoger dos componentes sería lo adecuado:
+Para llevar a cabo esta interpretación puede resultar útil visualizar exclusivamente las correlaciones más altas en valor absoluto de forma que nuestra atención se centre en ellas. En nuestro caso, al ser pocas variables vamos a saltarnos este paso. Pero si fuese muy lioso, lo haríamos asi, obteniendo el valor de -0.4533 que será objeto de estudio más adelante.
 
 ```{r}
-plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
+Cor_CompVar_retenidos_mayores <- Cor_CompVar_retenidos
+Cor_CompVar_retenidos_mayores[abs(Cor_CompVar_retenidos_mayores) < 0.4]<- NA
+print(Cor_CompVar_retenidos_mayores, na.print="")
 ```
- 
+Vemos todas nuestras correlaciones
+```{r}
+Cor_CompVar_retenidos
+```
+Tiempo de reacción: Las variables 150, siguiendolas, fondos e ingresos presentan correlaciones con el componente 1 superiores, indicando que están mas correlacionados con el tiempo de reacción, que por ejemplo 50 metros. Esto es, cuanto mayor sea el valor de estas cuatro variables en una prueba, mayor será su puntuación en esta componente.
+
+Concluimos con que los tiempos de reacción están positivamente correlacionados con todas las distancias, siendo más pronunciada la correlación con las distancias más largas (150 y 200 metros), que tienen valores de 0.3712 y 0.3496, respectivamente. Esto sugiere que a medida que aumenta la distancia, también tienden a aumentar los tiempos de reacción, lo que podría ser esperado debido al mayor esfuerzo físico requerido en distancias más largas.
+
+Edad:las correlaciones entre la edad y las distancias son todas negativas, con el valor más alto siendo -0.4533 para la distancia de 200 metros. Esto indica que a medida que aumenta la edad, los tiempos tienden a ser más altos en las distancias más largas. Es posible que los nadadores más jóvenes tiendan a tener mejores rendimientos en distancias más largas en comparación con los mayores, aunque esto debe interpretarse con cautela y podría estar influenciado por otros factores no considerados en este análisis.
+
+Los resultados sugieren que el tiempo de reacción es un factor que podría ser optimizado independientemente de la edad. Esto puede ser útil para diseñar programas de entrenamiento que se centren en mejorar los tiempos de reacción de los nadadores, sin considerar necesariamente su edad. La relación negativa entre la edad y los tiempos en distancias más largas podría indicar que es importante tener en cuenta la progresión en el rendimiento de los nadadores a medida que envejecen.
+
+
+Represento
+
+```{r}
+fviz_pca_biplot(componentess, repel = TRUE)
+
+```
+Este gráfico combina la información de las variables y de las observaciones, utilizando las dos primeras componentes principales (Dim1 y Dim2), que explican la mayor parte de la varianza en los datos.
+
+Cada flecha o vector en el gráfico representa una variable original y muestra cómo esa variable contribuye a las componentes principales (Dim1 y Dim2).
+
+Una flecha más larga significa que la variable está más correlacionada con una de las componentes principales. 
+En el gráfico: edad parece tener una de las flechas más largas y apunta en la dirección contraria a las otras variables, indicando una fuerte relación con Dim1 pero en sentido negativo.
+
+Tiempos de natación (50, 100, 150, 200) tienen flechas bastante largas, apuntando hacia la derecha y hacia arriba, lo que indica una alta correlación positiva con tiempo de reaccion y también una correlación significativa con edad.
+
+En este caso, 50, 100, 150, y 200 metros están bastante agrupadas y apuntan hacia una dirección similar, lo que indica que estas variables están positivamente correlacionadas entre sí.
+
+La edad apunta en dirección opuesta a las variables de los tiempos de natación, lo que sugiere que a mayor edad, menor rendimiento en esas pruebas.
+
+El caso de reactiontime, que está casi perpendicular a las otras variables, indicando una baja correlación con las demás.
+
+La posición de los puntos en relación con las flechas de las variables te da una idea de qué variables influyen más en esas observaciones.
+
+```{r}
+# Filtro de pruebas de 200m masculino
+resumen200 <- datos2015[datos2015$distance==200 & datos2015$gender=="M" & datos2015$stroke=="FLY"& datos2015$round=="PRE", ]
+
+# Selección de columnas relevantes
+resumen200 <- resumen200 %>% dplyr::select(lastname,points,edad) %>%
+    distinct() %>%         
+    arrange(desc(points))
+
+
+resumen200
+#habria q ver quienes son el 5 y el 15 aqui
+```
+
+Para entender mejor esto, elijo el punto 5 y el 15,  y veo como concluyo: 
+El punto 5 representa una observación con buen rendimiento en las pruebas de natación de 50, 100, 150, y 200 metros, y probablemente corresponde a un participante más joven. La edad parece tener poca o ninguna influencia negativa en su desempeño.
+El punto 15 representa una observación que no tiene una fuerte correlación con ninguna variable en particular. Es probable que el participante correspondiente tenga un rendimiento promedio o moderado en las pruebas de natación y que su edad no juegue un papel importante. Al estar más arriba en Dim2, podría haber alguna influencia positiva de los tiempos de natación, pero no de forma muy clara como en el caso del punto 5.
+
+
+
 ## PCA. 800M libres femenino
 
 Lo primero que debemos hacer es cargar los datos:
@@ -1684,7 +1744,7 @@ resumen1500 <- resumen1500 %>% dplyr::select(lastname,points) %>%
     arrange(desc(points))
 
 
-resumen
+resumen1500
 ```
 
 Como podemos comprobar, Paltrinieri, Jaeger, Sun y Milne aparecen en los puntos más extremos del eje x. Además, se localizan en la posición central, lo que parece indicar que sus tiempos son bastante estables durante todo el recorrido. 
