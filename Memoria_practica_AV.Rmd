@@ -1721,12 +1721,14 @@ hc4 <- diana(clusterprueba1500)
 # Coeficiente de división; cantidad de estructura de agrupación encontrada
 hc4$dc
 ```
+Como podemos ver, tenemos un coeficiente de división cercano al 1. Con lo cual, podemos proceder a realizar el dendograma. 
 
 ```{r}
 
 # Drendrograma
 pltree(hc4, cex = 0.6, hang = -1, main = "Dendrogram de DIANA")
 ```
+Utilizamos ahora la función "cutree" para dividir nuestro dendrograma en los clústers que consideremos. En este caso, utilizamos k=4
 
 ```{r}
 # Método de Ward
@@ -1739,8 +1741,20 @@ sub_grp <- cutree(hc5, k = 4)
 plot(hc5, cex = 0.6)
 rect.hclust(hc5, k = 4, border = 2:5)
 ```
+Veamos si coincide con los clusters que hemos considerado en el apartado previo
 
+```{r}
+# Visualización
+#Cluster realizado con el método de división
+fviz_cluster(list(data=clusterprueba1500,cluster=sub_grp))
 
+#Cluster realizado con kmeans
+fviz_cluster(k4, data = clusterprueba1500)
+```
+
+Como vemos, las divisiones son similares, pero no son iguales. Esto se debe al método de agregación que difiere en ambos casos. 
+
+A su vez, comparamos si los dendrogramas utilizados para agregar o dividir son isomorfos. 
 ```{r}
 library(dendextend)
 
@@ -1748,7 +1762,7 @@ library(dendextend)
 res.dist <- dist(clusterprueba1500, method = "euclidean")
 
 # Calcuamos los dos clustering jerárquicos
-hc1 <- hclust(res.dist, method = "complete")
+hc1 <- hclust(res.dist, method = "ward")
 hc2 <- hclust(res.dist, method = "ward.D2")
 
 # Dendrogramas
@@ -1758,4 +1772,4 @@ dend2 <- as.dendrogram (hc2)
 # los enfrentamos
 tanglegram(dend1, dend2)
 ```
-
+Como podemos observar, no nos dan dendrogramas isomorfos puesto que los dos métodos manejan de manera diferente las distancias entre grupos durante el proceso de fusión.
