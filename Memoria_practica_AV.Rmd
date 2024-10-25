@@ -1479,6 +1479,63 @@ plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
 -   Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho) 
 -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
 
+
+# Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
+Vamos a ver en qué estilo predominan los nadadores de 1500 metros
+En la prueba de 1500, todos los nadadores nadan en estilo libre. Por tanto, no seleccionaremos según esa imposición, ya que nos viene de los propios datos. Gracias a ello, tenemos un enfoque más global de la carrera de 1500 metros. Esto lo comprobamos viendo que
+
+```{r}
+summary(nadadoresPruebas$stroke[nadadoresPruebas$distance == 1500])
+
+summary(nadadoresPruebas$round[nadadoresPruebas$distance == 1500])
+
+
+```
+
+Como podemos observar, todos los nadadores nadan en estilo libre. Por tanto, no debemos hacer distinción en este tipo de carrera. Además, tenemos 70 participantes en rondas preliminares y 15 finales. Por tanto, tomaremos la ronda preliminar para hacer nuestro análisis de componentes principales.
+
+
+```{r}
+# Filtro de pruebas de 1500m masculino
+datos1500Masc <- datos2015[datos2015$distance==1500 & datos2015$gender=="M" & datos2015$round =="PRE",]
+
+# Selección de columnas relevantes
+datos1500Masc <- datos1500Masc %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime)
+```
+
+```{r}
+prueba1500 <- datos1500Masc %>%
+  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
+              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+
+#Eliminamos duplicados y NA de la columna 'lastname'
+prueba1500 <- prueba1500[!duplicated(prueba1500$lastname) & !is.na(prueba1500$lastname), ]
+
+prueba1500 <- as.data.frame(prueba1500)
+
+# Asignar los nombres de fila como el apellido del nadador
+row.names(prueba1500) <- prueba1500$lastname
+
+#Eliminamos filas con NA restantes
+prueba1500 <- na.omit(prueba1500)
+```
+
+Con todo esto, estamos preparados para realizar el PCA:
+
+  
+```{r}
+#Realizamos el PCA
+pca_1500masculino <- prcomp(prueba1500[,-1], scale=T)
+
+# Resultados del PCA
+summary(pca_1500masculino)
+
+#Visualización del PCA
+biplot(pca_1500masculino)
+```
+
+
+
 # Clusters
 
 ```{r}
