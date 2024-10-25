@@ -26,6 +26,9 @@ library(tidyr)
 library(ggimage)
 library(countrycode)
 library(ggExtra)
+library(cluster)
+library(purrr)
+
 ```
 
 #1. Introducción.
@@ -1576,8 +1579,183 @@ Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee 
 
 # Clusters
 
+
+#Cluster para la prueba de 1500 masculina
+
+```{r}
+
+
+# escalado de todas las variables
+clusterprueba1500 <- scale(prueba1500[,-1])
+
+summary(clusterprueba1500)
+```
+
+
+```{r}
+distance <- get_dist(clusterprueba1500)
+fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
+
+```{r}
+k2 <- kmeans(clusterprueba1500, centers = 2, nstart = 25)
+str(k2)
+```
+
+
+```{r}
+fviz_cluster(k2, data = clusterprueba1500)
+```
+Como vemos, con 2 clusters nos divide a los participantes según la velocidad. Es decir, los que pertenecen al cluster rojo serían los de tiempos más altos, y los azules los que están en mejores posiciones de resultados. 
+
+Nos preguntamos, si el número óptimo de clústeres para dividir a nuestro grupo total es realmente 2, o podemos dividirlos en más grupos. Para ello, utilizamos el método del codo.
+
+
+```{r}
+# Reproducible
+set.seed(123)
+
+fviz_nbclust(clusterprueba1500, kmeans, method = "wss")
+```
+
+Parece que sí que tenemos una mejoría si continuamos diviendo nuestro grupo en 3 o incluso 4. Por encima de estos números, no obtenemos grandes mejoras en nuestro análisis. 
+
+Por tanto, probamos con k=3 y k=4 y observamos los resultados
+
+```{r}
+k3 <- kmeans(clusterprueba1500, centers = 3, nstart = 25)
+
+fviz_cluster(k3, data = clusterprueba1500)
+```
+
+
+```{r}
+k4 <- kmeans(clusterprueba1500, centers = 4, nstart = 25)
+
+fviz_cluster(k4, data = clusterprueba1500)
+```
+
+Como podemos observar en ambos gráficos, la segregación de nadadores sigue estando bastante influida por su posición relativa al eje x. Es decir, nos clasifica los grupos según sus velocidades. 
+Con 3 clústeres, tendríamos los nadadores lentos, los intermedios, y los muy rápidos. 
+En el segundo gráfico con 4 clusteres, podemos observar los grupos muy lentos (prácticamente valores outiers), los centrales divididos en mas y menos lentos y un último grupo, de competidores de alta calificación. 
+Observando ambos, los dos grupos de la derecha contienen prácticamente los mismos puntos. Sin embargo,si que existe una división entre los puntos de la izquierda. La elección de k=3 o k=4 vendrá por el interés del estudio que queramos realizar. Si no nos interesan los nadadores de peor cualificación, no será necesario segregar a los nadadores en 4 grupos. Sin embargo, si queremos analizar estos nadadores con peores marcas parece interesante ajustarnos a un nivel de k=4.
+
+Utilizamos otros métodos para decidir si nuestro razonamiento es correcto. Para ello, utilizamos el método de "silueta" y el método "GAP".
+
+```{r}
+fviz_nbclust(clusterprueba1500, kmeans, method = "silhouette")
+```
+
+```{r}
+set.seed(123)
+gap_stat <- clusGap(clusterprueba1500, FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50)
+
+print(gap_stat, method = "firstmax")
+fviz_gap_stat(gap_stat)
+```
+
+Utilizando estos dos últimos métodos, nos dan el resultado de que el número óptimo de clústers son dos en "silueta" y uno en "Gap". Puesto que cada método nos determina un número distinto de k, utilizaremos la división en grupos según el objetivo a tratar, como hemos comentado recientemente. 
+
+
+##lo de abajo ya estaba no se q es
+
+
 ```{r}
 kmedias=kmeans(prcomp(pruebawide[,-1],scale=T)$x[,1:2], centers=2, nstar=25)
 
 kmedias
 ```
+
+
+
+#Cluster jerarquico prueba de 1500 metros masculina
+
+## Cluster aglomerativo. AGNES. 
+Queremos hacer un cluster jerárquico de nuestra prueba. Para ello, calculamos el valor del coeficiente aglomerativo  
+```{r}
+# Clustering jerárquico usando enlace completo
+hc2 <- agnes(clusterprueba1500, method = "complete" )
+
+hc2$ac
+```
+El coeficiente aglomerativo tiene un valor cercano al 1, con lo que sugiere una fuerte estructura de agrupamiento. Vamos ahora a evaluar qué metodo nos da un coeficiente mayor y emplearemos esa estructura de agrupacion con el objetivo de conseguir una estructura de agrupación más fuerte. 
+
+
+```{r}
+# Métodos evaluados
+m <- c( "average", "single", "complete", "ward")
+names(m) <- c( "average", "single", "complete", "ward")
+
+# Función para calcular el coeficiente de agrupamiento
+ac <- function(x) {
+  agnes(clusterprueba1500, method = x)$ac
+}
+
+map_dbl(m, ac)
+```
+Como vemos, lo conseguimos con el método ward. Por tanto, utilizamos ese método para realizar el dendrograma
+
+
+```{r}
+# Matriz de disimilaridades
+d <- dist(clusterprueba1500, method = "euclidean")
+
+# Clustering jerárquico usando enlace completo
+hc1 <- hclust(d, method = "ward" )
+
+# Dendrograma
+plot(hc1, cex = 0.6, hang = -1)
+```
+Interpretando el dendrograma, vemos como los primeros pasos de agrupamiento son entre distintas muy pequeñas. Por tanto, no tiene sentido cortar en esas etapas iniciales. El gráfico parece sugerir la aglomeración en 3 grupos. 
+
+
+##Cluster divisivo. DIANA.
+
+Calculamos ahora el coeficiente de división.
+
+```{r}
+# Clustering jerárquico divisivo
+hc4 <- diana(clusterprueba1500)
+
+# Coeficiente de división; cantidad de estructura de agrupación encontrada
+hc4$dc
+```
+
+```{r}
+
+# Drendrograma
+pltree(hc4, cex = 0.6, hang = -1, main = "Dendrogram de DIANA")
+```
+
+```{r}
+# Método de Ward
+hc5 <- hclust(d, method = "ward.D2" )
+
+# Cortamos en 4 clusters
+sub_grp <- cutree(hc5, k = 4)
+
+# Visualizamos el corte en el dendrograma
+plot(hc5, cex = 0.6)
+rect.hclust(hc5, k = 4, border = 2:5)
+```
+
+
+```{r}
+library(dendextend)
+
+# Matriz de distancias
+res.dist <- dist(clusterprueba1500, method = "euclidean")
+
+# Calcuamos los dos clustering jerárquicos
+hc1 <- hclust(res.dist, method = "complete")
+hc2 <- hclust(res.dist, method = "ward.D2")
+
+# Dendrogramas
+dend1 <- as.dendrogram (hc1)
+dend2 <- as.dendrogram (hc2)
+
+# los enfrentamos
+tanglegram(dend1, dend2)
+```
+
