@@ -17,6 +17,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 # Cargamos las librerias que vamos necesitando a lo largo del codigo
 library(dplyr)
+library(MASS)
 library(rstatix)
 library(ggplot2)
 library(tidyr)
@@ -25,8 +26,7 @@ library(countrycode)
 library(ggExtra)
 ```
 
-#1.
-Introducción.
+#1. Introducción.
 
 En este proyecto, se analizarán los resultados del mundial de natación de 2015 con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos.
 Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable
@@ -360,38 +360,7 @@ Por ello, realizaremos un gráfico reduciendo la dimensión, juntando en un grup
 *añadirlo*
 
 ```{r}
-paleta <- c("Americas" = "#0084ff", 
-            "Asia" = "#44bec7", 
-            "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c" 
-            ) 
-
-
-
-# Crear una nueva columna que agrupe países con menos de 10 nadadores en "Otros"
-resumen_paises4 <- resumen_paises %>%
-   filter(num_nadadores >= 10)
-resumen_paises4
-
-# Crear el gráfico
-oda_bar3 <- resumen_paises4 %>% 
-  ggplot(aes(x = reorder(name_group, num_nadadores), 
-           y = num_nadadores, 
-           fill = continent)) + 
-  geom_flag(y = -5, aes(image = iso2), size = 0.05) + 
-  geom_bar(stat = "identity") + 
-  labs(title = "Participación de Nadadores por País",
-       subtitle = "Países con menos de 10 nadadores ocultados",
-       x = "País",
-       y = "Número de Nadadores") +
- scale_fill_manual(values = paleta) +  # Colores personalizados
-  expand_limits(y = c(0, max(resumen_paises4) + 10)) +  # Ajustar el límite superior
-  coord_flip() +  # Gráfico horizontal
-  theme_minimal()
-
-# Imprimir el gráfico
-print(oda_bar3)
-
+#Este código se encuentra en el script codigoUsado11oct. Daba error por eso lo he cambiado
 ```
 
 ```{r}
@@ -500,7 +469,9 @@ print(resumenContinente)
 ```
 Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), despúes Asia y por último Africa.
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (? Salma)
+
+
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (?Salma)
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
@@ -568,16 +539,6 @@ Como podemos observar mejor aquí, las diferencias con la edad entre las pruebas
 En torno al 43% de los mayores y menores de edad se presentan a la prueba de 100 metros, mientras que para la de 200 metros son en torno a un 22-25%.
 La diferencia en este caso es de un 3%, y en el resto de pruebas es poco representativo debido a la poca cantidad de participantes en ellas.
 Por tanto, parece ser que no existe una relación entre tipo de prueba y edad.
-
-## Relación entre puntos y edad
-
-En esta sección vamos a comparar los puntos con la edad. Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
-
-```{r}
-nadadores_menores <- nadadoresParticipantes[nadadoresParticipantes$edad < 18]
-
-```
-
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
@@ -781,9 +742,6 @@ Sin embargo, si observamos la gráfica qqplot, la tendencia no es lineal.
 Para conseguir un mejor ajuste, realizaremos una transformación de la variable puntos mediante Box-Cox.
 
 ```{r}
-install.packages("MASS")  
-library(MASS)
-
 boxcox(lmPuntosCalle)
 ```
 
@@ -796,7 +754,7 @@ summary(lmPuntosCalle)
 plot(lmPuntosCalle)
 ```
 
-## ue alguien interprete esto porque no me entero:)
+_que alguien interprete esto porque no me entero:)_
 
 
 ### Daytime
@@ -890,6 +848,172 @@ summary(pruebasVespertinas$round)
 
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
 
+## Estudio sobre la variable round. 
+
+A continuación, vamos a intentar entender más sobre la variable ronda. Para ello, primero vemos un resumen: 
+
+```{r}
+summary(datos2015$round)
+```
+
+Observamos que toma 5 posibles valores, tenemos controlados tanto FIN (final), como PRE (preliminar) y SEM (semifinal). Pero SOP y SOS no parece tan claro saber qué es. Vamos a comenzar dejando de lado SOP y SOS, nos vamos a centrar en controlar los otros 3 valores.
+
+### ¿Cuántos nadadores nadan cada ronda?
+
+Una pregunta natural podría ser, ¿cuántos nadadores pasan de ronda? ¿Todos? Está claro que al ver que por la mañana en preliminares nadan el 75% y por las tardes son semifinales y finales y son un 25%. Veamoslo con distintas pruebas: 
+
+#### 50 libre femenino: 
+
+Seleccionamos las nadadoras que nadaron preliminares en el 50 libre femenino: 
+
+```{r}
+free50PrelimWomens<- nadadoresPruebas[nadadoresPruebas$round=="PRE" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
+
+free50PrelimWomens
+```
+
+Ahora, vamos a hacer el ranking de resultados de esta prueba, para ello: 
+
+```{r}
+free50PrelimWomens<-free50PrelimWomens[order(free50PrelimWomens$swimtime), ]
+
+dim(free50PrelimWomens)
+```
+
+Observamos que hubo 119 nadadoras que nadaron las preliminares del 50 libres. Veamos ahora cuántas nadaron las semifinales: 
+
+```{r}
+free50SemisWomens<-nadadoresPruebas[nadadoresPruebas$round=="SEM" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
+```
+
+Antes de ordenarlas, veamos cuántas filas tengo en mi nueva tabla: 
+
+```{r}
+dim(free50SemisWomens)
+```
+
+Es decir, de 119, sólo se clasificaron 16. Veamos si fueron las 16 primeras. Para ello, voy a coger las 16 primeras de las prelims, voy ahora a ordenarlas por athleteid, y hacer lo mismo con las de las semifinales, a ver si coincide:  
+
+```{r}
+free50PrelimWomens<-head(free50PrelimWomens, 16)
+
+#Ordeno: 
+
+free50PrelimWomens<-free50PrelimWomens[order(free50PrelimWomens$athleteid), ]
+free50SemisWomens<-free50SemisWomens[order(free50SemisWomens$athleteid), ]
+
+free50PrelimWomens
+free50SemisWomens
+
+```
+
+Luego, podemos observar claramente que, las 16 primeras de las preliminares, consiguieron clasificarse a las semifinales. Hagamos el mismo trabajo con la tabla *free50SemisWomens* para ver cuántas nadadoras se clasificaron en la final: 
+
+```{r}
+free50SemisWomens<-free50SemisWomens[order(free50SemisWomens$swimtime), ]
+
+```
+
+Al igual que antes, confeccionamos la tabla de la final: 
+
+```{r}
+free50FinalWomens<-nadadoresPruebas[nadadoresPruebas$round=="FIN" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
+
+dim(free50FinalWomens)
+```
+
+Observamos que hay 8, luego las 8 primeras se clasificaron a la final.
+
+### ¿Se nadan las 3 rondas en cada prueba?
+
+Esta cuestión nos surge ya que, algunas pruebas requieren más esfuerzo y el tiempo de descanso para la recuperación total es más largo, por ello alomejor hay pruebas en las que sólo hay 1 ronda, o 2, o esta suposición es falsa y en cada prueba se nadan 3 rondas. Para ello, echemos un cálculo inicial. Hay 2 géneros, pruebas de 50, 100, 200, 400, 800 y 1500 metros. Veamos qué valores toman las rondas en cada una de estas pruebas. Para ello: 
+
+```{r}
+print("Rondas que se nadan en las pruebas de 50 metros: ")
+summary(nadadoresPruebas[nadadoresPruebas$distance==50, ]$round)
+print("Rondas que se nadan en las pruebas de 100 metros:")
+summary(nadadoresPruebas[nadadoresPruebas$distance==100, ]$round)
+print("Rondas que se nadan en las pruebas de 200 metros:")
+summary(nadadoresPruebas[nadadoresPruebas$distance==200, ]$round)
+print("Rondas que se nadan en las pruebas de 400 metros:")
+summary(nadadoresPruebas[nadadoresPruebas$distance==400, ]$round)
+print("Rondas que se nadan en las pruebas de 800 metros:")
+summary(nadadoresPruebas[nadadoresPruebas$distance==800, ]$round)
+print("Rondas que se nadan en las pruebas de 1500 metros:")
+summary(nadadoresPruebas[nadadoresPruebas$distance==1500, ]$round)
+```
+
+Luego, observamos que en las pruebas de 400, 800 y 1500 metros no hay semifinales, tan sólo una ronda preliminar y una ronda final. 
+
+También podemos sacar conclusiones gracias al estudio hecho en el apartado anterior. En los 50 por ejemplo, hay 128 nadadores que nadan semifinales, hay dos géneros, luego 64 nadadores por género nadaron semifinales, además, hay 4 estilos, luego 16 nadadores nadaron las semifinales de cada prueba, lo cual concuerda con lo visto anteriormente. 
+
+Destaca a la vista que, en las pruebas de 200 metros, hay más nadadores. ¿Por qué sucede esto?. Veamos: 
+
+```{r}
+print("Estilos que se nadan en pruebas de 50 metros: ")
+summary(nadadoresPruebas[nadadoresPruebas$distance==50, ]$stroke)
+print("Estilos que se nadan en pruebas de 200 metros:")
+summary(nadadoresPruebas[nadadoresPruebas$distance==200, ]$stroke)
+```
+
+Hay más nadadores que nadan semifinales puesto que hay 5 pruebas, no 4. Si echamos los cálculos, 160/(2*5)=16 nadadores, igual que en las demás.
+
+Se puede ver de manera análoga que nadan 8 nadadores cada final. 
+
+
+
+Ahora, ya que hemos analizado a fondo qué sucede con las finales, semifinales y preliminares, vamos a ver qué significan los otros dos valores que toma la variable *round*. 
+
+
+### Rondas SOP
+
+Bien, primeramente, vamos a observar las filas tales que toman ese valor. Lo hacemos de la siguiente manera: 
+
+```{r}
+datosSOP<-datos2015[datos2015$round=="SOP",]
+
+datosSOP
+```
+
+Observamos 4 filas, que se trata, viendo que es el mismo *eventid*, de una prueba que nadan sólo 2 nadadoras, Osman y Kelly. En este caso, un 100 mariposa. Es curioso que estas dos nadadoras naden una sóla prueba. Además, nadaron a las 11:56, por la mañana, donde sólo se nadan preliminares. Vamos a ver si descubrimos algo viendo la clasificación de ese 100 mariposa en la ronda preliminar: 
+
+```{r}
+fly100PREWomen<-nadadoresPruebas[nadadoresPruebas$distance==100 & nadadoresPruebas$stroke=="FLY" & nadadoresPruebas$round=="PRE" & nadadoresPruebas$gender=="F", ]
+
+#Ahora ordenamos por tiempo
+fly100PREWomen<-fly100PREWomen[order(fly100PREWomen$swimtime), ]
+#Las ordeno
+rownames(fly100PREWomen) <- 1:nrow(fly100PREWomen)
+fly100PREWomen
+
+```
+
+Si busco a Osman y Kelly en la anterior tabla, observo que se encuentran en el puesto 16 y 17 respectivamente y que, hicieron el mismo tiempo. Luego tiene sentido razonar que, las rondas SOP son rondas de desempate para ver quién pasa a la siguiente ronda. 
+
+### Rondas SOS
+
+Viendo el razonamiento de las rondas SOP, intuimos que las rondas SOS deben ser rondas de desempate entre nadadores de las semifinales. De todas maneras, vamos a verlo. Para ello, si nos fijamos en una de las tablas anteriores, en la prueba de 200 metros había 4 nadadores que nadan la ronda SOS. Vamos a visualizarlo: 
+
+```{r}
+datosSOS<-nadadoresPruebas[nadadoresPruebas$round=="SOS" & nadadoresPruebas$distance==200, ]
+datosSOS
+```
+
+Vemos que se nadaron dos rondas SOS, una para la prueba de 200m braza femenino, y otra para la prueba de 200 estilos masculino. Elijamos el 200 estilos masculino, visualicemos el ranking de las semifinales y veamos si están Roberto Pavoni y Conor Dwyer empatados en el 8vo y 9no puesto: 
+
+```{r}
+medley200SEM<-nadadoresPruebas[nadadoresPruebas$round=="SEM" & nadadoresPruebas$distance==200 & nadadoresPruebas$gender=="M" & nadadoresPruebas$stroke=="MEDLEY", ]
+
+#Ahora, ordeno igual que antes: 
+
+medley200SEM<-medley200SEM[order(medley200SEM$swimtime), ]
+#Las ordeno
+rownames(medley200SEM) <- 1:nrow(medley200SEM)
+medley200SEM
+```
+
+Y efectivamente, empataron con un tiempo de 118.54 segundos, luego SOS equivale a las rondas de desempate producidas en las rondas semifinales. Además, observamos que se realizan por las tardes. 
+
 ## Estudios relacionados con los puntos.
 
 Veamos las posibles relaciones de puntos con las demás variables:
@@ -978,6 +1102,16 @@ summary(anova_puntos_genero)
 
 ### Puntos. ¿La edad influye?
 
+(parte de Javi)
+En esta sección vamos a comparar los puntos con la edad. Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
+
+```{r}
+nadadores_menores <- nadadoresParticipantes[nadadoresParticipantes$edad < 18, ]
+
+```
+
+
+(Parte de Salma)
 Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
 ```{r}
@@ -998,11 +1132,8 @@ ggplot(resumen_puntos, aes(x = edad, y = points)) +
         panel.grid.minor = element_blank())
 ```
 
-### Estudio de puntos por país.
 
-Veamos el número de puntos por países
-
-### Modelo de regresión lineal para tiempo de reaccion vs tiempo
+### Modelo de regresión lineal: reactiontime vs swimtime
 
 ```{r}
 # Esto no funciona porque las dos variables continuas tienen distinto tamaño
@@ -1122,8 +1253,6 @@ Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor q
 
 ## Prueba 800m Libre femenino.
 
-VISUALIZAR TIPOS DE NADADORES VIENDO LOS PARCIALES
-
 Veamos qué nadadores nadaron el 800 libre femenino:
 
 ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
@@ -1141,6 +1270,34 @@ nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & da
 
 ```
 
+
+#### Estudio sobre los parciales de la carrera. 
+
+Vamos a evaluar cómo fueron los parciales de las nadadoras, para ello hacemos el siguiente gráfico: 
+
+```{r}
+ggplot(nadadoras800free, aes(y=nadadoras800free$lastname, x=nadadoras800free$splitswimtime, fill=nadadoras800free$lastname))+
+  geom_boxplot()+
+  labs(x="Parciales", y="Nadadoras")
+```
+
+De aquí podemos observar la media y los cuantiles de los parciales de las nadadoras. Observamos que casi todas tienen 1 o incluso 2 puntos atípicos, seguramente se deban al primer y último parcial de la prueba. Además, podemos observar que algunas nadadoras como Kapas y Friis, tuvieron una desviación muy pequeñita en sus parciales, es decir, fueron a un ritmo constante durante toda la prueba clavando sus parciales. 
+
+
+Vamos a observar, para cada nadador, los parciales realizados para ver si podemos conseguir algún patrón de tipo de carrera: 
+
+```{r}
+ggplot(nadadoras800free, aes(x=nadadoras800free$splitdistance, y=nadadoras800free$splitswimtime, group = lastname, colour =lastname )) + 
+  geom_line()  + 
+  geom_point( size=2, shape=21, fill="white") + 
+  theme_minimal()
+```
+
+Observamos que todas nadan muy rápido tanto el primer parcial como el último. Además, vemos de manera clara como Ledecky parece que alterna un largo un poco más rapido y luego otro más lento durante toda su prueba. ¿Puede ser una estrategia de carrera? Lo veremos más adelante. También vemos alguna otra nadadora más que hace algo similar como Van Rouwendaal. Otras en cambio, intentan conservar el ritmo marcado desde el inicio y ser constantes. Carlin mete un cambio de ritmo muy drástico al paso de los 650m de 31s altos a 31s bajos y sigue luego bajando. 
+
+
+#### Visualización de la carrera. 
+
 Ahora, vamos a definir una tabla en la que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial:
 
 ```{r}
@@ -1149,7 +1306,7 @@ nadadoras800free <- nadadoras800free %>%
 
 ```
 
-Ahora vamos a representar cómo fue la carrera:
+Visualizamos la carrera: 
 
 ```{r}
 # Ordenar los datos por tiempo
@@ -1172,8 +1329,6 @@ ggplot(nadadoras800free, aes(x = splitdistance, y = Posicion, group = lastname))
 Observamos como Ledecky lidera toda la carrera, Boyle alcanza al paso de los 100 metros la segunda posición y la mantiene.
 La pelea por la última medalla en juego dura hasta los 700 metros, donde un adelantamiento de Carlin a Ashwood hace que la nadadora Jaz Carlin alcance el bronce olímpico.
 
-## Datos NA.
-
 # PCA's
 
 Realizaremos ahora el análisis de componentes principales del 800m libres femenino:
@@ -1195,10 +1350,11 @@ Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedem
 pruebawide <- prueba800libresPreliminar %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
-row.names(pruebawide) <- pruebawide$lastname # esto es para llamar a las filas con el nombre de los nadadores
 pruebawide
 #omito los valores nulos: 
 pruebawide<- na.omit(pruebawide)
+row.names(pruebawide) <- pruebawide$lastname # esto es para llamar a las filas con el nombre de los nadadores
+
 ```
 
 Ahora que ya tenemos nuestra tabla hecha, vamos a hacer el PCA:
@@ -1219,13 +1375,18 @@ text(prcomp(pruebawide[,-1],scale=T)$x[,1:2],rownames(pruebawide))
 
 ```
 
-Bien, así observamos los nombres.
+Si nos fijamos en la variable PC1, tenemos más a la izquierda a las nadadoras más rápidas en media en la prueba y a la derecha las más lentas. 
+
+Si nos fijamos en la variable PC2, más arriba tenemos a las nadadoras con MENOR tiempo de reacción y abajo las que tienen mayor tiempo de reacción, variando un poco también con la edad pero no siendo tan significativa. 
+
 Veamos cómo queda el biplot:
 
 ```{r}
 biplot(prcomp(pruebawide[,-1],scale=T))
+
 ```
 
+ 
 ## PCA 100m mariposa femenino 
 
 En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
@@ -1312,12 +1473,11 @@ plot(prcomp(pruebita[,-1],scale=T)$x[,1:2])
 # Tareas por hacer e ideas surgidas:
 
 -   Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos.
--   Ver si hay relación entre puntos y edad.
--   ¿Qué hacemos con los datos nulos?
 -   Sacar conclusiones del PCA.
 -   Hacer el clustering.
 -   Hacer un pca del 100 braza masculino y clustering
--   Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho) -EDA el grafico de paises en vez de por numero de personas, el numero de puntos
+-   Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho) 
+-EDA el grafico de paises en vez de por numero de personas, el numero de puntos
 
 # Clusters
 
