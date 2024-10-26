@@ -46,7 +46,7 @@ El conjunto de datos contiene información sobre los nadadores (fecha de nacimie
 
 Las variables o atributos que conforman el conjunto de datos son:
 
--   athleteid: id del nadador (único)
+-   athleteid: id del nadador
 -   lastname: Apellidos del nadador
 -   firstname: El nombre del nadador
 -   birthdate: Fecha de nacimiento del nadador
@@ -103,6 +103,7 @@ A continuación, vamos a ver un resumen de los datos:
 
 ```{r}
 summary(datos2015)
+
 ```
 
 De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, que como máximo hubo 12 series y como mínimo 1 y que la piscina disponía de 10 carriles numerados del 0 al 9.
@@ -111,7 +112,7 @@ También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a variables categóricas en R para tener una mejor visualización de ellas.
 
 ```{r}
-datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke)
+datos2015<- datos2015 %>% convert_as_factor(gender,distance,name,code,round,heat,lane,stroke, relaycount)
 ```
 
 Visualicemos ahora de nuevo el resumen:
@@ -120,14 +121,135 @@ Visualicemos ahora de nuevo el resumen:
 summary(datos2015)
 ```
 
+Viendo este resumen de los datos podemos comenzar a entender algunas de las variables.
+
 Observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos.
-También se nadaron pruebas de espalda, braza, mariposa, crol y estilos individual, las pruebas las disputaron hombres y mujeres, el menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
+Se trata del país de procedencia de cada nadador.
+
+Vemos que hay 6 **distancias** y 5 ***tipos de nado***: braza, mariposa, crol, espalda y estilos individual.
+Hay 5 tipos de ronda distintos.
+
+El menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
 Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no causen interferencia en nuestros datos.
 
-## Creación de nueva variable edad.
+A continuación, vamos a ir realizando estudios para tratar de comprender más a fondo algunas variables.
 
-Lo primero que vamos a hacer, va a ser crear una nueva variable, llamada *edad*, ya que será más representativo que trabajar con la variable birthdate.
+##  Variable Relaycount. ¿Nos sirve de algo?
+
+Si observamos el resumen de la variable relaycount: 
+
+```{r}
+summary(datos2015$relaycount)
+```
+
+Observamos que sólo toma un único valor, 1.
+Esto se debe principalmente a que nuestro conjutno de datos consta de las pruebas individuales del mundial de Kazán 2015, luego como no hay relevos, todos los nadadores son el primer "relevista" en su prueba.
+
+Luego la eliminamos:
+
+```{r}
+datos2015$relaycount <- NULL
+```
+
+Luego ahora, tenemos 21 variables en vez de 22. 
+
+
+## Valores NA. Datos faltantes.
+
+Si volvemos a mirar nuestro resumen, observamos que hay valores faltantes.
+Vamos a tratar de identificarlos, intentar entender el por qué de esos datos faltantes, y razonar cuándo será conveniente eliminarlos o no de nuestro estudio.
+
+Para ello, vamos a obtener primeramente un resumen de cómo se distribuyen los datos faltantes: 
+
+```{r}
+print(sum(is.na(datos2015)))
+```
+Observamos que hay 309 valores faltantes. 
+
+Vamos a crear una tabla donde se nos muestren dónde se encuentran los valores faltantes: 
+
+```{r}
+datosNA <- datos2015[rowSums(is.na(datos2015)) > 0, ]
+dim(datosNA)
+
+```
+Observamos que, de 11429 observaciones de mi tabla original, en 73 de ellas, existe algún valor nulo. Es decir, un 0.63 %  por ciento. Un valor muy bajo. 
+
+En principio y sin estudiar nada más, podríamos considerar eliminar las filas que contengan datos faltantes ya que toman un valor muy pequeño con respecto al total. Aún así, vamos a ver dónde se suelen tomar más valores nulos y intentar explicar el por qué. Hacemos una tabla con los valores nulos de cada variable en porcentaje: 
+
+```{r}
+percent_na <- colSums(is.na(datosNA)) / nrow(datosNA) * 100
+percent_na
+
+```
+
+Observamos de manera bastante clara que los datos nulos tienen mucho que ver con el tiempo acumulado, los puntos finales, el tiempo de reacción, el tiempo final y el tiempo al paso por el parcial. 
+
+A continuación vamos a intentar clasificar los nulos dependiendo qué falta: 
+
+### Valores nulos en los que faltan todas las variables.
+
+Visualicemos los datos donde faltan todas las variables dichas anteriormente: 
+
+```{r}
+todosNA<-datosNA[is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(datosNA$swimtime) & is.na(datosNA$cumswimtime) & is.na(datosNA$splitswimtime), ]
+```
+
+Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados... Es decir, nadadores que posiblemente se dieron de baja en la prueba. La mayoría de nadadores causaron baja en la ronda preliminar, pero hay uno, el chino Sun Yang, que causó baja en la final del 1500m libres masculino. Haciendo una pequeña búsqueda en los resultados de la World Aquatics de los mundiales de 2015, observamos que Sun Yang produció DNS (Did not Start). También, buscando a Cesar Cielo en el 50 libres de las preliminares, observo que causó baja DNS. Luego todo parece indicar que estos nadadores fueron baja en esa prueba y por ello no sale ningún dato en esas variables. Los elimino: 
+
+```{r}
+#Primero de la tabla datosNA: 
+datosNA <- datosNA %>%
+  filter(!(is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(datosNA$swimtime) & is.na(datosNA$cumswimtime) & is.na(datosNA$splitswimtime)))
+
+#Ahora, los elimino de la tabla datos2015: 
+datos2015<-datos2015 %>%
+  filter(!(is.na(datos2015$points) & is.na(datos2015$reactiontime) & is.na(datos2015$swimtime) & is.na(datos2015$cumswimtime) & is.na(datos2015$splitswimtime)))
+
+```
+
+
+Bien, ahora, tenemos solamente datos en los que falta alguna de las variables, echemos un vistazo para volver a clasificarlos: 
+
+```{r}
+datosNA
+```
+
+
+Nos quedan solamente 14 filas en los que hay datos nulos. Sigamos nuestra limpieza: 
+
+### Valores nulos donde faltan los puntos: 
+
+Veamos qué sucede si sólo faltan los puntos: 
+
+```{r}
+naReactionTime<-datosNA[is.na(datosNA$points),]
+naReactionTime
+```
+
+Vamos a buscar los resultados de World Aquatics de alguno de ellos, para estimar qué esta sucediendo. ¿Fueron descalificados?. 
+
+Nuestro nadador de la primera fila, Ben Treffers, fue descalificado. (luego hago otra observación)
+
+Luego, son gente que nadó pero quedó descalificada. Luego sus datos nos servirán para hacer estudios sobre participación, pero no para cualquier estudio que involucre los resultados. Luego estos, no los eliminamos del dataframe inicial datos2015
+
+```{r}
+datosNA <- datosNA %>%
+  filter(!(is.na(datosNA$points)))
+```
+
+
+Me quedan las dos ultimas observaciones por ver: 
+
+```{r}
+datosNA
+```
+
+Tenemos dos observaciones en las cuales no existe el tiempo de reacción. Seguramente se deba a algún fallo en el sistema electrónico o algún fallo al pasar los datos. Por lo tanto, al igual que con los anteriores, no lo eliminaremos de nuestro dataframe inicial, pero sí lo tendremos en cuenta cuando tengamos que analizar estudios que tengan que ver con el tiempo de reacción. 
+## Variable birthdate. Creacion de nueva variable edad.
+
+A continuación, vamos a crear una variable llamada *edad*, ya que será más representativo que trabajar con la variable birthdate.
 La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial.
 Es decir, el 24 de Julio de 2015.
 
@@ -140,7 +262,7 @@ datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "
 
 ## Estudio sobre el número de nadadores, su género, país y edad.
 
-Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes, vamos a necesitar eliminar filas como bien hemos anunciado antes.
+Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes... Vamos a necesitar eliminar filas como bien hemos anunciado antes.
 
 Por ello, vamos a crear una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir.
 Para ello usamos la variable athleteid, la cual es única para cada participante.
@@ -153,7 +275,9 @@ nadadoresParticipantes <- datos2015 %>%
 ```{r}
 summary(nadadoresParticipantes)
 ```
-Ya está preparado una tabla con nadadores únicos en el conjunto nadadoresParticipantes, lo cual es ideal para estudiar características individuales sin duplicados. Con este conjunto, puedes explorar variables como género, país y edad de los participantes.
+
+Ya está preparado una tabla con nadadores únicos en el conjunto nadadoresParticipantes, lo cual es ideal para estudiar características individuales sin duplicados.
+Con este conjunto, vamos a explorar variables como género, país y edad de los participantes.
 
 Ahora, comenzamos nuestro estudio:
 
@@ -196,7 +320,6 @@ ggtitle("Distribución. Edades.")
 La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años.
 
 Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
-
 
 ### Análisis de géneros participantes.
 
@@ -249,7 +372,7 @@ chisq.test(tabla2)
 ```
 
 Hay una diferencia considerable entre las frecuencias observadas (cuántos hombres y mujeres son menores de 20 años) y las frecuencias esperadas bajo la hipótesis nula (que no hay asociación entre edad y género para menores de 20 años).
-Esto sugiere ir un paso más allá, ¿Hay más mujeres menores de edad que hombres menores de edad?
+Esto sugiere ir un paso más allá, **¿Hay más mujeres menores de edad que hombres menores de edad?**
 
 ```{r}
 tabla3<-table(nadadoresParticipantes$edad<18,nadadoresParticipantes$gender)
@@ -482,8 +605,8 @@ La peor esperanza la tiene África, muy por debajo este valor del resto de los c
 Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
 Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones.
 
-
-Anteriormente hemos hallado para cada contiente todos los puntos conseguidos por los nadadores de dicho continente. Lo que vamos a hacer a continuación es normalizar los puntos por continente, es decir, para cada continente tomamos todos los puntos de dicho continente y lo dividimos por todos participantes de ese continente y comparamos.
+Anteriormente hemos hallado para cada contiente todos los puntos conseguidos por los nadadores de dicho continente.
+Lo que vamos a hacer a continuación es normalizar los puntos por continente, es decir, para cada continente tomamos todos los puntos de dicho continente y lo dividimos por todos participantes de ese continente y comparamos.
 
 ```{r}
 # Agrupar por continente, sumar puntos y contar participantes
@@ -500,10 +623,11 @@ resumenContinente <- nadadoresParticipantes %>%
 # Imprimir el resultado
 print(resumenContinente)
 ```
+
 Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), despúes Asia y por último Africa.
 
-
 Para terminar con esta sección, vamos a ver los 20 primeros en el ranking, y a hacer un gráfico que nos indique de que pais es cada uno de los 20.
+
 ```{r}
 # Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
 datos_100m_top <- nadadoresParticipantes[nadadoresParticipantes$distance==100,] %>% # Filtra para la prueba de 100 metros
@@ -514,6 +638,7 @@ datos_100m_top
 ```
 
 Vemos los 20 primeros y de que continente son:
+
 ```{r}
 
 # Contar la cantidad de nadadores por continente
@@ -545,11 +670,20 @@ grafico_circular <- ggplot(conteo_por_continente, aes(x = "", y = percent, fill 
 print(grafico_circular)
 ```
 
-La alta cantidad de nadadores europeos en el podio de 100 metros(más específico que lo anterior, ya que esto nos mete directamente en los primeros 20) sugiere que hay un fuerte nivel de competencia y entrenamiento en las naciones de este continente. Esto podría estar relacionado con la inversión en programas de natación. Le sigue oceanía,ya que Oceanía, aunque es una región más pequeña en términos de población comparada con Europa, ha producido nadadores destacados que compiten a niveles muy altos. La presencia de nadadores de élite, especialmente de Australia, resalta la calidad del talento en la región.
+La alta cantidad de nadadores europeos en el podio de 100 metros(más específico que lo anterior, ya que esto nos mete directamente en los primeros 20) sugiere que hay un fuerte nivel de competencia y entrenamiento en las naciones de este continente.
+Esto podría estar relacionado con la inversión en programas de natación.
+Le sigue oceanía,ya que Oceanía, aunque es una región más pequeña en términos de población comparada con Europa, ha producido nadadores destacados que compiten a niveles muy altos.
+La presencia de nadadores de élite, especialmente de Australia, resalta la calidad del talento en la región.
 
-Los datos indican que África tiene solo un 5% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuanto a la inversión en infraestructura deportiva. La falta de instalaciones de calidad para la natación, como piscinas adecuadas, puede limitar el desarrollo de talentos.
+Los datos indican que África tiene solo un 5% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuanto a la inversión en infraestructura deportiva.
+La falta de instalaciones de calidad para la natación, como piscinas adecuadas, puede limitar el desarrollo de talentos.
 
-Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 2 en 100 metros(hemos elegido 100 metros al haber una gran cantidad de nadadores, lo que refleja bien lo que buscamos). Podríamos ver que a pesar de que en África no se llegue mucho al podio, cuando se llega es en los tres primeros puestos. ¿Hemos concluido bien? Veámoslo. Esto es el podio de los 3 primeros en 100 metros
+Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 2 en 100 metros(hemos elegido 100 metros al haber una gran cantidad de nadadores, lo que refleja bien lo que buscamos).
+Podríamos ver que a pesar de que en África no se llegue mucho al podio, cuando se llega es en los tres primeros puestos.
+¿Hemos concluido bien?
+Veámoslo.
+Esto es el podio de los 3 primeros en 100 metros
+
 ```{r}
 # Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
 datos_100m_top_3 <- nadadoresParticipantes[nadadoresParticipantes$distance==100,] %>% # Filtra para la prueba de 100 metros
@@ -559,7 +693,11 @@ datos_100m_top_3 <- nadadoresParticipantes[nadadoresParticipantes$distance==100,
 datos_100m_top_3
 ```
 
-La presencia de Sudáfrica en el segundo lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo.Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable. Esto podría implicar que los nadadores africanos son altamente competitivos cuando tienen la oportunidad de competir en el más alto nivel. Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de participantes, se obtiene una visión clara del rendimiento de los nadadores en este evento específico. Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
+La presencia de Sudáfrica en el segundo lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo.Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable.
+Esto podría implicar que los nadadores africanos son altamente competitivos cuando tienen la oportunidad de competir en el más alto nivel.
+Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de participantes, se obtiene una visión clara del rendimiento de los nadadores en este evento específico.
+Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
+
 ```{r}
 
 # Crear un gráfico para visualizar el podio de los 3 primeros
@@ -592,127 +730,8 @@ print(grafico_podio_100mrepresentacion)
 ```
 
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. 
 
-```{r}
-#lo defino aqui de otra manera porque nadadoresPruebas esta mas abajo
-nadadoresPruebas2 <- datos2015 %>%
-  distinct(eventid, athleteid, .keep_all = TRUE)
-
-#Crear una nueva columna para clasificar por edad
-nadadoresPruebas2 <- nadadoresPruebas2 %>%
-  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
-
-#Resumir el número de participantes en cada prueba por grupo de edad
-resumen_pruebas <- nadadoresPruebas2 %>%
-  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
-  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
-  ungroup() %>%  # Quitar agrupación
-  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
-
-# Mostrar el resumen
-resumen_pruebas
-
-```
-Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas.
-
-Debemos analizar los resultados según sus frecuencias relativas.
-```{r}
-# Crear una nueva columna para clasificar por edad
-nadadoresPruebas2 <- nadadoresPruebas2 %>%
-  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
-
-# Contar el número total de nadadores
-total_nadadores <- nrow(nadadoresPruebas2)
-
-# Resumir el número de participantes en cada prueba por grupo de edad
-resumen_pruebas <- nadadoresPruebas2 %>%
-  group_by(grupo_edad, distance) %>%  # Agrupar por grupo de edad y prueba
-  summarise(num_participantes = n(), .groups = "drop") %>%  # Contar el número de participantes
-  mutate(porcentaje = (num_participantes / total_nadadores) * 100) %>%  # Calcular el porcentaje
-  ungroup() %>%  # Quitar agrupación
-  arrange(grupo_edad, desc(num_participantes))  # Ordenar los resultados
-
-# Mostrar el resumen
-print(resumen_pruebas)
-
-
-```
-
-Lo veo gráficamente:
-```{r}
-library(ggplot2)
-
-# Gráfico de barras para el número de participantes por grupo de edad y distancia
-ggplot(resumen_pruebas, aes(x = factor(distance), y = num_participantes, fill = grupo_edad)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Número de Participantes por Distancia y Grupo de Edad",
-       x = "Distancia (m)",
-       y = "Número de Participantes",
-       fill = "Grupo de Edad") +
-  theme_minimal()
-
-```
-
-La distancia de 100 y 50 metros es la distancia más popular entre los nadadores mayores de 18 años.
-Le sigue la distancia de 200 metros. La participación disminuye considerablemente en distancias más largas, como 1500 metros.
-Para los menores de 18 años tenemos carreras de 100 y 50 metros como las más frecuentadas, aunque menos que el grupo de 18 años o más(hay menos menores).
-La participación en distancias más largas, como 400 metros, es aún más baja en menores.
-
-Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
-La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
-
-Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 50 metros es la más popular entre los nadadores.
-Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa.
-Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años.
-Por tanto, hay más de la mitad de los participantes en el segundo grupo.
-Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
-
-```{r}
-# Gráfico de líneas para mostrar la tendencia
-resumen_pruebas
-ggplot(resumen_pruebas, aes(x = distance, y = num_participantes, color = grupo_edad, group = grupo_edad)) +
-  geom_line(size = 1) +
-  geom_point(size = 3) +
-  labs(title = "Tendencia de Participación en Distancias de Natación por Grupo de Edad",
-       x = "Distancia (m)",
-       y = "Número de Participantes") +
-  scale_x_continuous(breaks = unique(resumen_pruebas$distance)) +
-  scale_color_manual(values = c("blue", "orange")) +
-  theme_minimal()
-
-```
-
-La distancia de 50 metros es la más popular, tanto para mayores como para menores de 18 años.
-La participación de los mayores de 18 años es considerablemente más alta en todas las distancias.
-La caída en la participación es más pronunciada en el grupo de menores de 18 años, especialmente en distancias más largas.
-
-
-Nos vamos a centrar, en una de las conclusiones que hemos mencionado varias veces. En los menores de edad,¿realmanete hay una diferencia significativa entre el número de nadadores en las pruebas más explosivas, que en las pruebas más largas? Para ello, creamos una nueva columna, que nos indique que prueba es explosiva, y cual de más resistencia. A continuación, procedo a quedarme con lo que me interesa(menores de edad agrupados en explosivo y resistencia)
-```{r}
-resumen_pruebas
-# Clasificar las distancias
-resumen_pruebas <- resumen_pruebas %>%
-  mutate(tipo_prueba = case_when(
-    distance %in% c(50, 100) ~ "Explosiva",
-    distance %in% c(200, 400, 800, 1500) ~ "Resistencia",
-    TRUE ~ "Otra"
-  ))
-
-# Filtrar solo los menores de 18 años y contar las participaciones
-participaciones_menores <- resumen_pruebas  %>%
-  filter(grupo_edad == "Menores de 18") %>%
-  group_by(tipo_prueba) %>%
-  summarise(total_participantes = sum(num_participantes),porcentajes_acumulativos=sum(porcentaje))
-
-print(participaciones_menores)
-
-```
-Evidentemente, como ya nos podíamos esperar, la participación de nadadores menores de edad en pruebas explosivas es notablemente mayor que en pruebas de resistencia. Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosivas, como los 50 y 100 metros, requieren menos tiempo de entrenamiento prolongado en comparación con las pruebas de resistencia, que implican una mayor dedicación y condición física a largo plazo.
-
-
-
-## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
+## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
 
 Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
@@ -938,8 +957,7 @@ summary(lmPuntosCalle)
 plot(lmPuntosCalle)
 ```
 
-_que alguien interprete esto porque no me entero:)_
-
+*que alguien interprete esto porque no me entero:)*
 
 ### Daytime
 
@@ -1032,23 +1050,160 @@ summary(pruebasVespertinas$round)
 
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
 
-## Estudio sobre la variable round. 
 
-A continuación, vamos a intentar entender más sobre la variable ronda. Para ello, primero vemos un resumen: 
+## Estudio sobre la variable distancia y su asociación con los tipos de nado. (SALMA)
+
+
+
+
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan.
+
+```{r}
+#Crear una nueva columna para clasificar por edad
+nadadoresPruebas <- nadadoresPruebas %>%
+  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
+
+#Resumir el número de participantes en cada prueba por grupo de edad
+resumen_pruebas <- nadadoresPruebas %>%
+  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
+  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
+  ungroup() %>%  # Quitar agrupación
+  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
+
+# Mostrar el resumen
+resumen_pruebas
+
+```
+
+Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas.
+
+Debemos analizar los resultados según sus frecuencias relativas.
+
+```{r}
+# Crear una nueva columna para clasificar por edad
+nadadoresPruebas <- nadadoresPruebas %>%
+  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
+
+# Contar el número total de nadadores
+total_nadadores <- nrow(nadadoresPruebas)
+
+# Resumir el número de participantes en cada prueba por grupo de edad
+resumen_pruebas <- nadadoresPruebas %>%
+  group_by(grupo_edad, distance) %>%  # Agrupar por grupo de edad y prueba
+  summarise(num_participantes = n(), .groups = "drop") %>%  # Contar el número de participantes
+  mutate(porcentaje = (num_participantes / total_nadadores) * 100) %>%  # Calcular el porcentaje
+  ungroup() %>%  # Quitar agrupación
+  arrange(grupo_edad, desc(num_participantes))  # Ordenar los resultados
+
+# Mostrar el resumen
+print(resumen_pruebas)
+
+
+```
+
+Lo veo gráficamente:
+
+```{r}
+library(ggplot2)
+
+# Gráfico de barras para el número de participantes por grupo de edad y distancia
+ggplot(resumen_pruebas, aes(x = factor(distance), y = num_participantes, fill = grupo_edad)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Número de Participantes por Distancia y Grupo de Edad",
+       x = "Distancia (m)",
+       y = "Número de Participantes",
+       fill = "Grupo de Edad") +
+  theme_minimal()
+
+```
+
+La distancia de 100 y 50 metros es la distancia más popular entre los nadadores mayores de 18 años.
+Le sigue la distancia de 200 metros.
+La participación disminuye considerablemente en distancias más largas, como 1500 metros.
+Para los menores de 18 años tenemos carreras de 100 y 50 metros como las más frecuentadas, aunque menos que el grupo de 18 años o más(hay menos menores).
+La participación en distancias más largas, como 400 metros, es aún más baja en menores.
+
+Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
+La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
+
+Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 50 metros es la más popular entre los nadadores.
+Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa.
+Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años.
+Por tanto, hay más de la mitad de los participantes en el segundo grupo.
+Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
+
+```{r}
+# Gráfico de líneas para mostrar la tendencia
+resumen_pruebas
+ggplot(resumen_pruebas, aes(x = distance, y = num_participantes, color = grupo_edad, group = grupo_edad)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  labs(title = "Tendencia de Participación en Distancias de Natación por Grupo de Edad",
+       x = "Distancia (m)",
+       y = "Número de Participantes") +
+  scale_x_continuous(breaks = unique(resumen_pruebas$distance)) +
+  scale_color_manual(values = c("blue", "orange")) +
+  theme_minimal()
+
+```
+
+La distancia de 50 metros es la más popular, tanto para mayores como para menores de 18 años.
+La participación de los mayores de 18 años es considerablemente más alta en todas las distancias.
+La caída en la participación es más pronunciada en el grupo de menores de 18 años, especialmente en distancias más largas.
+
+Nos vamos a centrar, en una de las conclusiones que hemos mencionado varias veces.
+En los menores de edad,¿realmanete hay una diferencia significativa entre el número de nadadores en las pruebas más explosivas, que en las pruebas más largas?
+Para ello, creamos una nueva columna, que nos indique que prueba es explosiva, y cual de más resistencia.
+A continuación, procedo a quedarme con lo que me interesa(menores de edad agrupados en explosivo y resistencia)
+
+```{r}
+resumen_pruebas
+# Clasificar las distancias
+resumen_pruebas <- resumen_pruebas %>%
+  mutate(tipo_prueba = case_when(
+    distance %in% c(50, 100) ~ "Explosiva",
+    distance %in% c(200, 400, 800, 1500) ~ "Resistencia",
+    TRUE ~ "Otra"
+  ))
+
+# Filtrar solo los menores de 18 años y contar las participaciones
+participaciones_menores <- resumen_pruebas  %>%
+  filter(grupo_edad == "Menores de 18") %>%
+  group_by(tipo_prueba) %>%
+  summarise(total_participantes = sum(num_participantes),porcentajes_acumulativos=sum(porcentaje))
+
+print(participaciones_menores)
+
+```
+
+Evidentemente, como ya nos podíamos esperar, la participación de nadadores menores de edad en pruebas explosivas es notablemente mayor que en pruebas de resistencia.
+Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosivas, como los 50 y 100 metros, requieren menos tiempo de entrenamiento prolongado en comparación con las pruebas de resistencia, que implican una mayor dedicación y condición física a largo plazo.
+
+
+
+## Estudio sobre la variable round.
+
+A continuación, vamos a intentar entender más sobre la variable ronda.
+Para ello, primero vemos un resumen:
 
 ```{r}
 summary(datos2015$round)
 ```
 
-Observamos que toma 5 posibles valores, tenemos controlados tanto FIN (final), como PRE (preliminar) y SEM (semifinal). Pero SOP y SOS no parece tan claro saber qué es. Vamos a comenzar dejando de lado SOP y SOS, nos vamos a centrar en controlar los otros 3 valores.
+Observamos que toma 5 posibles valores, tenemos controlados tanto FIN (final), como PRE (preliminar) y SEM (semifinal).
+Pero SOP y SOS no parece tan claro saber qué es.
+Vamos a comenzar dejando de lado SOP y SOS, nos vamos a centrar en controlar los otros 3 valores.
 
 ### ¿Cuántos nadadores nadan cada ronda?
 
-Una pregunta natural podría ser, ¿cuántos nadadores pasan de ronda? ¿Todos? Está claro que al ver que por la mañana en preliminares nadan el 75% y por las tardes son semifinales y finales y son un 25%. Veamoslo con distintas pruebas: 
+Una pregunta natural podría ser, ¿cuántos nadadores pasan de ronda?
+¿Todos?
+Está claro que al ver que por la mañana en preliminares nadan el 75% y por las tardes son semifinales y finales y son un 25%.
+Veamoslo con distintas pruebas:
 
-#### 50 libre femenino: 
+#### 50 libre femenino:
 
-Seleccionamos las nadadoras que nadaron preliminares en el 50 libre femenino: 
+Seleccionamos las nadadoras que nadaron preliminares en el 50 libre femenino:
 
 ```{r}
 free50PrelimWomens<- nadadoresPruebas[nadadoresPruebas$round=="PRE" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
@@ -1056,7 +1211,7 @@ free50PrelimWomens<- nadadoresPruebas[nadadoresPruebas$round=="PRE" & nadadoresP
 free50PrelimWomens
 ```
 
-Ahora, vamos a hacer el ranking de resultados de esta prueba, para ello: 
+Ahora, vamos a hacer el ranking de resultados de esta prueba, para ello:
 
 ```{r}
 free50PrelimWomens<-free50PrelimWomens[order(free50PrelimWomens$swimtime), ]
@@ -1064,19 +1219,22 @@ free50PrelimWomens<-free50PrelimWomens[order(free50PrelimWomens$swimtime), ]
 dim(free50PrelimWomens)
 ```
 
-Observamos que hubo 119 nadadoras que nadaron las preliminares del 50 libres. Veamos ahora cuántas nadaron las semifinales: 
+Observamos que hubo 119 nadadoras que nadaron las preliminares del 50 libres.
+Veamos ahora cuántas nadaron las semifinales:
 
 ```{r}
 free50SemisWomens<-nadadoresPruebas[nadadoresPruebas$round=="SEM" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
 ```
 
-Antes de ordenarlas, veamos cuántas filas tengo en mi nueva tabla: 
+Antes de ordenarlas, veamos cuántas filas tengo en mi nueva tabla:
 
 ```{r}
 dim(free50SemisWomens)
 ```
 
-Es decir, de 119, sólo se clasificaron 16. Veamos si fueron las 16 primeras. Para ello, voy a coger las 16 primeras de las prelims, voy ahora a ordenarlas por athleteid, y hacer lo mismo con las de las semifinales, a ver si coincide:  
+Es decir, de 119, sólo se clasificaron 16.
+Veamos si fueron las 16 primeras.
+Para ello, voy a coger las 16 primeras de las prelims, voy ahora a ordenarlas por athleteid, y hacer lo mismo con las de las semifinales, a ver si coincide:
 
 ```{r}
 free50PrelimWomens<-head(free50PrelimWomens, 16)
@@ -1091,14 +1249,15 @@ free50SemisWomens
 
 ```
 
-Luego, podemos observar claramente que, las 16 primeras de las preliminares, consiguieron clasificarse a las semifinales. Hagamos el mismo trabajo con la tabla *free50SemisWomens* para ver cuántas nadadoras se clasificaron en la final: 
+Luego, podemos observar claramente que, las 16 primeras de las preliminares, consiguieron clasificarse a las semifinales.
+Hagamos el mismo trabajo con la tabla *free50SemisWomens* para ver cuántas nadadoras se clasificaron en la final:
 
 ```{r}
 free50SemisWomens<-free50SemisWomens[order(free50SemisWomens$swimtime), ]
 
 ```
 
-Al igual que antes, confeccionamos la tabla de la final: 
+Al igual que antes, confeccionamos la tabla de la final:
 
 ```{r}
 free50FinalWomens<-nadadoresPruebas[nadadoresPruebas$round=="FIN" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
@@ -1110,7 +1269,11 @@ Observamos que hay 8, luego las 8 primeras se clasificaron a la final.
 
 ### ¿Se nadan las 3 rondas en cada prueba?
 
-Esta cuestión nos surge ya que, algunas pruebas requieren más esfuerzo y el tiempo de descanso para la recuperación total es más largo, por ello alomejor hay pruebas en las que sólo hay 1 ronda, o 2, o esta suposición es falsa y en cada prueba se nadan 3 rondas. Para ello, echemos un cálculo inicial. Hay 2 géneros, pruebas de 50, 100, 200, 400, 800 y 1500 metros. Veamos qué valores toman las rondas en cada una de estas pruebas. Para ello: 
+Esta cuestión nos surge ya que, algunas pruebas requieren más esfuerzo y el tiempo de descanso para la recuperación total es más largo, por ello alomejor hay pruebas en las que sólo hay 1 ronda, o 2, o esta suposición es falsa y en cada prueba se nadan 3 rondas.
+Para ello, echemos un cálculo inicial.
+Hay 2 géneros, pruebas de 50, 100, 200, 400, 800 y 1500 metros.
+Veamos qué valores toman las rondas en cada una de estas pruebas.
+Para ello:
 
 ```{r}
 print("Rondas que se nadan en las pruebas de 50 metros: ")
@@ -1127,11 +1290,14 @@ print("Rondas que se nadan en las pruebas de 1500 metros:")
 summary(nadadoresPruebas[nadadoresPruebas$distance==1500, ]$round)
 ```
 
-Luego, observamos que en las pruebas de 400, 800 y 1500 metros no hay semifinales, tan sólo una ronda preliminar y una ronda final. 
+Luego, observamos que en las pruebas de 400, 800 y 1500 metros no hay semifinales, tan sólo una ronda preliminar y una ronda final.
 
-También podemos sacar conclusiones gracias al estudio hecho en el apartado anterior. En los 50 por ejemplo, hay 128 nadadores que nadan semifinales, hay dos géneros, luego 64 nadadores por género nadaron semifinales, además, hay 4 estilos, luego 16 nadadores nadaron las semifinales de cada prueba, lo cual concuerda con lo visto anteriormente. 
+También podemos sacar conclusiones gracias al estudio hecho en el apartado anterior.
+En los 50 por ejemplo, hay 128 nadadores que nadan semifinales, hay dos géneros, luego 64 nadadores por género nadaron semifinales, además, hay 4 estilos, luego 16 nadadores nadaron las semifinales de cada prueba, lo cual concuerda con lo visto anteriormente.
 
-Destaca a la vista que, en las pruebas de 200 metros, hay más nadadores. ¿Por qué sucede esto?. Veamos: 
+Destaca a la vista que, en las pruebas de 200 metros, hay más nadadores.
+¿Por qué sucede esto?.
+Veamos:
 
 ```{r}
 print("Estilos que se nadan en pruebas de 50 metros: ")
@@ -1140,18 +1306,17 @@ print("Estilos que se nadan en pruebas de 200 metros:")
 summary(nadadoresPruebas[nadadoresPruebas$distance==200, ]$stroke)
 ```
 
-Hay más nadadores que nadan semifinales puesto que hay 5 pruebas, no 4. Si echamos los cálculos, 160/(2*5)=16 nadadores, igual que en las demás.
+Hay más nadadores que nadan semifinales puesto que hay 5 pruebas, no 4.
+Si echamos los cálculos, 160/(2\*5)=16 nadadores, igual que en las demás.
 
-Se puede ver de manera análoga que nadan 8 nadadores cada final. 
+Se puede ver de manera análoga que nadan 8 nadadores cada final.
 
-
-
-Ahora, ya que hemos analizado a fondo qué sucede con las finales, semifinales y preliminares, vamos a ver qué significan los otros dos valores que toma la variable *round*. 
-
+Ahora, ya que hemos analizado a fondo qué sucede con las finales, semifinales y preliminares, vamos a ver qué significan los otros dos valores que toma la variable *round*.
 
 ### Rondas SOP
 
-Bien, primeramente, vamos a observar las filas tales que toman ese valor. Lo hacemos de la siguiente manera: 
+Bien, primeramente, vamos a observar las filas tales que toman ese valor.
+Lo hacemos de la siguiente manera:
 
 ```{r}
 datosSOP<-datos2015[datos2015$round=="SOP",]
@@ -1159,7 +1324,11 @@ datosSOP<-datos2015[datos2015$round=="SOP",]
 datosSOP
 ```
 
-Observamos 4 filas, que se trata, viendo que es el mismo *eventid*, de una prueba que nadan sólo 2 nadadoras, Osman y Kelly. En este caso, un 100 mariposa. Es curioso que estas dos nadadoras naden una sóla prueba. Además, nadaron a las 11:56, por la mañana, donde sólo se nadan preliminares. Vamos a ver si descubrimos algo viendo la clasificación de ese 100 mariposa en la ronda preliminar: 
+Observamos 4 filas, que se trata, viendo que es el mismo *eventid*, de una prueba que nadan sólo 2 nadadoras, Osman y Kelly.
+En este caso, un 100 mariposa.
+Es curioso que estas dos nadadoras naden una sóla prueba.
+Además, nadaron a las 11:56, por la mañana, donde sólo se nadan preliminares.
+Vamos a ver si descubrimos algo viendo la clasificación de ese 100 mariposa en la ronda preliminar:
 
 ```{r}
 fly100PREWomen<-nadadoresPruebas[nadadoresPruebas$distance==100 & nadadoresPruebas$stroke=="FLY" & nadadoresPruebas$round=="PRE" & nadadoresPruebas$gender=="F", ]
@@ -1172,18 +1341,23 @@ fly100PREWomen
 
 ```
 
-Si busco a Osman y Kelly en la anterior tabla, observo que se encuentran en el puesto 16 y 17 respectivamente y que, hicieron el mismo tiempo. Luego tiene sentido razonar que, las rondas SOP son rondas de desempate para ver quién pasa a la siguiente ronda. 
+Si busco a Osman y Kelly en la anterior tabla, observo que se encuentran en el puesto 16 y 17 respectivamente y que, hicieron el mismo tiempo.
+Luego tiene sentido razonar que, las rondas SOP son rondas de desempate para ver quién pasa a la siguiente ronda.
 
 ### Rondas SOS
 
-Viendo el razonamiento de las rondas SOP, intuimos que las rondas SOS deben ser rondas de desempate entre nadadores de las semifinales. De todas maneras, vamos a verlo. Para ello, si nos fijamos en una de las tablas anteriores, en la prueba de 200 metros había 4 nadadores que nadan la ronda SOS. Vamos a visualizarlo: 
+Viendo el razonamiento de las rondas SOP, intuimos que las rondas SOS deben ser rondas de desempate entre nadadores de las semifinales.
+De todas maneras, vamos a verlo.
+Para ello, si nos fijamos en una de las tablas anteriores, en la prueba de 200 metros había 4 nadadores que nadan la ronda SOS.
+Vamos a visualizarlo:
 
 ```{r}
 datosSOS<-nadadoresPruebas[nadadoresPruebas$round=="SOS" & nadadoresPruebas$distance==200, ]
 datosSOS
 ```
 
-Vemos que se nadaron dos rondas SOS, una para la prueba de 200m braza femenino, y otra para la prueba de 200 estilos masculino. Elijamos el 200 estilos masculino, visualicemos el ranking de las semifinales y veamos si están Roberto Pavoni y Conor Dwyer empatados en el 8vo y 9no puesto: 
+Vemos que se nadaron dos rondas SOS, una para la prueba de 200m braza femenino, y otra para la prueba de 200 estilos masculino.
+Elijamos el 200 estilos masculino, visualicemos el ranking de las semifinales y veamos si están Roberto Pavoni y Conor Dwyer empatados en el 8vo y 9no puesto:
 
 ```{r}
 medley200SEM<-nadadoresPruebas[nadadoresPruebas$round=="SEM" & nadadoresPruebas$distance==200 & nadadoresPruebas$gender=="M" & nadadoresPruebas$stroke=="MEDLEY", ]
@@ -1196,7 +1370,8 @@ rownames(medley200SEM) <- 1:nrow(medley200SEM)
 medley200SEM
 ```
 
-Y efectivamente, empataron con un tiempo de 118.54 segundos, luego SOS equivale a las rondas de desempate producidas en las rondas semifinales. Además, observamos que se realizan por las tardes. 
+Y efectivamente, empataron con un tiempo de 118.54 segundos, luego SOS equivale a las rondas de desempate producidas en las rondas semifinales.
+Además, observamos que se realizan por las tardes.
 
 ## Estudios relacionados con los puntos.
 
@@ -1286,17 +1461,15 @@ summary(anova_puntos_genero)
 
 ### Puntos. ¿La edad influye?
 
-(parte de Javi)
-En esta sección vamos a comparar los puntos con la edad. Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
+(parte de Javi) En esta sección vamos a comparar los puntos con la edad.
+Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
 
 ```{r}
 nadadores_menores <- nadadoresParticipantes[nadadoresParticipantes$edad < 18, ]
 
 ```
 
-
-(Parte de Salma)
-Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
+(Parte de Salma) Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
 ```{r}
 #QUERIA PONERLO CON COLORES Q SE VEA MEJOR EL GRAFICO DE CALOR(POR SER CREATIVOS Y TAL)
@@ -1315,7 +1488,6 @@ ggplot(resumen_puntos, aes(x = edad, y = points)) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 ```
-
 
 ### Modelo de regresión lineal: reactiontime vs swimtime
 
@@ -1454,10 +1626,9 @@ nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & da
 
 ```
 
+#### Estudio sobre los parciales de la carrera.
 
-#### Estudio sobre los parciales de la carrera. 
-
-Vamos a evaluar cómo fueron los parciales de las nadadoras, para ello hacemos el siguiente gráfico: 
+Vamos a evaluar cómo fueron los parciales de las nadadoras, para ello hacemos el siguiente gráfico:
 
 ```{r}
 ggplot(nadadoras800free, aes(y=nadadoras800free$lastname, x=nadadoras800free$splitswimtime, fill=nadadoras800free$lastname))+
@@ -1465,10 +1636,11 @@ ggplot(nadadoras800free, aes(y=nadadoras800free$lastname, x=nadadoras800free$spl
   labs(x="Parciales", y="Nadadoras")
 ```
 
-De aquí podemos observar la media y los cuantiles de los parciales de las nadadoras. Observamos que casi todas tienen 1 o incluso 2 puntos atípicos, seguramente se deban al primer y último parcial de la prueba. Además, podemos observar que algunas nadadoras como Kapas y Friis, tuvieron una desviación muy pequeñita en sus parciales, es decir, fueron a un ritmo constante durante toda la prueba clavando sus parciales. 
+De aquí podemos observar la media y los cuantiles de los parciales de las nadadoras.
+Observamos que casi todas tienen 1 o incluso 2 puntos atípicos, seguramente se deban al primer y último parcial de la prueba.
+Además, podemos observar que algunas nadadoras como Kapas y Friis, tuvieron una desviación muy pequeñita en sus parciales, es decir, fueron a un ritmo constante durante toda la prueba clavando sus parciales.
 
-
-Vamos a observar, para cada nadador, los parciales realizados para ver si podemos conseguir algún patrón de tipo de carrera: 
+Vamos a observar, para cada nadador, los parciales realizados para ver si podemos conseguir algún patrón de tipo de carrera:
 
 ```{r}
 ggplot(nadadoras800free, aes(x=nadadoras800free$splitdistance, y=nadadoras800free$splitswimtime, group = lastname, colour =lastname )) + 
@@ -1477,10 +1649,15 @@ ggplot(nadadoras800free, aes(x=nadadoras800free$splitdistance, y=nadadoras800fre
   theme_minimal()
 ```
 
-Observamos que todas nadan muy rápido tanto el primer parcial como el último. Además, vemos de manera clara como Ledecky parece que alterna un largo un poco más rapido y luego otro más lento durante toda su prueba. ¿Puede ser una estrategia de carrera? Lo veremos más adelante. También vemos alguna otra nadadora más que hace algo similar como Van Rouwendaal. Otras en cambio, intentan conservar el ritmo marcado desde el inicio y ser constantes. Carlin mete un cambio de ritmo muy drástico al paso de los 650m de 31s altos a 31s bajos y sigue luego bajando. 
+Observamos que todas nadan muy rápido tanto el primer parcial como el último.
+Además, vemos de manera clara como Ledecky parece que alterna un largo un poco más rapido y luego otro más lento durante toda su prueba.
+¿Puede ser una estrategia de carrera?
+Lo veremos más adelante.
+También vemos alguna otra nadadora más que hace algo similar como Van Rouwendaal.
+Otras en cambio, intentan conservar el ritmo marcado desde el inicio y ser constantes.
+Carlin mete un cambio de ritmo muy drástico al paso de los 650m de 31s altos a 31s bajos y sigue luego bajando.
 
-
-#### Visualización de la carrera. 
+#### Visualización de la carrera.
 
 Ahora, vamos a definir una tabla en la que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial:
 
@@ -1490,7 +1667,7 @@ nadadoras800free <- nadadoras800free %>%
 
 ```
 
-Visualizamos la carrera: 
+Visualizamos la carrera:
 
 ```{r}
 # Ordenar los datos por tiempo
@@ -1519,7 +1696,8 @@ Realizaremos ahora el análisis de componentes principales del 800m libres femen
 
 ## PCA. 200 mariposa masculino preliminares (Salma)
 
-La idea de realizar el siguiente PCA es porque disponemos de gran cantidad de variables, algunas de las cuales están correlacionadas entre sí, lo que complica su análisis. En estas situaciones es conveniente aplicar el método de componentes principales, que permita reducir el número de variables sin pérdida sustancial de información, y consiguiendo que estas nuevas variables sean incorreladas evitando así que haya información redundante.
+La idea de realizar el siguiente PCA es porque disponemos de gran cantidad de variables, algunas de las cuales están correlacionadas entre sí, lo que complica su análisis.
+En estas situaciones es conveniente aplicar el método de componentes principales, que permita reducir el número de variables sin pérdida sustancial de información, y consiguiendo que estas nuevas variables sean incorreladas evitando así que haya información redundante.
 
 Comenzamos,cargando los datos:
 
@@ -1529,7 +1707,6 @@ prueba200MariposaMasc<- datos2015[datos2015$distance==200 & datos2015$gender=="M
 prueba200MariposaMasc <- prueba200MariposaMasc %>%
     dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad)
 ```
-
 
 Creamos una tabla en la que nos quedamos con el nombre, apellidos y parciales
 
@@ -1545,16 +1722,15 @@ pruebita
 ```
 
 Calculas estadísticas descriptivas utilizando 'pastecs::stat.desc' para entender mejor tus datos:
+
 ```{r}
 pastecs::stat.desc(pruebita, basic = F)
 ```
 
-
-
 Se puede observar que hay grandes diferencias entre las varianzas de las variables, lo que puede afectar a los resultados de un análisis de componentes principales (ACP), debido a que las variables con mayor varianza tendrán más influencia en la generación de un componente.
 
-El ACP tiene sentido cuando hay correlación entre las variables pues permite eliminar información redundante. Si se analiza la matriz de correlaciones se puede ver, a modo de ejemplo, que hay correlaciones fuertes.Luego, procedemos con el PCA
-
+El ACP tiene sentido cuando hay correlación entre las variables pues permite eliminar información redundante.
+Si se analiza la matriz de correlaciones se puede ver, a modo de ejemplo, que hay correlaciones fuertes.Luego, procedemos con el PCA
 
 ```{r}
 prueba200MariposaMasc2<- datos2015[datos2015$distance==200 & datos2015$gender=="M" & datos2015$stroke=="FLY"& datos2015$round=="PRE", ]
@@ -1567,30 +1743,36 @@ corrplot::corrplot(R, method = "number",
                    number.cex = 0.75) # Matriz de correlaciones con números en letra pequeña
 ```
 
-
-Para la obtención de los componentes principales utilizamos la función princomp. Para evitar la influencia de la diferencia en magnitud de las varianzas se puede emplear los datos originales y el argumento cor = TRUE o los datos originales estandarizados y el argumento cor = FALSE.Utilizaremos el primer caso,ya que conseguimos que la suma de las varianzas de las variables originales y la de los componentes coincida con el número de variables de la matriz de datos original.
-
-
+Para la obtención de los componentes principales utilizamos la función princomp.
+Para evitar la influencia de la diferencia en magnitud de las varianzas se puede emplear los datos originales y el argumento cor = TRUE o los datos originales estandarizados y el argumento cor = FALSE.Utilizaremos el primer caso,ya que conseguimos que la suma de las varianzas de las variables originales y la de los componentes coincida con el número de variables de la matriz de datos original.
 
 ```{r}
 componentess=prcomp(pruebita[,-1], cor = TRUE)
 summary(componentess)
 ```
-Los componentes están ordenados en función de la varianza que explican y el porcentaje acumulado permite decidir con cuántos componentes trabajar. En este caso con solo dos se explica el 96%, con tres el 98%, con uno el 68%...
 
-Generalmente, hay un número pequeño de componentes, los primeros, que contienen casi toda la información y el resto suele contribuir relativamente poco. Ya lo hemos visto en nuestro estudio. Podemos directamente coger 2, trabajar sobre el plano y tener una alta varianza explicada, pero vamos a demostrarlo de una manera un poco más empírica. Utilizamos  el criterio del autovalor superior a la unidad (regla de Kaiser) y el gráfico de sedimentación (scree test).
+Los componentes están ordenados en función de la varianza que explican y el porcentaje acumulado permite decidir con cuántos componentes trabajar.
+En este caso con solo dos se explica el 96%, con tres el 98%, con uno el 68%...
 
-Para el primero, tenemos que saber que este criterio retiene aquellos componentes cuyos valores propios son superiores a la unidad y funciona bastante bien salvo con un gran número de variables, que no es nuestro caso.Luego, será muy preciso. Las raices de los autovalores asociados a la matriz de correlaciones son las desviaciones típicas de los componentes y se encuentran en '$sdev' del objeto componentes creado con la función princomp.
+Generalmente, hay un número pequeño de componentes, los primeros, que contienen casi toda la información y el resto suele contribuir relativamente poco.
+Ya lo hemos visto en nuestro estudio.
+Podemos directamente coger 2, trabajar sobre el plano y tener una alta varianza explicada, pero vamos a demostrarlo de una manera un poco más empírica.
+Utilizamos el criterio del autovalor superior a la unidad (regla de Kaiser) y el gráfico de sedimentación (scree test).
+
+Para el primero, tenemos que saber que este criterio retiene aquellos componentes cuyos valores propios son superiores a la unidad y funciona bastante bien salvo con un gran número de variables, que no es nuestro caso.Luego, será muy preciso.
+Las raices de los autovalores asociados a la matriz de correlaciones son las desviaciones típicas de los componentes y se encuentran en '\$sdev' del objeto componentes creado con la función princomp.
 
 ```{r}
 auto<-componentess$sdev^2
 auto
 ```
 
-El número de componentes a retener según este criterio sería 2, ya que únicamente hay 2 autovalores mayores que uno. Como ya se ha visto, esta decisión implicaría quedarnos con un 96% de la varianza total de los datos, que es bastante.
+El número de componentes a retener según este criterio sería 2, ya que únicamente hay 2 autovalores mayores que uno.
+Como ya se ha visto, esta decisión implicaría quedarnos con un 96% de la varianza total de los datos, que es bastante.
 
 Otra manera de ver el número de componentes que escojamos, más gráfica, es un gráfico de sedimentación (scree test).
-Este gráfico muestra en el eje de ordenadas los autovalores y en el eje de abscisas los componentes. Los cambios en la pendiente nos permiten observar cuánta capacidad explicativa va aportando cada componente. 
+Este gráfico muestra en el eje de ordenadas los autovalores y en el eje de abscisas los componentes.
+Los cambios en la pendiente nos permiten observar cuánta capacidad explicativa va aportando cada componente.
 
 Se escoge el número de componentes a partir del cual los autovalores restantes son relativamente más pequeños en comparación con él.
 
@@ -1599,36 +1781,47 @@ plot(componentess, type="lines", main = "Gráfico de sedimentación")
 abline(h=1, lty=3, col="red")
 ```
 
-El gráfico de codo nos aconseja también quedarnos con 2 componentes. Ambos criterios ofrecen la misma conclusión, que el número de componentes a retener es 2.
+El gráfico de codo nos aconseja también quedarnos con 2 componentes.
+Ambos criterios ofrecen la misma conclusión, que el número de componentes a retener es 2.
 
-Una vez pasamos a la interpretación de las componentes debemos estudiar sus relaciones con cada una de las variables originales. Para ello se obtienen e interpretan las correlaciones entre los componentes (componentes$scores) y las variables. Una forma de calcularla es con la función cor:
+Una vez pasamos a la interpretación de las componentes debemos estudiar sus relaciones con cada una de las variables originales.
+Para ello se obtienen e interpretan las correlaciones entre los componentes (componentes\$scores) y las variables.
+Una forma de calcularla es con la función cor:
 
 ```{r}
 
 Cor_CompVar <- round(cor(pruebita[,-1], componentess$scores), 4) # con round se redondea, en este caso concreto, a 4 decimales 
 Cor_CompVar
 ```
-Estos coeficientes que se acaban de calcular son los que se utilizan para interpretar los componentes. Como se ha decidido retener solo dos componentes, es conveniente crear un objeto que contenga solo las correlaciones con esos tres componentes, que será el objeto a analizar:
+
+Estos coeficientes que se acaban de calcular son los que se utilizan para interpretar los componentes.
+Como se ha decidido retener solo dos componentes, es conveniente crear un objeto que contenga solo las correlaciones con esos tres componentes, que será el objeto a analizar:
 
 ```{r}
 Cor_CompVar_retenidos <- Cor_CompVar[, 1:2]
 Cor_CompVar_retenidos
 ```
 
-Antes de seguir con la interpretación de los componentes, es conveniente analizar si con el número de componentes elegido (dos) están todas las variables bien representadas. Para ello se utiliza el coeficiente de correlación al cuadrado.El valor de la correlación al cuadrado se utiliza para estimar la calidad de la representación. Cuanto más cercano esté a la unidad, mejor será esta. 
+Antes de seguir con la interpretación de los componentes, es conveniente analizar si con el número de componentes elegido (dos) están todas las variables bien representadas.
+Para ello se utiliza el coeficiente de correlación al cuadrado.El valor de la correlación al cuadrado se utiliza para estimar la calidad de la representación.
+Cuanto más cercano esté a la unidad, mejor será esta.
+
 ```{r}
 round(Cor_CompVar[,1:2]^2, 4) # con round se redondea, en este caso concreto, a 4 decimales
 ```
-
 
 Estos resultados se pueden visualizar con corrplot:
 
 ```{r}
 corrplot::corrplot(factoextra::get_pca_var(componentess)$cos2[, 1:2], is.corr = F)
 ```
-La variable correspondiente a 200m se explica principalmente por la componente 1, lo que sugiere que el rendimiento en esta distancia está fuertemente asociado a la variabilidad que captura este componente. La visualización indica que esta relación tiene un porcentaje de varianza explicada de aproximadamente 37% lo cual es significativo.La variable 150m también tiene una correlación notable con el componente 1, aunque en menor medida que la variable de 200m. Esto indica que el rendimiento en 150m también está influenciado por las mismas características que se reflejan en el componente 1. 
 
-La variable edad tiene un fuerte impacto en el componente 1, con un porcentaje de varianza explicada alrededor del 74%. Esto sugiere que este componente refleja características que son particularmente relevantes para la edad de los nadadores, implicando que, a medida que los nadadores envejecen, sus tiempos y capacidades en el agua podrían verse influidos por la edad.
+La variable correspondiente a 200m se explica principalmente por la componente 1, lo que sugiere que el rendimiento en esta distancia está fuertemente asociado a la variabilidad que captura este componente.
+La visualización indica que esta relación tiene un porcentaje de varianza explicada de aproximadamente 37% lo cual es significativo.La variable 150m también tiene una correlación notable con el componente 1, aunque en menor medida que la variable de 200m.
+Esto indica que el rendimiento en 150m también está influenciado por las mismas características que se reflejan en el componente 1.
+
+La variable edad tiene un fuerte impacto en el componente 1, con un porcentaje de varianza explicada alrededor del 74%.
+Esto sugiere que este componente refleja características que son particularmente relevantes para la edad de los nadadores, implicando que, a medida que los nadadores envejecen, sus tiempos y capacidades en el agua podrían verse influidos por la edad.
 Este hallazgo es importante porque indica que la edad no solo es un factor en el rendimiento, sino que también está profundamente integrada en los componentes que explican la variabilidad del rendimiento en natación.
 
 ```{r}
@@ -1639,12 +1832,13 @@ factoextra::fviz_cos2(componentess, choice = "var",
                          title = "Cos2 de las variables para los componentes 1 a 2") 
 ```
 
-
 En este caso, se representa la suma de cos2 para los 2 componentes.La proporción de variabilidad explicada por los dos componentes retenidos es bastante baja.
 
-Procedemos, con la función fviz_pca_var del paquete factoextra, donde sobre un círculo de radio unidad, se sitúan las variables, utilizando como coordenadas sus correlaciones con cada uno de los componentes en el plano. Además, las variables se pueden colorear en función de distintas características, entre las que destacan su contribución y el valor del cos2 (por ejemplo, verde, naranja o rojo dependiendo de que sean valores bajos, medios o altos, respectivamente).
+Procedemos, con la función fviz_pca_var del paquete factoextra, donde sobre un círculo de radio unidad, se sitúan las variables, utilizando como coordenadas sus correlaciones con cada uno de los componentes en el plano.
+Además, las variables se pueden colorear en función de distintas características, entre las que destacan su contribución y el valor del cos2 (por ejemplo, verde, naranja o rojo dependiendo de que sean valores bajos, medios o altos, respectivamente).
 
 En edad,la recta formada por la primera componente solo explica el 0,28% de la varianza de edad, lo que significa que está pobremente representado por esta dimensión.
+
 ```{r}
 
 factoextra::fviz_pca_var(componentess, col.var = "cos2", 
@@ -1653,34 +1847,44 @@ factoextra::fviz_pca_var(componentess, col.var = "cos2",
                          title = "Cos2 de las variables en el plano 1")
 ```
 
+Cuanto más cercana esté una variable al borde, mejor será la calidad de la representación en el conjunto de las dos componentes.
 
-
-Cuanto más cercana esté una variable al borde, mejor será la calidad de la representación en el conjunto de las dos componentes. 
-
-La variable reactiontime también se observa en una posición cercana al centro del círculo, lo que sugiere que su variabilidad no está suficientemente capturada por los dos componentes principales. Esto refuerza la idea de que el tiempo de reacción podría requerir un análisis más profundo o considerar otros componentes adicionales para una representación más adecuada.
-Por el contrario, otras variables relacionadas con las distancias (como las variables de 50m, 100m, 150m, y 200m) están más alejadas del centro, lo que indica que están bien representadas por los dos primeros componentes. Esto sugiere que estos componentes capturan la mayor parte de la variabilidad del rendimiento en natación en estas distancias.
+La variable reactiontime también se observa en una posición cercana al centro del círculo, lo que sugiere que su variabilidad no está suficientemente capturada por los dos componentes principales.
+Esto refuerza la idea de que el tiempo de reacción podría requerir un análisis más profundo o considerar otros componentes adicionales para una representación más adecuada.
+Por el contrario, otras variables relacionadas con las distancias (como las variables de 50m, 100m, 150m, y 200m) están más alejadas del centro, lo que indica que están bien representadas por los dos primeros componentes.
+Esto sugiere que estos componentes capturan la mayor parte de la variabilidad del rendimiento en natación en estas distancias.
 
 Ya estamos preparados para interpretar las componentes:
 
-Para llevar a cabo esta interpretación puede resultar útil visualizar exclusivamente las correlaciones más altas en valor absoluto de forma que nuestra atención se centre en ellas. En nuestro caso, al ser pocas variables vamos a saltarnos este paso. Pero si fuese muy lioso, lo haríamos asi, obteniendo el valor de -0.4533 que será objeto de estudio más adelante.
+Para llevar a cabo esta interpretación puede resultar útil visualizar exclusivamente las correlaciones más altas en valor absoluto de forma que nuestra atención se centre en ellas.
+En nuestro caso, al ser pocas variables vamos a saltarnos este paso.
+Pero si fuese muy lioso, lo haríamos asi, obteniendo el valor de -0.4533 que será objeto de estudio más adelante.
 
 ```{r}
 Cor_CompVar_retenidos_mayores <- Cor_CompVar_retenidos
 Cor_CompVar_retenidos_mayores[abs(Cor_CompVar_retenidos_mayores) < 0.4]<- NA
 print(Cor_CompVar_retenidos_mayores, na.print="")
 ```
+
 Vemos todas nuestras correlaciones
+
 ```{r}
 Cor_CompVar_retenidos
 ```
-Tiempo de reacción: Las variables 150, siguiendolas, fondos e ingresos presentan correlaciones con el componente 1 superiores, indicando que están mas correlacionados con el tiempo de reacción, que por ejemplo 50 metros. Esto es, cuanto mayor sea el valor de estas cuatro variables en una prueba, mayor será su puntuación en esta componente.
 
-Concluimos con que los tiempos de reacción están positivamente correlacionados con todas las distancias, siendo más pronunciada la correlación con las distancias más largas (150 y 200 metros), que tienen valores de 0.3712 y 0.3496, respectivamente. Esto sugiere que a medida que aumenta la distancia, también tienden a aumentar los tiempos de reacción, lo que podría ser esperado debido al mayor esfuerzo físico requerido en distancias más largas.
+Tiempo de reacción: Las variables 150, siguiendolas, fondos e ingresos presentan correlaciones con el componente 1 superiores, indicando que están mas correlacionados con el tiempo de reacción, que por ejemplo 50 metros.
+Esto es, cuanto mayor sea el valor de estas cuatro variables en una prueba, mayor será su puntuación en esta componente.
 
-Edad:las correlaciones entre la edad y las distancias son todas negativas, con el valor más alto siendo -0.4533 para la distancia de 200 metros. Esto indica que a medida que aumenta la edad, los tiempos tienden a ser más altos en las distancias más largas. Es posible que los nadadores más jóvenes tiendan a tener mejores rendimientos en distancias más largas en comparación con los mayores, aunque esto debe interpretarse con cautela y podría estar influenciado por otros factores no considerados en este análisis.
+Concluimos con que los tiempos de reacción están positivamente correlacionados con todas las distancias, siendo más pronunciada la correlación con las distancias más largas (150 y 200 metros), que tienen valores de 0.3712 y 0.3496, respectivamente.
+Esto sugiere que a medida que aumenta la distancia, también tienden a aumentar los tiempos de reacción, lo que podría ser esperado debido al mayor esfuerzo físico requerido en distancias más largas.
 
-Los resultados sugieren que el tiempo de reacción es un factor que podría ser optimizado independientemente de la edad. Esto puede ser útil para diseñar programas de entrenamiento que se centren en mejorar los tiempos de reacción de los nadadores, sin considerar necesariamente su edad. La relación negativa entre la edad y los tiempos en distancias más largas podría indicar que es importante tener en cuenta la progresión en el rendimiento de los nadadores a medida que envejecen.
+Edad:las correlaciones entre la edad y las distancias son todas negativas, con el valor más alto siendo -0.4533 para la distancia de 200 metros.
+Esto indica que a medida que aumenta la edad, los tiempos tienden a ser más altos en las distancias más largas.
+Es posible que los nadadores más jóvenes tiendan a tener mejores rendimientos en distancias más largas en comparación con los mayores, aunque esto debe interpretarse con cautela y podría estar influenciado por otros factores no considerados en este análisis.
 
+Los resultados sugieren que el tiempo de reacción es un factor que podría ser optimizado independientemente de la edad.
+Esto puede ser útil para diseñar programas de entrenamiento que se centren en mejorar los tiempos de reacción de los nadadores, sin considerar necesariamente su edad.
+La relación negativa entre la edad y los tiempos en distancias más largas podría indicar que es importante tener en cuenta la progresión en el rendimiento de los nadadores a medida que envejecen.
 
 Represento
 
@@ -1688,11 +1892,12 @@ Represento
 fviz_pca_biplot(componentess, repel = TRUE)
 
 ```
+
 Este gráfico combina la información de las variables y de las observaciones, utilizando las dos primeras componentes principales (Dim1 y Dim2), que explican la mayor parte de la varianza en los datos.
 
 Cada flecha o vector en el gráfico representa una variable original y muestra cómo esa variable contribuye a las componentes principales (Dim1 y Dim2).
 
-Una flecha más larga significa que la variable está más correlacionada con una de las componentes principales. 
+Una flecha más larga significa que la variable está más correlacionada con una de las componentes principales.
 En el gráfico: edad parece tener una de las flechas más largas y apunta en la dirección contraria a las otras variables, indicando una fuerte relación con Dim1 pero en sentido negativo.
 
 Tiempos de natación (50, 100, 150, 200) tienen flechas bastante largas, apuntando hacia la derecha y hacia arriba, lo que indica una alta correlación positiva con tiempo de reaccion y también una correlación significativa con edad.
@@ -1719,11 +1924,13 @@ resumen200
 #habria q ver quienes son el 5 y el 15 aqui
 ```
 
-Para entender mejor esto, elijo el punto 5 y el 15,  y veo como concluyo: 
-El punto 5 representa una observación, probablemente correspondiente a un participante más joven, pero con un tiempo de reacción muy alto.  La edad parece tener poca o ninguna influencia negativa en su desempeño, pero esta muy alejado de la flecha edad. Luego debe ser bastante joven, pero no mas joven que el número 26, ni con un tiempo de reacción más alto que el 26, pues este esta mucho más alejado a la derecha.
+Para entender mejor esto, elijo el punto 5 y el 15, y veo como concluyo: El punto 5 representa una observación, probablemente correspondiente a un participante más joven, pero con un tiempo de reacción muy alto.
+La edad parece tener poca o ninguna influencia negativa en su desempeño, pero esta muy alejado de la flecha edad.
+Luego debe ser bastante joven, pero no mas joven que el número 26, ni con un tiempo de reacción más alto que el 26, pues este esta mucho más alejado a la derecha.
 
-El punto 15 representa una observación que no tiene una fuerte correlación con ninguna variable en particular. Es probable que el participante correspondiente tenga un rendimiento promedio o moderado en las pruebas de natación y que su edad no juegue un papel importante. Al estar más arriba en Dim2, podría haber alguna influencia positiva de los tiempos de natación, pero no de forma muy clara como en el caso del punto 5.
-
+El punto 15 representa una observación que no tiene una fuerte correlación con ninguna variable en particular.
+Es probable que el participante correspondiente tenga un rendimiento promedio o moderado en las pruebas de natación y que su edad no juegue un papel importante.
+Al estar más arriba en Dim2, podría haber alguna influencia positiva de los tiempos de natación, pero no de forma muy clara como en el caso del punto 5.
 
 Para ver que hemos concluido bien, represento pero con nombres, y dejo de estar a ciegas
 
@@ -1738,7 +1945,9 @@ fviz_pca_biplot(componentess,
             vjust = -1)  # Ajustar el desplazamiento vertical
 resumen200
 ```
-El punto 5 se corresponde con Castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto. En las edades también vemos que AL-Khulaifi es muy joven, como ya nos esperábamos.
+
+El punto 5 se corresponde con Castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto.
+En las edades también vemos que AL-Khulaifi es muy joven, como ya nos esperábamos.
 
 ## PCA. 800M libres femenino
 
@@ -1783,9 +1992,9 @@ text(prcomp(pruebawide[,-1],scale=T)$x[,1:2],rownames(pruebawide))
 
 ```
 
-Si nos fijamos en la variable PC1, tenemos más a la izquierda a las nadadoras más rápidas en media en la prueba y a la derecha las más lentas. 
+Si nos fijamos en la variable PC1, tenemos más a la izquierda a las nadadoras más rápidas en media en la prueba y a la derecha las más lentas.
 
-Si nos fijamos en la variable PC2, más arriba tenemos a las nadadoras con MENOR tiempo de reacción y abajo las que tienen mayor tiempo de reacción, variando un poco también con la edad pero no siendo tan significativa. 
+Si nos fijamos en la variable PC2, más arriba tenemos a las nadadoras con MENOR tiempo de reacción y abajo las que tienen mayor tiempo de reacción, variando un poco también con la edad pero no siendo tan significativa.
 
 Veamos cómo queda el biplot:
 
@@ -1794,8 +2003,7 @@ biplot(prcomp(pruebawide[,-1],scale=T))
 
 ```
 
-
-## PCA 100m mariposa femenino 
+## PCA 100m mariposa femenino
 
 En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
 A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime de la tabla prueba100MariposaFem.
@@ -1838,22 +2046,16 @@ summary(pca_100mariposafemenino)
 biplot(pca_100mariposafemenino)
 ```
 
-Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23,28%. También tenemos una gráfica del PCA realizado.
-
-
-# Tareas por hacer e ideas surgidas:
-
--   Ver quién "rindió" mejor en los mundiales entre hombres y mujeres y respecto a los puntos.
--   Sacar conclusiones del PCA.
--   Hacer el clustering.
--   Hacer un pca del 100 braza masculino y clustering
--   Hacer un pca del 50 mariposa masculino y clustering(cada uno que haga un PCAhecho) 
--EDA el grafico de paises en vez de por numero de personas, el numero de puntos
+Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23,28%.
+También tenemos una gráfica del PCA realizado.
 
 
 # Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
-Vamos a ver en qué estilo predominan los nadadores de 1500 metros
-En la prueba de 1500, todos los nadadores nadan en estilo libre. Por tanto, no seleccionaremos según esa imposición, ya que nos viene de los propios datos. Gracias a ello, tenemos un enfoque más global de la carrera de 1500 metros. Esto lo comprobamos viendo que
+
+Vamos a ver en qué estilo predominan los nadadores de 1500 metros En la prueba de 1500, todos los nadadores nadan en estilo libre.
+Por tanto, no seleccionaremos según esa imposición, ya que nos viene de los propios datos.
+Gracias a ello, tenemos un enfoque más global de la carrera de 1500 metros.
+Esto lo comprobamos viendo que
 
 ```{r}
 summary(nadadoresPruebas$stroke[nadadoresPruebas$distance == 1500])
@@ -1863,8 +2065,10 @@ summary(nadadoresPruebas$round[nadadoresPruebas$distance == 1500])
 
 ```
 
-Como podemos observar, todos los nadadores nadan en estilo libre. Por tanto, no debemos hacer distinción en este tipo de carrera. Además, tenemos 70 participantes en rondas preliminares y 15 finales. Por tanto, tomaremos la ronda preliminar para hacer nuestro análisis de componentes principales.
-
+Como podemos observar, todos los nadadores nadan en estilo libre.
+Por tanto, no debemos hacer distinción en este tipo de carrera.
+Además, tenemos 70 participantes en rondas preliminares y 15 finales.
+Por tanto, tomaremos la ronda preliminar para hacer nuestro análisis de componentes principales.
 
 ```{r}
 # Filtro de pruebas de 1500m masculino
@@ -1895,7 +2099,6 @@ prueba1500
 
 Con todo esto, estamos preparados para realizar el PCA:
 
-  
 ```{r}
 #Realizamos el PCA
 pca_1500masculino <- prcomp(prueba1500[,-1], scale=T)
@@ -1905,10 +2108,14 @@ summary(pca_1500masculino)
 
 ```
 
-Por tanto, vemos el Análisis de Componentes Principales (PCA) en los datos de nadadores masculinos en la carrera de 1500 metros, excluyendo la primera variable, que es el nombre. 
+Por tanto, vemos el Análisis de Componentes Principales (PCA) en los datos de nadadores masculinos en la carrera de 1500 metros, excluyendo la primera variable, que es el nombre.
 
-Observamos que el primer componente principal (PC1) tiene una desviación estándar de 5.0272 y explica el 81.52% de la varianza total. Este componente captura la mayor parte de la variabilidad en los datos, lo que sugiere que una sola dirección en el espacio de los datos contiene gran parte de la información relevante.
-Los siguientes componentes, como PC2 y PC3, explican 7.75% y 3.47% de la varianza respectivamente. Estos valores disminuyen progresivamente, lo que indica que los componentes adicionales explican cada vez menos de la variabilidad total. Así pues, los primeros dos componentes principales explican el 89,27% de la varianza. Si añadimos el tercer componente, logran explicar el 92.73% de la varianza, lo que puede ser suficiente para una interpretación efectiva de los datos.
+Observamos que el primer componente principal (PC1) tiene una desviación estándar de 5.0272 y explica el 81.52% de la varianza total.
+Este componente captura la mayor parte de la variabilidad en los datos, lo que sugiere que una sola dirección en el espacio de los datos contiene gran parte de la información relevante.
+Los siguientes componentes, como PC2 y PC3, explican 7.75% y 3.47% de la varianza respectivamente.
+Estos valores disminuyen progresivamente, lo que indica que los componentes adicionales explican cada vez menos de la variabilidad total.
+Así pues, los primeros dos componentes principales explican el 89,27% de la varianza.
+Si añadimos el tercer componente, logran explicar el 92.73% de la varianza, lo que puede ser suficiente para una interpretación efectiva de los datos.
 
 Visualizamos ahora cómo se distribuyen los datos en las dos primeras componentes principales y observamos la influencia de las variables en estas componentes.
 
@@ -1917,13 +2124,19 @@ fviz_pca_biplot(pca_1500masculino, repel = TRUE)
 
 ```
 
-Viendo el gráfico, podemos interpretar la primera componente como la rapidez en cada split de los participantes. Cuantos mayores tiempos tienen en cada split, mas desplazados estarán hacia la izquierda. Por tanto, los nadadores mas a la derecha serán aquellos con mejores resultados. 
+Viendo el gráfico, podemos interpretar la primera componente como la rapidez en cada split de los participantes.
+Cuantos mayores tiempos tienen en cada split, mas desplazados estarán hacia la izquierda.
+Por tanto, los nadadores mas a la derecha serán aquellos con mejores resultados.
 Vemos como el 81,5% de la varianza de los resultados está explicado por estos tiempos, como podría imaginarse en un principio.
-Si nos enfocamos en lo que explica la componente 2, vemos que mayores tiempos de los primeros splits condicionan su desplazamiento hacia abajo, y los tiempos mayores en los ultimos splits desplazan los puntos hacia arriba. Esto parece indicar que la componente 2 captura las diferencias entre el rendimiento en las etapas iniciales y finales de la prueba, posiblemente destacando la resistencia o la fatiga en los nadadores. Además, es claramente visible como el tiempo del último split (cuando se completan los 1500m) es muy influyente en la posición de estos nadadores. Es decir, los tiempos en esta última parte parecen ser muy decisivos en cuanto a su resultado final. 
+Si nos enfocamos en lo que explica la componente 2, vemos que mayores tiempos de los primeros splits condicionan su desplazamiento hacia abajo, y los tiempos mayores en los ultimos splits desplazan los puntos hacia arriba.
+Esto parece indicar que la componente 2 captura las diferencias entre el rendimiento en las etapas iniciales y finales de la prueba, posiblemente destacando la resistencia o la fatiga en los nadadores.
+Además, es claramente visible como el tiempo del último split (cuando se completan los 1500m) es muy influyente en la posición de estos nadadores.
+Es decir, los tiempos en esta última parte parecen ser muy decisivos en cuanto a su resultado final.
 
-Si observamos la influencia del tiempo de reacción, los tiempos de reacción altos ejercen influencia a favor del eje x e y, en sus sentidos positivos. Con lo cual, el tiempo de reacción alto parece estar asociado con un rendimiento positivo en los splits y posiblemente en la resistencia hacia el final de la prueba. 
+Si observamos la influencia del tiempo de reacción, los tiempos de reacción altos ejercen influencia a favor del eje x e y, en sus sentidos positivos.
+Con lo cual, el tiempo de reacción alto parece estar asociado con un rendimiento positivo en los splits y posiblemente en la resistencia hacia el final de la prueba.
 
-Para ver si estas cuestiones se cumplen, vamos a observar si los primeros puestos del ranking de puntos de esta categoría coincide con lo visto en el gráfico. 
+Para ver si estas cuestiones se cumplen, vamos a observar si los primeros puestos del ranking de puntos de esta categoría coincide con lo visto en el gráfico.
 
 ```{r}
 # Filtro de pruebas de 1500m masculino
@@ -1938,21 +2151,20 @@ resumen1500 <- resumen1500 %>% dplyr::select(lastname,points) %>%
 resumen1500
 ```
 
-Como podemos comprobar, Paltrinieri, Jaeger, Sun y Milne aparecen en los puntos más extremos del eje x. Además, se localizan en la posición central, lo que parece indicar que sus tiempos son bastante estables durante todo el recorrido. 
-Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee Sheng, observamos que efectivamente están en los extremos izquierdos del eje x. Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece indicar que obtuvieron tiempos más largos en sus splits finales, posiblemente debido a una falta de resistencia y mayor fatiga en estos tiempos, que es un factor crucial para el desarrollo de este tipo de pruebas. 
-
-
+Como podemos comprobar, Paltrinieri, Jaeger, Sun y Milne aparecen en los puntos más extremos del eje x.
+Además, se localizan en la posición central, lo que parece indicar que sus tiempos son bastante estables durante todo el recorrido.
+Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee Sheng, observamos que efectivamente están en los extremos izquierdos del eje x.
+Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece indicar que obtuvieron tiempos más largos en sus splits finales, posiblemente debido a una falta de resistencia y mayor fatiga en estos tiempos, que es un factor crucial para el desarrollo de este tipo de pruebas.
 
 ## Clusters
 
-#Cluster 200 masculina 
+#Cluster 200 masculina
 
 ```{r}
 clusterprueba200 <- scale(pruebita[,-1])
 
 summary(clusterprueba200)
 ```
-
 
 ```{r}
 distancias <- get_dist(clusterprueba200)
@@ -1964,13 +2176,15 @@ k200 <- kmeans(clusterprueba200, centers = 2, nstart = 25)
 str(k2)
 ```
 
-
 ```{r}
 fviz_cluster(k200, data = clusterprueba200)
 ```
-Como vemos, con 2 clusters nos divide a los participantes según el tiempo de reacción (vemos como el 5, que ya habiamos mencionado, aparece en los más rápidos). Los medios, son más, y están en el rojo.
 
-Realmente parece que dos grupos no son suficientes. Vamos a verlo empíricamente.
+Como vemos, con 2 clusters nos divide a los participantes según el tiempo de reacción (vemos como el 5, que ya habiamos mencionado, aparece en los más rápidos).
+Los medios, son más, y están en el rojo.
+
+Realmente parece que dos grupos no son suficientes.
+Vamos a verlo empíricamente.
 
 ```{r}
 # Reproducible
@@ -1979,35 +2193,41 @@ set.seed(123)
 fviz_nbclust(clusterprueba200, kmeans, method = "wss")
 ```
 
-Parece que deberiamos aumentar el número de grupos, incluso 5 grupos. A partir de 5 grupos, parece muy baja mejora.
+Parece que deberiamos aumentar el número de grupos, incluso 5 grupos.
+A partir de 5 grupos, parece muy baja mejora.
 
-Utilizamos otros métodos. Para ello, como el de la silueta.
+Utilizamos otros métodos.
+Para ello, como el de la silueta.
 
 ```{r}
 fviz_nbclust(clusterprueba200, kmeans, method = "silhouette")
 ```
 
-Parece que con dos grupos, podemos excluir a valores muy discriminados en nuestro estudio. Luego, depende de si nuestro objetivo es encontrar valores peculiares.
+Parece que con dos grupos, podemos excluir a valores muy discriminados en nuestro estudio.
+Luego, depende de si nuestro objetivo es encontrar valores peculiares.
 
-Probamos con k=5 
+Probamos con k=5
 
 ```{r}
 k5_200 <- kmeans(clusterprueba200, centers = 5, nstart = 25)
 
 fviz_cluster(k5_200, data = clusterprueba200)
 ```
+
 El cluster 5 representa un grupo de nadadores que tienen un comportamiento peculiar en cuanto a los tiempos de reacción, y la edad no parece ser un factor determinante para ellos.
 
-El grupo azul (cluster 4) tiene varias observaciones distribuidas más arriba a la derecha del gráfico, a lo largo de Dim1. Estos nadadores parecen tener una mayor edad y mayor tiempo de reacción. Esto tiene sentido, ya que el eje de Dim1 parece estar relacionado con el rendimiento en la prueba (donde mayor puntuación indicaría menor rendimiento).
+El grupo azul (cluster 4) tiene varias observaciones distribuidas más arriba a la derecha del gráfico, a lo largo de Dim1.
+Estos nadadores parecen tener una mayor edad y mayor tiempo de reacción.
+Esto tiene sentido, ya que el eje de Dim1 parece estar relacionado con el rendimiento en la prueba (donde mayor puntuación indicaría menor rendimiento).
 
-Este cluster verde está ubicado hacia el centro del gráfico, alrededor del origen de los ejes de Dim1 y Dim2. Esto sugiere que los nadadores en este grupo tienen un rendimiento promedio o neutral en las variables consideradas (edad y tiempo de reacción).
+Este cluster verde está ubicado hacia el centro del gráfico, alrededor del origen de los ejes de Dim1 y Dim2.
+Esto sugiere que los nadadores en este grupo tienen un rendimiento promedio o neutral en las variables consideradas (edad y tiempo de reacción).
 
 Los puntos 5 y 26 están en un cluster aislado, probablemente por tener características atípicas en cuanto a su tiempo de reacción, pero con una edad no influyente.
 El cluster azul representa a nadadores mayores con tiempos de reacción más lentos, lo que afecta negativamente su rendimiento.
 Los otros clusters agrupan a los nadadores con características más cercanas entre sí en cuanto a edad y tiempos de reacción.
 
 #Cluster divisivo 200
-
 
 ```{r}
 # Clustering jerárquico divisivo
@@ -2016,12 +2236,14 @@ hc200 <- diana(clusterprueba200)
 # Coeficiente de división; cantidad de estructura de agrupación encontrada
 hc200$dc
 ```
-Podemos proceder a realizar el dendograma(cercano a 1). 
+
+Podemos proceder a realizar el dendograma(cercano a 1).
 
 ```{r}
 # Drendrograma
 pltree(hc200, cex = 0.6, hang = -1, main = "Dendrogram de DIANA")
 ```
+
 Utilizamos k=5
 
 ```{r}
@@ -2037,6 +2259,7 @@ sub_grp <- cutree(hc5_200, k = 5)
 plot(hc5_200, cex = 0.6)
 rect.hclust(hc5_200, k = 5, border = 2:5)
 ```
+
 Veamos si coincide con los clusters anteriores
 
 ```{r}
@@ -2061,7 +2284,6 @@ clusterprueba1500 <- scale(prueba1500[,-1])
 summary(clusterprueba1500)
 ```
 
-
 ```{r}
 distance <- get_dist(clusterprueba1500)
 fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
@@ -2072,14 +2294,15 @@ k2 <- kmeans(clusterprueba1500, centers = 2, nstart = 25)
 str(k2)
 ```
 
-
 ```{r}
 fviz_cluster(k2, data = clusterprueba1500)
 ```
-Como vemos, con 2 clusters nos divide a los participantes según la velocidad. Es decir, los que pertenecen al cluster rojo serían los de tiempos más altos, y los azules los que están en mejores posiciones de resultados. 
 
-Nos preguntamos, si el número óptimo de clústeres para dividir a nuestro grupo total es realmente 2, o podemos dividirlos en más grupos. Para ello, utilizamos el método del codo.
+Como vemos, con 2 clusters nos divide a los participantes según la velocidad.
+Es decir, los que pertenecen al cluster rojo serían los de tiempos más altos, y los azules los que están en mejores posiciones de resultados.
 
+Nos preguntamos, si el número óptimo de clústeres para dividir a nuestro grupo total es realmente 2, o podemos dividirlos en más grupos.
+Para ello, utilizamos el método del codo.
 
 ```{r}
 # Reproducible
@@ -2088,7 +2311,8 @@ set.seed(123)
 fviz_nbclust(clusterprueba1500, kmeans, method = "wss")
 ```
 
-Parece que sí que tenemos una mejoría si continuamos diviendo nuestro grupo en 3 o incluso 4. Por encima de estos números, no obtenemos grandes mejoras en nuestro análisis. 
+Parece que sí que tenemos una mejoría si continuamos diviendo nuestro grupo en 3 o incluso 4.
+Por encima de estos números, no obtenemos grandes mejoras en nuestro análisis.
 
 Por tanto, probamos con k=3 y k=4 y observamos los resultados
 
@@ -2098,19 +2322,24 @@ k3 <- kmeans(clusterprueba1500, centers = 3, nstart = 25)
 fviz_cluster(k3, data = clusterprueba1500)
 ```
 
-
 ```{r}
 k4 <- kmeans(clusterprueba1500, centers = 4, nstart = 25)
 
 fviz_cluster(k4, data = clusterprueba1500)
 ```
 
-Como podemos observar en ambos gráficos, la segregación de nadadores sigue estando bastante influida por su posición relativa al eje x. Es decir, nos clasifica los grupos según sus velocidades. 
-Con 3 clústeres, tendríamos los nadadores lentos, los intermedios, y los muy rápidos. 
-En el segundo gráfico con 4 clusteres, podemos observar los grupos muy lentos (prácticamente valores outiers), los centrales divididos en mas y menos lentos y un último grupo, de competidores de alta calificación. 
-Observando ambos, los dos grupos de la derecha contienen prácticamente los mismos puntos. Sin embargo,si que existe una división entre los puntos de la izquierda. La elección de k=3 o k=4 vendrá por el interés del estudio que queramos realizar. Si no nos interesan los nadadores de peor cualificación, no será necesario segregar a los nadadores en 4 grupos. Sin embargo, si queremos analizar estos nadadores con peores marcas parece interesante ajustarnos a un nivel de k=4.
+Como podemos observar en ambos gráficos, la segregación de nadadores sigue estando bastante influida por su posición relativa al eje x.
+Es decir, nos clasifica los grupos según sus velocidades.
+Con 3 clústeres, tendríamos los nadadores lentos, los intermedios, y los muy rápidos.
+En el segundo gráfico con 4 clusteres, podemos observar los grupos muy lentos (prácticamente valores outiers), los centrales divididos en mas y menos lentos y un último grupo, de competidores de alta calificación.
+Observando ambos, los dos grupos de la derecha contienen prácticamente los mismos puntos.
+Sin embargo,si que existe una división entre los puntos de la izquierda.
+La elección de k=3 o k=4 vendrá por el interés del estudio que queramos realizar.
+Si no nos interesan los nadadores de peor cualificación, no será necesario segregar a los nadadores en 4 grupos.
+Sin embargo, si queremos analizar estos nadadores con peores marcas parece interesante ajustarnos a un nivel de k=4.
 
-Utilizamos otros métodos para decidir si nuestro razonamiento es correcto. Para ello, utilizamos el método de "silueta" y el método "GAP".
+Utilizamos otros métodos para decidir si nuestro razonamiento es correcto.
+Para ello, utilizamos el método de "silueta" y el método "GAP".
 
 ```{r}
 fviz_nbclust(clusterprueba1500, kmeans, method = "silhouette")
@@ -2125,24 +2354,25 @@ print(gap_stat, method = "firstmax")
 fviz_gap_stat(gap_stat)
 ```
 
-Utilizando estos dos últimos métodos, nos dan el resultado de que el número óptimo de clústers son dos en "silueta" y uno en "Gap". Puesto que cada método nos determina un número distinto de k, utilizaremos la división en grupos según el objetivo a tratar, como hemos comentado recientemente. 
-
-
-
-
+Utilizando estos dos últimos métodos, nos dan el resultado de que el número óptimo de clústers son dos en "silueta" y uno en "Gap".
+Puesto que cada método nos determina un número distinto de k, utilizaremos la división en grupos según el objetivo a tratar, como hemos comentado recientemente.
 
 #Cluster jerarquico prueba de 1500 metros masculina
 
-## Cluster aglomerativo. AGNES. 
-Queremos hacer un cluster jerárquico de nuestra prueba. Para ello, calculamos el valor del coeficiente aglomerativo  
+## Cluster aglomerativo. AGNES.
+
+Queremos hacer un cluster jerárquico de nuestra prueba.
+Para ello, calculamos el valor del coeficiente aglomerativo
+
 ```{r}
 # Clustering jerárquico usando enlace completo
 hc2 <- agnes(clusterprueba1500, method = "complete" )
 
 hc2$ac
 ```
-El coeficiente aglomerativo tiene un valor cercano al 1, con lo que sugiere una fuerte estructura de agrupamiento. Vamos ahora a evaluar qué metodo nos da un coeficiente mayor y emplearemos esa estructura de agrupacion con el objetivo de conseguir una estructura de agrupación más fuerte. 
 
+El coeficiente aglomerativo tiene un valor cercano al 1, con lo que sugiere una fuerte estructura de agrupamiento.
+Vamos ahora a evaluar qué metodo nos da un coeficiente mayor y emplearemos esa estructura de agrupacion con el objetivo de conseguir una estructura de agrupación más fuerte.
 
 ```{r}
 # Métodos evaluados
@@ -2156,8 +2386,9 @@ ac <- function(x) {
 
 map_dbl(m, ac)
 ```
-Como vemos, lo conseguimos con el método ward. Por tanto, utilizamos ese método para realizar el dendrograma
 
+Como vemos, lo conseguimos con el método ward.
+Por tanto, utilizamos ese método para realizar el dendrograma
 
 ```{r}
 # Matriz de disimilaridades
@@ -2169,10 +2400,13 @@ hc1 <- hclust(d, method = "ward" )
 # Dendrograma
 plot(hc1, cex = 0.6, hang = -1)
 ```
-Interpretando el dendrograma, vemos como los primeros pasos de agrupamiento son entre distintas muy pequeñas. Por tanto, no tiene sentido cortar en esas etapas iniciales. El gráfico parece sugerir la aglomeración en 3 grupos. 
 
+Interpretando el dendrograma, vemos como los primeros pasos de agrupamiento son entre distintas muy pequeñas.
+Por tanto, no tiene sentido cortar en esas etapas iniciales.
+El gráfico parece sugerir la aglomeración en 3 grupos.
 
-##Cluster divisivo. DIANA.
+##Cluster divisivo.
+DIANA.
 
 Calculamos ahora el coeficiente de división.
 
@@ -2183,14 +2417,18 @@ hc4 <- diana(clusterprueba1500)
 # Coeficiente de división; cantidad de estructura de agrupación encontrada
 hc4$dc
 ```
-Como podemos ver, tenemos un coeficiente de división cercano al 1. Con lo cual, podemos proceder a realizar el dendograma. 
+
+Como podemos ver, tenemos un coeficiente de división cercano al 1.
+Con lo cual, podemos proceder a realizar el dendograma.
 
 ```{r}
 
 # Drendrograma
 pltree(hc4, cex = 0.6, hang = -1, main = "Dendrogram de DIANA")
 ```
-Utilizamos ahora la función "cutree" para dividir nuestro dendrograma en los clústers que consideremos. En este caso, utilizamos k=4
+
+Utilizamos ahora la función "cutree" para dividir nuestro dendrograma en los clústers que consideremos.
+En este caso, utilizamos k=4
 
 ```{r}
 # Método de Ward
@@ -2203,6 +2441,7 @@ sub_grp <- cutree(hc5, k = 4)
 plot(hc5, cex = 0.6)
 rect.hclust(hc5, k = 4, border = 2:5)
 ```
+
 Veamos si coincide con los clusters que hemos considerado en el apartado previo
 
 ```{r}
@@ -2214,9 +2453,11 @@ fviz_cluster(list(data=clusterprueba1500,cluster=sub_grp))
 fviz_cluster(k4, data = clusterprueba1500)
 ```
 
-Como vemos, las divisiones son similares, pero no son iguales. Esto se debe al método de agregación que difiere en ambos casos. 
+Como vemos, las divisiones son similares, pero no son iguales.
+Esto se debe al método de agregación que difiere en ambos casos.
 
-A su vez, comparamos si los dendrogramas utilizados para agregar o dividir son isomorfos. 
+A su vez, comparamos si los dendrogramas utilizados para agregar o dividir son isomorfos.
+
 ```{r}
 
 # Matriz de distancias
@@ -2233,4 +2474,5 @@ dend2 <- as.dendrogram (hc2)
 # los enfrentamos
 tanglegram(dend1, dend2)
 ```
+
 Como podemos observar, no nos dan dendrogramas isomorfos puesto que los dos métodos manejan de manera diferente las distancias entre grupos durante el proceso de fusión.
