@@ -34,9 +34,9 @@ library(dendextend)
 
 ```
 
-#1. Introducción.
+# Introducción.
 
-En este proyecto, se analizarán los resultados del mundial de natación de 2015 con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos.
+En este proyecto, se analizarán los resultados del **mundial de natación de 2015** con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos.
 Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable
 
 En primer lugar, vemos con qué datos vamos a tratar.
@@ -153,6 +153,7 @@ nadadoresParticipantes <- datos2015 %>%
 ```{r}
 summary(nadadoresParticipantes)
 ```
+Ya está preparado una tabla con nadadores únicos en el conjunto nadadoresParticipantes, lo cual es ideal para estudiar características individuales sin duplicados. Con este conjunto, puedes explorar variables como género, país y edad de los participantes.
 
 Ahora, comenzamos nuestro estudio:
 
@@ -193,7 +194,9 @@ ggtitle("Distribución. Edades.")
 ```
 
 La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años.
+
 Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
+
 
 ### Análisis de géneros participantes.
 
@@ -273,7 +276,28 @@ porcentajes
 
 De esta forma, ya habiendo confirmado una diferencia significativa.
 Podemos ver, de manera más representativa, como existe el doble de proporción de mujeres menores de edad en comparación con los hombres.
-Dicho en otras palabras, *2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres*.
+Dicho en otras palabras, *2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres*:
+
+```{r}
+ # Supongamos que tienes los siguientes porcentajes:
+porcentajes <- c(10.88, 21.66)  # 10% para hombres y 20% para mujeres
+generos <- c("Hombres", "Mujeres")
+
+# Crear un dataframe con los porcentajes
+datos_porcentajes <- data.frame(Genero = generos, Porcentaje = porcentajes)
+
+# Crear el gráfico de barras
+ggplot(datos_porcentajes, aes(x = Genero, y = Porcentaje, fill = Genero)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(Porcentaje, "%")), vjust = -0.5) +  # Agregar los porcentajes sobre las barras
+  labs(title = "Porcentaje de Nadadores Menores de 18 Años por Género",
+       x = "Género",
+       y = "Porcentaje") +
+  scale_fill_manual(values = c("violet", "red")) +  # Colores para los géneros
+  theme_minimal() +
+  ylim(0, max(porcentajes) + 10)  # Ajustar el límite del eje Y
+
+```
 
 ### Análisis de nacionalidades.
 
@@ -393,6 +417,7 @@ print(histograma_nadadores)
 ```
 
 Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía.
+
 Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking.
 Es decir, si existe mayor proporción de ganadores en los países con más densidad de participantes.
 
@@ -478,12 +503,104 @@ print(resumenContinente)
 Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), despúes Asia y por último Africa.
 
 
+Para terminar con esta sección, vamos a ver los 20 primeros en el ranking, y a hacer un gráfico que nos indique de que pais es cada uno de los 20.
+```{r}
+# Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
+datos_100m_top <- nadadoresParticipantes[nadadoresParticipantes$distance==100,] %>% # Filtra para la prueba de 100 metros
+  arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
+  dplyr::slice(1:20)                        # Selecciona las primeras 20 
+
+datos_100m_top
+```
+
+Vemos los 20 primeros y de que continente son:
+```{r}
+
+# Contar la cantidad de nadadores por continente
+conteo_por_continente <- datos_100m_top %>%
+  group_by(continent) %>%                                       # Agrupa por continente
+  summarise(cantidad_nadadores = n()) %>%                      # Cuenta los nadadores por continente
+  mutate(percent = (cantidad_nadadores / sum(cantidad_nadadores)) * 100)  # Calcula el porcentaje
+
+# Crear el gráfico de distribución porcentual
+grafico_distribucion_continente <- ggplot(conteo_por_continente, aes(x = continent, y = percent, fill = continent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Distribución Porcentual de Nadadores por Continente en los Top 20 - 100 Metros",
+       x = "Continente",
+       y = "Porcentaje de Nadadores") +
+  scale_fill_manual(values = paleta) +                          # Usa la paleta de colores personalizada
+  theme_minimal()
+
+# Imprimir el gráfico
+print(grafico_distribucion_continente)
+grafico_circular <- ggplot(conteo_por_continente, aes(x = "", y = percent, fill = continent)) +
+  geom_bar(stat = "identity", width = 1) +                      # Crea las barras
+  coord_polar("y") +                                            # Convierte el gráfico en circular
+  labs(title = "Distribución Porcentual de Nadadores por Continente en los Top 20 - 100 Metros",
+       fill = "Continente") +                                   # Etiqueta para la leyenda
+  scale_fill_manual(values = paleta) +                          # Usa la paleta de colores personalizada
+  theme_void()                                                  # Elimina el fondo y ejes
+
+# Imprimir el gráfico
+print(grafico_circular)
+```
+
+La alta cantidad de nadadores europeos en el podio de 100 metros(más específico que lo anterior, ya que esto nos mete directamente en los primeros 20) sugiere que hay un fuerte nivel de competencia y entrenamiento en las naciones de este continente. Esto podría estar relacionado con la inversión en programas de natación. Le sigue oceanía,ya que Oceanía, aunque es una región más pequeña en términos de población comparada con Europa, ha producido nadadores destacados que compiten a niveles muy altos. La presencia de nadadores de élite, especialmente de Australia, resalta la calidad del talento en la región.
+
+Los datos indican que África tiene solo un 5% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuanto a la inversión en infraestructura deportiva. La falta de instalaciones de calidad para la natación, como piscinas adecuadas, puede limitar el desarrollo de talentos.
+
+Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 2 en 100 metros(hemos elegido 100 metros al haber una gran cantidad de nadadores, lo que refleja bien lo que buscamos). Podríamos ver que a pesar de que en África no se llegue mucho al podio, cuando se llega es en los tres primeros puestos. ¿Hemos concluido bien? Veámoslo. Esto es el podio de los 3 primeros en 100 metros
+```{r}
+# Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
+datos_100m_top_3 <- nadadoresParticipantes[nadadoresParticipantes$distance==100,] %>% # Filtra para la prueba de 100 metros
+  arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
+  dplyr::slice(1:3)                        # Selecciona las primeras 20 
+
+datos_100m_top_3
+```
+
+La presencia de Sudáfrica en el segundo lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo.Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable. Esto podría implicar que los nadadores africanos son altamente competitivos cuando tienen la oportunidad de competir en el más alto nivel. Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de participantes, se obtiene una visión clara del rendimiento de los nadadores en este evento específico. Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
+```{r}
+
+# Crear un gráfico para visualizar el podio de los 3 primeros
+grafico_podio_100m <- ggplot(datos_100m_top_3, aes(x = reorder(lastname, points), y = points, fill = continente)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Podio de los 3 Primeros en 100 Metros",
+       x = "Nadador",
+       y = "Puntos",
+       fill = "Continente") +
+  scale_fill_manual(values = paleta) +  # Usa la paleta de colores que ya definiste
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Mejorar legibilidad
+
+# Imprimir el gráfico
+print(grafico_podio_100m)
+
+grafico_podio_100mrepresentacion <- ggplot(datos_100m_top_3, aes(x = reorder(continent, points), y = points, fill = continente)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Representación podium de África VS Europa  (en Puntos)",
+       x = "Nadador",
+       y = "Puntos",
+       fill = "Continente") +
+  scale_fill_manual(values = paleta) +  # Usa la paleta de colores que ya definiste
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Mejorar legibilidad
+
+# Imprimir el gráfico
+print(grafico_podio_100mrepresentacion)
+
+```
+
 
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. 
 
 ```{r}
+#lo defino aqui de otra manera porque nadadoresPruebas esta mas abajo
+nadadoresPruebas2 <- datos2015 %>%
+  distinct(eventid, athleteid, .keep_all = TRUE)
+
 #Crear una nueva columna para clasificar por edad
-nadadoresPruebas2 <- nadadoresPruebas %>%
+nadadoresPruebas2 <- nadadoresPruebas2 %>%
   mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
 
 #Resumir el número de participantes en cada prueba por grupo de edad
@@ -497,11 +614,12 @@ resumen_pruebas <- nadadoresPruebas2 %>%
 resumen_pruebas
 
 ```
+Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas.
 
-Parece que nos va a servir más verlo con porcentajes:
+Debemos analizar los resultados según sus frecuencias relativas.
 ```{r}
 # Crear una nueva columna para clasificar por edad
-nadadoresPruebas2 <- nadadoresPruebas %>%
+nadadoresPruebas2 <- nadadoresPruebas2 %>%
   mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
 
 # Contar el número total de nadadores
@@ -550,37 +668,49 @@ Este es un dato que es evidente con nuestras observaciones anteriores, ya que vi
 Por tanto, hay más de la mitad de los participantes en el segundo grupo.
 Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
 
-Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas.
-Debemos analizar los resultados según sus frecuencias relativas.
-
 ```{r}
-total_menores_18 <- nadadoresParticipantes %>%
-  filter(edad < 18) %>%  # Filtrar solo los menores de 18
-  summarise(total = n())  # Contar el número total de participantes
+# Gráfico de líneas para mostrar la tendencia
+resumen_pruebas
+ggplot(resumen_pruebas, aes(x = distance, y = num_participantes, color = grupo_edad, group = grupo_edad)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  labs(title = "Tendencia de Participación en Distancias de Natación por Grupo de Edad",
+       x = "Distancia (m)",
+       y = "Número de Participantes") +
+  scale_x_continuous(breaks = unique(resumen_pruebas$distance)) +
+  scale_color_manual(values = c("blue", "orange")) +
+  theme_minimal()
 
-# Mostrar el resultado
-print(total_menores_18) 
-
-total_mayores<- nadadoresParticipantes %>%
-  filter(edad >= 18) %>%  # Filtrar solo los menores de 18
-  summarise(total = n())  # Contar el número total de participantes
-
-# Mostrar el resultado
-print(total_mayores)
-resumen_relativo <- resumen_pruebas %>%
-  mutate(
-    frecuencia_relativa = ifelse(grupo_edad == "Menores de 18", 
-                                 round(num_participantes / 174, 3),  # División para "Menores de 18" con 3 decimales
-                                 round(num_participantes / 936, 3))  # División para "18 y más" con 3 decimales
-  )
-
-print(resumen_relativo)
 ```
 
-Como podemos observar mejor aquí, las diferencias con la edad entre las pruebas a las que se presentan los participantes no son representativas.
-En torno al 43% de los mayores y menores de edad se presentan a la prueba de 100 metros, mientras que para la de 200 metros son en torno a un 22-25%.
-La diferencia en este caso es de un 3%, y en el resto de pruebas es poco representativo debido a la poca cantidad de participantes en ellas.
-Por tanto, parece ser que no existe una relación entre tipo de prueba y edad.
+La distancia de 50 metros es la más popular, tanto para mayores como para menores de 18 años.
+La participación de los mayores de 18 años es considerablemente más alta en todas las distancias.
+La caída en la participación es más pronunciada en el grupo de menores de 18 años, especialmente en distancias más largas.
+
+
+Nos vamos a centrar, en una de las conclusiones que hemos mencionado varias veces. En los menores de edad,¿realmanete hay una diferencia significativa entre el número de nadadores en las pruebas más explosivas, que en las pruebas más largas? Para ello, creamos una nueva columna, que nos indique que prueba es explosiva, y cual de más resistencia. A continuación, procedo a quedarme con lo que me interesa(menores de edad agrupados en explosivo y resistencia)
+```{r}
+resumen_pruebas
+# Clasificar las distancias
+resumen_pruebas <- resumen_pruebas %>%
+  mutate(tipo_prueba = case_when(
+    distance %in% c(50, 100) ~ "Explosiva",
+    distance %in% c(200, 400, 800, 1500) ~ "Resistencia",
+    TRUE ~ "Otra"
+  ))
+
+# Filtrar solo los menores de 18 años y contar las participaciones
+participaciones_menores <- resumen_pruebas  %>%
+  filter(grupo_edad == "Menores de 18") %>%
+  group_by(tipo_prueba) %>%
+  summarise(total_participantes = sum(num_participantes),porcentajes_acumulativos=sum(porcentaje))
+
+print(participaciones_menores)
+
+```
+Evidentemente, como ya nos podíamos esperar, la participación de nadadores menores de edad en pruebas explosivas es notablemente mayor que en pruebas de resistencia. Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosivas, como los 50 y 100 metros, requieren menos tiempo de entrenamiento prolongado en comparación con las pruebas de resistencia, que implican una mayor dedicación y condición física a largo plazo.
+
+
 
 ## Estudio sobre los eventos, reactiontime, lane, heats y daytime:
 
@@ -661,6 +791,19 @@ ggtitle("Distribución. Reaction time: 800m free vs 50m free")
 ```
 
 El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros.
+
+```{r}
+# Crear el gráfico de densidad con colores por distancia
+ggplot(nadadorasComparacionReactionTime, aes(x = reactiontime, fill = factor(distance), group = distance)) +
+  geom_density(alpha = 0.6) +  # Usar alpha para hacer las curvas semi-transparentes
+  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  # Asignar colores específicos
+  ggtitle("Distribución del Tiempo de Reacción: 800m libre vs 50m libre") +
+  labs(fill = "Distancia (m)") +  # Etiqueta para la leyenda
+  theme_minimal() +  # Tema minimalista
+  xlab("Tiempo de Reacción (s)") +  # Etiqueta para el eje X
+  ylab("Densidad")  # Etiqueta para el eje Y
+```
+
 Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
 La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes u outliers en los datos de tiempo de reacción.
 Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia.
@@ -744,7 +887,6 @@ Por tanto, sabiendo esto nos podríamos cuestionar cuánto influye en nuestros d
 ¿Habrá alguna relación entre la calle usada y el tiempo de reacción?
 
 ```{r}
-#me pareció guay este gráfico, alonso sabes interpretarlo? aupa
 
 ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
   geom_histogram(binwidth = 0.01, alpha = 0.7, position = "identity") +
@@ -1578,13 +1720,13 @@ resumen200
 ```
 
 Para entender mejor esto, elijo el punto 5 y el 15,  y veo como concluyo: 
-El punto 5 representa una observación, probablemente correspondiente a un participante más joven, pero con un tiempo de reacción muy alto.  La edad parece tener poca o ninguna influencia negativa en su desempeño.
+El punto 5 representa una observación, probablemente correspondiente a un participante más joven, pero con un tiempo de reacción muy alto.  La edad parece tener poca o ninguna influencia negativa en su desempeño, pero esta muy alejado de la flecha edad. Luego debe ser bastante joven, pero no mas joven que el número 26, ni con un tiempo de reacción más alto que el 26, pues este esta mucho más alejado a la derecha.
 
 El punto 15 representa una observación que no tiene una fuerte correlación con ninguna variable en particular. Es probable que el participante correspondiente tenga un rendimiento promedio o moderado en las pruebas de natación y que su edad no juegue un papel importante. Al estar más arriba en Dim2, podría haber alguna influencia positiva de los tiempos de natación, pero no de forma muy clara como en el caso del punto 5.
 
-De hecho el 26, parece ser un nadador con unos tiempos de reacción muy altos.
 
-Para ver que hemos concluido bien, represento pero con nombres
+Para ver que hemos concluido bien, represento pero con nombres, y dejo de estar a ciegas
+
 ```{r}
 # Crear un biplot con los nombres en lugar de los números
 fviz_pca_biplot(componentess, 
@@ -1594,8 +1736,10 @@ fviz_pca_biplot(componentess,
                                y = componentess$x[, 2], 
                                label = lastname), 
             vjust = -1)  # Ajustar el desplazamiento vertical
+resumen200
 ```
-El punto 5 se corresponde con castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto. 
+El punto 5 se corresponde con Castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto. En las edades también vemos que AL-Khulaifi es muy joven, como ya nos esperábamos.
+
 ## PCA. 800M libres femenino
 
 Lo primero que debemos hacer es cargar los datos:
