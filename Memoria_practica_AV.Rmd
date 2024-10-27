@@ -13,11 +13,9 @@ editor_options:
     wrap: sentence
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 # Cargamos las librerias que vamos necesitando a lo largo del codigo
-#install.packages("factoextra")
-#install.packages("pastecs")
 library(pastecs)
 library(factoextra)
 library(dplyr)
@@ -112,7 +110,8 @@ También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a variables categóricas en R para tener una mejor visualización de ellas.
 
 ```{r}
-datos2015<- datos2015 %>% convert_as_factor(gender,distance,name,code,round,heat,lane,stroke, relaycount)
+datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke, relaycount)
+
 ```
 
 Visualicemos ahora de nuevo el resumen:
@@ -126,12 +125,16 @@ Viendo este resumen de los datos podemos comenzar a entender algunas de las vari
 Observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos.
 Se trata del país de procedencia de cada nadador.
 
-Vemos que hay 6 **distancias** y 5 ***tipos de nado***: braza, mariposa, crol, espalda y estilos individual.
+Vemos que hay 5 ***tipos de nado***: braza, mariposa, crol, espalda y estilos individual.
+
+No hemos guardado la distancia como una variable categórica, pero más adelante veremos que hay 6 distancias (50, 100, 200, 400, 800, 1500)
 Hay 5 tipos de ronda distintos.
 
 El menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
 Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no causen interferencia en nuestros datos.
+
+
 
 A continuación, vamos a ir realizando estudios para tratar de comprender más a fondo algunas variables.
 
@@ -155,7 +158,7 @@ datos2015$relaycount <- NULL
 Luego ahora, tenemos 21 variables en vez de 22. 
 
 
-## Valores NA. Datos faltantes.
+## Valores NA. Datos faltantes. [Expone Alonso todo.]
 
 Si volvemos a mirar nuestro resumen, observamos que hay valores faltantes.
 Vamos a tratar de identificarlos, intentar entender el por qué de esos datos faltantes, y razonar cuándo será conveniente eliminarlos o no de nuestro estudio.
@@ -230,8 +233,7 @@ naReactionTime
 
 Vamos a buscar los resultados de World Aquatics de alguno de ellos, para estimar qué esta sucediendo. ¿Fueron descalificados?. 
 
-Nuestro nadador de la primera fila, Ben Treffers, fue descalificado. (luego hago otra observación)
-
+Nuestro nadador de la primera fila, Ben Treffers, fue descalificado. Buscamos también a Vladimir Morozov, y también fue descalificado. 
 Luego, son gente que nadó pero quedó descalificada. Luego sus datos nos servirán para hacer estudios sobre participación, pero no para cualquier estudio que involucre los resultados. Luego estos, no los eliminamos del dataframe inicial datos2015
 
 ```{r}
@@ -247,6 +249,22 @@ datosNA
 ```
 
 Tenemos dos observaciones en las cuales no existe el tiempo de reacción. Seguramente se deba a algún fallo en el sistema electrónico o algún fallo al pasar los datos. Por lo tanto, al igual que con los anteriores, no lo eliminaremos de nuestro dataframe inicial, pero sí lo tendremos en cuenta cuando tengamos que analizar estudios que tengan que ver con el tiempo de reacción. 
+
+
+```{r}
+print(sum(is.na(datos2015)))
+```
+
+Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados. 
+
+```{r, echo=FALSE}
+#Elimino las tablas creadas para no sobrecargar la escritura. Ya que no las vamos a volver a usar.
+rm(datosNA)
+rm(naReactionTime)
+rm(todosNA)
+rm(percent_na)
+```
+
 ## Variable birthdate. Creacion de nueva variable edad.
 
 A continuación, vamos a crear una variable llamada *edad*, ya que será más representativo que trabajar con la variable birthdate.
@@ -260,7 +278,14 @@ fechaKazan<- as.Date("2015-07-24")
 datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
 ```
 
-## Estudio sobre el número de nadadores, su género, país y edad.
+Además, borramos la variable birthdate: 
+
+```{r}
+datos2015$birthdate=NULL
+```
+
+
+## Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
 
 Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes... Vamos a necesitar eliminar filas como bien hemos anunciado antes.
 
@@ -270,6 +295,10 @@ Para ello usamos la variable athleteid, la cual es única para cada participante
 ```{r}
 nadadoresParticipantes <- datos2015 %>%
   distinct(athleteid, .keep_all = TRUE)
+
+#guardamos una copia de seguridad por si se modifica la tabla más adelante. 
+
+nadadoresParticipantesCopia<-nadadoresParticipantes
 ```
 
 ```{r}
@@ -281,7 +310,7 @@ Con este conjunto, vamos a explorar variables como género, país y edad de los 
 
 Ahora, comenzamos nuestro estudio:
 
-### Edad
+### Edad [Alonso]
 
 Veamos primeramente un resumen de la edad:
 
@@ -302,8 +331,7 @@ Confirmamos la información, entre otras fuentes, con esta noticia, de la cual a
 Confirmamos mediante su nombre, apellidos y edad, que la noticia se refiere a los datos que tenemos.
 
 ```{r}
-datos_edad_10 <- datos2015[datos2015$edad == 10, ]
-datos_edad_10
+datos2015[datos2015$edad == 10, ]
 ```
 
 Se trata de una nadadora de Bahrain que nadó el 50 mariposa y el 50 libres.
@@ -321,6 +349,13 @@ La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alre
 
 Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
 
+Podríamos preguntarnos si la edad sigue una distribución normal en estos datos, para ello, hacemos uso del test shapiro:
+```{r}
+shapiro.test(nadadoresParticipantes$edad)
+```
+
+Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos. 
+
 ### Análisis de géneros participantes.
 
 Veamos el número exacto de mujeres y hombres en la competición:
@@ -329,7 +364,7 @@ Veamos el número exacto de mujeres y hombres en la competición:
 summary(nadadoresParticipantes$gender)
 ```
 
-Luego, hay 616 hombres y 494 mujeres que participaron en los mundiales de Kazán 2015.
+Luego, hay 608 hombres y 491 mujeres que participaron en los mundiales de Kazán 2015.
 
 Veamos ahora cómo se distribuyen los hombres y las mujeres y sus respectivas edades:
 
@@ -422,11 +457,20 @@ ggplot(datos_porcentajes, aes(x = Genero, y = Porcentaje, fill = Genero)) +
 
 ```
 
+
+```{r, echo=FALSE}
+
+#elimino las cosas creadas para no interferir luego. 
+
+rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
+
+```
+
 ### Análisis de nacionalidades.
 
 Vamos a ver la cantidad de nadadores por país.
 
-```{r}
+```{r, warning=FALSE}
 
 # Utilizamos la tabla nadadoresParticipantes
 # Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
@@ -483,7 +527,7 @@ print(oda_bar)
 
 Vemos también este mismo gráfico, pero separando los países por continentes.
 
-```{r}
+```{r, warning=FALSE}
 paleta <- c("Americas" = "#0084ff", 
             "Asia" = "#44bec7", 
             "Europe" = "#ffc300", 
@@ -701,7 +745,7 @@ Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos comp
 ```{r}
 
 # Crear un gráfico para visualizar el podio de los 3 primeros
-grafico_podio_100m <- ggplot(datos_100m_top_3, aes(x = reorder(lastname, points), y = points, fill = continente)) +
+grafico_podio_100m <- ggplot(datos_100m_top_3, aes(x = reorder(lastname, points), y = points, fill = continent)) +
   geom_bar(stat = "identity") +
   labs(title = "Podio de los 3 Primeros en 100 Metros",
        x = "Nadador",
@@ -714,7 +758,7 @@ grafico_podio_100m <- ggplot(datos_100m_top_3, aes(x = reorder(lastname, points)
 # Imprimir el gráfico
 print(grafico_podio_100m)
 
-grafico_podio_100mrepresentacion <- ggplot(datos_100m_top_3, aes(x = reorder(continent, points), y = points, fill = continente)) +
+grafico_podio_100mrepresentacion <- ggplot(datos_100m_top_3, aes(x = reorder(continent, points), y = points, fill = continent)) +
   geom_bar(stat = "identity") +
   labs(title = "Representación podium de África VS Europa  (en Puntos)",
        x = "Nadador",
@@ -731,7 +775,8 @@ print(grafico_podio_100mrepresentacion)
 
 
 
-## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
+
+## Estudio sobre los eventos, reactiontime, lane, heats, daytime: [Alonso]
 
 Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
@@ -743,6 +788,10 @@ ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2
 head(ejemplo,6)
 ```
 
+```{r, echo=FALSE}
+rm(ejemplo)
+```
+
 Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio.
 Creamos la siguiente tabla:
 
@@ -750,28 +799,39 @@ Creamos la siguiente tabla:
 nadadoresPruebas <- datos2015 %>%
   distinct(eventid, athleteid, .keep_all = TRUE)
 nadadoresPruebas
+
+#Copia de seguridad: 
+nadadoresPruebasCopia<-nadadoresPruebas
 ```
 
 Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
 
 ### Reactiontime. Hombres vs Mujeres
 
-Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores:
+Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores. Para ello, no tenemos en cuenta las dos filas con datos nulos. 
 
 ```{r}
-ggplot(nadadoresPruebas, aes(x = reactiontime)) +
+ggplot(na.omit(nadadoresPruebas), aes(x = reactiontime)) +
 geom_density() +
 ggtitle("Distribución. reactiontime")
 
 ```
 
-Parece que los datos siguen una distribución normal a priori.
+Parece que los datos siguen una distribución normal a priori. Igual que antes, vamos a hacer el test de shapiro: 
+
+```{r}
+shapiro.test(na.omit(nadadoresPruebas$reactiontime))
+```
+
+Al tener un p-valor tan bajo, no parece que siga una distribución normal. 
+
 Vamos a ir más alla para intentar sacar conclusiones más profundas.
 
 Vamos a comparar las funciones de densidad de chicos y chicas en general:
 
 ```{r message=FALSE, warning=FALSE}
-ggplot(nadadoresPruebas, aes(x=reactiontime, colour=gender))+
+nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$reactiontime))
+ggplot(na.omit(nadadoresPruebas), aes(x=reactiontime, colour=gender))+
 geom_density()+
   ggtitle("Distribución. Hombres vs Mujeres")
 ```
@@ -864,7 +924,7 @@ Es decir, cuál es la diferencia entre las pruebas de 50 metros, las de 100, 200
 Para ello, realizaremos un gráfico de densidad conjunto.
 
 ```{r}
-ggplot(na.omit(nadadoresPruebas), aes(x = reactiontime, color = as.factor(distance), fill = as.factor(distance))) +
+ggplot(nadadoresPruebas, aes(x = reactiontime, color = as.factor(distance), fill = as.factor(distance))) +
   geom_density(alpha = 0.5) +  # Ajustar la transparencia
   ggtitle("Distribución comparada de Reaction time") +
   labs(x = "Tiempo de Reacción", y = "Densidad", color = "Distancia", fill = "Distancia") +
@@ -887,11 +947,21 @@ Esto indica que, al menos una distancia tiene un tiempo de reacción diferente e
 El valor de F es alto (56.98), sugiere que la variación entre los grupos es mucho mayor que la variación dentro de los grupos.
 Esto refuerza la idea de que las medias de los tiempos de reacción son significativamente diferentes entre las carreras de diferente distancia.
 
-### Calles usadas (no está claro)
+
+```{r, echo=FALSE}
+rm(anova_tiempoReaccion_distancia, nadadorasComparacionReactionTime, nadadoresComparacionReactionTime)
+
+#restauro nadadoresPruebas para el siguiente estudio: 
+nadadoresPruebas<-nadadoresPruebasCopia
+
+```
+
+
+### Calles usadas.
 
 Veamos cómo se distribuyen las calles usadas:
 
-```{r}
+```{r, warning=FALSE}
 ggplot(nadadoresPruebas, aes(nadadoresPruebas$lane)) + geom_bar(fill = "orange") +
 theme_bw()
 
@@ -899,13 +969,17 @@ theme_bw()
 
 Se observa que las calles menos usadas son tanto la 0 como la 9.
 Esto es un dato que puede resultar curioso al visualizar los datos.
-Por tanto, informándonos acerca de ello, tenemos que competir en las calles centrales conlleva algunas ventajas frente a las calles de los extremos.
-Competir en estas calles influye positivamente en tener menos turbulencias y ondas causadas por otros nadadores, mejor visibilidad del resto de competidores pudiendo ajustar su estrategia según lo que suceda alrededor y genera más confianza debido al sentido de dominio que aportan estas calles.
-Por tanto, sabiendo esto nos podríamos cuestionar cuánto influye en nuestros datos el número de calle en cada resultado.
+
+Informándonos acerca de ello, las calles 0 y 9 sólo se usan en la ronda preliminar, en las semifinales y finales se usan de la 1 a la 8, luego tiene sentido que sean las menos frecuentadas por los nadadores. Podríamos intentar visualizar si hay alguna relación entre alguna variable de nuestro dataframe y la calle usada, aunque podemos adelantar que, en cada serie, los nadadores se van colocando de más rapido a más lento de la siguiente forma: 4-5-3-6-2-7-1-8. Luego hay que tener esto en cuenta para no sacar conclusiones equivodadas. 
 
 ¿Habrá alguna relación entre la calle usada y el tiempo de reacción?
 
-```{r}
+```{r, warning=FALSE}
+#Creo una paleta con 10 colores: 
+colores <- c("#E41A1C", "#377EB8", "#4DAF4A", "#FF7F00", 
+             "#A65628", "#F781BF", "#999999", "#D95F02", 
+             "#7570B3", "#66A61E")
+
 
 ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
   geom_histogram(binwidth = 0.01, alpha = 0.7, position = "identity") +
@@ -914,7 +988,7 @@ ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
   labs(title = "Distribución de Tiempos de Reacción por Calle",
        x = "Tiempo de Reacción",
        y = "Frecuencia") +
-  scale_fill_brewer(palette = "Set1") 
+  scale_fill_manual(values = colores)
 ```
 
 Como podemos ver, no parece haber diferencias significativas según el tipo de calle en los tiempos de reacción.
@@ -927,9 +1001,7 @@ summary(anova_tiempoReaccion_Calles)
 
 El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada.
 Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir.
-Si en las rondales finales no se ocupan las calles laterales y son las que necesitan más respuesta explosiva para lograr la victoria, parece claro que los valores de menores tiempos de reacción se localicen en las calles centrales.
-Del mismo modo, podrían ocurrir otros factores no conocidos.
-Por lo tanto, seguimos investigando acerca de ello.
+
 
 Realizamos un modelo lineal para ver si existe una relación entre los puntos de los participantes y el número de calle en el que compiten.
 
@@ -957,7 +1029,9 @@ summary(lmPuntosCalle)
 plot(lmPuntosCalle)
 ```
 
-*que alguien interprete esto porque no me entero:)*
+Sigue sin ser normal la distribución de los residuos, luego parece que este no es el camino indicado si queremos explicar los puntos a partir de las calles. 
+
+De todas formas, si en algún momento existe relación entre los puntos y las calles usadas, será porque los nadadores con mejor tiempo se situan en las calles centrales. 
 
 ### Daytime
 
@@ -1010,10 +1084,11 @@ ggplot(nadadoresPruebas, aes(x = tiempo_hhmm)) +
 ```
 
 Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias van, por la mañana de 9:30 a 12:30, y por la tarde de 17:30 a 19:30.
-Observamos que el número de nadadores que nadan por la mañana es mucho mayor al de por la tarde.
-Vamos a investigar porqué:
 
-#### Pruebas matinales y vespertinas.
+
+#### Pruebas matinales y vespertinas. [Alonso]
+
+Observamos que el número de nadadores que nadan por la mañana es mucho mayor al de por la tarde.
 
 Vamos a ver un resumen de qué pruebas se nadan por la mañana y cuáles por la tarde:
 
@@ -1181,7 +1256,7 @@ Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosi
 
 
 
-## Estudio sobre la variable round.
+## Estudio sobre la variable round. [Alonso]
 
 A continuación, vamos a intentar entender más sobre la variable ronda.
 Para ello, primero vemos un resumen:
@@ -1194,14 +1269,14 @@ Observamos que toma 5 posibles valores, tenemos controlados tanto FIN (final), c
 Pero SOP y SOS no parece tan claro saber qué es.
 Vamos a comenzar dejando de lado SOP y SOS, nos vamos a centrar en controlar los otros 3 valores.
 
-### ¿Cuántos nadadores nadan cada ronda?
+### ¿Cuántos nadadores nadan cada ronda? [Alonso]
 
 Una pregunta natural podría ser, ¿cuántos nadadores pasan de ronda?
 ¿Todos?
 Está claro que al ver que por la mañana en preliminares nadan el 75% y por las tardes son semifinales y finales y son un 25%.
 Veamoslo con distintas pruebas:
 
-#### 50 libre femenino:
+#### 50 libre femenino: [Alonso]
 
 Seleccionamos las nadadoras que nadaron preliminares en el 50 libre femenino:
 
@@ -1313,7 +1388,7 @@ Se puede ver de manera análoga que nadan 8 nadadores cada final.
 
 Ahora, ya que hemos analizado a fondo qué sucede con las finales, semifinales y preliminares, vamos a ver qué significan los otros dos valores que toma la variable *round*.
 
-### Rondas SOP
+### Rondas SOP [Alonso]
 
 Bien, primeramente, vamos a observar las filas tales que toman ese valor.
 Lo hacemos de la siguiente manera:
@@ -1344,7 +1419,7 @@ fly100PREWomen
 Si busco a Osman y Kelly en la anterior tabla, observo que se encuentran en el puesto 16 y 17 respectivamente y que, hicieron el mismo tiempo.
 Luego tiene sentido razonar que, las rondas SOP son rondas de desempate para ver quién pasa a la siguiente ronda.
 
-### Rondas SOS
+### Rondas SOS [Alonso]
 
 Viendo el razonamiento de las rondas SOP, intuimos que las rondas SOS deben ser rondas de desempate entre nadadores de las semifinales.
 De todas maneras, vamos a verlo.
@@ -1381,7 +1456,7 @@ Veamos las posibles relaciones de puntos con las demás variables:
 
 Veamos ahora cómo se distribuyen los puntos:
 
-```{r}
+```{r, warning=FALSE}
 ggplot(nadadoresPruebas, aes(x = points)) +
 geom_density() +
 ggtitle("Distribución. points")
@@ -1437,7 +1512,7 @@ A continuación, vamos a comparar los puntos realizados por hombres y mujeres, p
 
 Primeramente, vamos a ver la función de densidad:
 
-```{r}
+```{r, warning=FALSE}
 ggplot(nadadoresPruebas, aes(x = points, colour=gender)) +
 geom_density() +
 ggtitle("Distribución. Puntos por sexo")
@@ -1471,7 +1546,7 @@ nadadores_menores <- nadadoresParticipantes[nadadoresParticipantes$edad < 18, ]
 
 (Parte de Salma) Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
-```{r}
+```{r, warning=FALSE}
 #QUERIA PONERLO CON COLORES Q SE VEA MEJOR EL GRAFICO DE CALOR(POR SER CREATIVOS Y TAL)
 resumen_puntos <- nadadoresPruebas %>%
   group_by(edad, points) %>%
@@ -1564,14 +1639,16 @@ cor(X,Y)
 De manera adicional, podemos incluir histogramas marginales en cada eje del gráfico, para ello usamos las librerías `ggplot2` y `ggExtra`.
 
 ```{r}
-datos<-data.frame(x=X,y=Y)
 
-p<-ggplot(datos, aes(x = X, y = Y)) +
-  geom_point()
+#da error
+#datos<-data.frame(x=X,y=Y)
+
+#p<-ggplot(datos, aes(x = X, y = Y)) +
+  #geom_point()
 #vemos la nube de puntos 
-print(p)
+#print(p)
 #Especificamos que se añadan histogramas en los márgenes
-ggMarginal(p, type = "histogram")
+#ggMarginal(p, type = "histogram")
 
 ```
 
@@ -1581,33 +1658,33 @@ Es decir, considerar un modelo de regresion lineal simple.
 La función que ajusta el modelo de regresión lineal simple en R es `lm`(con parametros B_0,B_1 y sigma\^2), directamente hacemos un `summary` para que nos devuelva la información más importante, aunque realmente `lm` calcula muchas cosas: estimaciones, residuos, predicciones, etc.
 
 ```{r}
-lm=lm(Y~X)
-summary(lm)
+ #lm=lm(Y~X)
+#summary(lm)
 ```
 
 Podemos añadir la recta de regresión al gráfico usando el comando `abline`, y el objeto donde hemos guardado el ajuste de la recta, en este caso `lm4`:
 
 ```{r}
 #representamos
-plot(X,Y)
+#plot(X,Y)
 #añadimos la recta de regresion
-abline(lm)
+#abline(lm)
 ```
 
 Los coeficientes de la regresión estimados también están en el objeto donde hemos guardado el ajuste, en `lm`
 
 ```{r}
 #generamos un vector con los coeficientes de la regresion
-coeficientes=lm$coefficients
+#coeficientes=lm$coefficients
 #comprobamos que es lo mismo que nos salía en el summary
-coeficientes
+#coeficientes
 ```
 
 Sabemos que el valor de los puntos cuando X=0, es decir, que el tiempo de reacción sea cero, es de 1809 aproximadamente.
 Este parámetro no tendría sentido, pues el tiempo de reacción nunca va a ser cero.
 Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor que aumenta X, Y aumenta lo indicado.
 
-## Prueba 800m Libre femenino.
+## Prueba 800m Libre femenino. [Alonso]
 
 Veamos qué nadadores nadaron el 800 libre femenino:
 
@@ -1949,7 +2026,7 @@ resumen200
 El punto 5 se corresponde con Castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto.
 En las edades también vemos que AL-Khulaifi es muy joven, como ya nos esperábamos.
 
-## PCA. 800M libres femenino
+## PCA. 800M libres femenino. [Alonso]
 
 Lo primero que debemos hacer es cargar los datos:
 
