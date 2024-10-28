@@ -776,7 +776,7 @@ print(grafico_podio_100mrepresentacion)
 
 
 
-## Estudio sobre los eventos, reactiontime, lane, heats, daytime: [Alonso]
+## Estudio sobre los eventos, reactiontime, lane, heats, daytime: [Alonso. Sólo el inicio.]
 
 Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
@@ -831,7 +831,7 @@ Vamos a comparar las funciones de densidad de chicos y chicas en general:
 
 ```{r message=FALSE, warning=FALSE}
 nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$reactiontime))
-ggplot(na.omit(nadadoresPruebas), aes(x=reactiontime, colour=gender))+
+ggplot(nadadoresPruebas, aes(x=reactiontime, colour=gender))+
 geom_density()+
   ggtitle("Distribución. Hombres vs Mujeres")
 ```
