@@ -223,7 +223,6 @@ Bien, ahora, tenemos solamente datos en los que falta alguna de las variables, e
 datosNA
 ```
 
-
 Nos quedan solamente 14 filas en los que hay datos nulos. Sigamos nuestra limpieza: 
 
 ### Valores nulos donde faltan los puntos: 
@@ -245,7 +244,6 @@ datosNA <- datosNA %>%
   filter(!(is.na(datosNA$points)))
 ```
 
-
 Me quedan las dos ultimas observaciones por ver: 
 
 ```{r}
@@ -253,7 +251,6 @@ datosNA
 ```
 
 Tenemos dos observaciones en las cuales no existe el tiempo de reacción. Seguramente se deba a algún fallo en el sistema electrónico o algún fallo al pasar los datos. Por lo tanto, al igual que con los anteriores, no lo eliminaremos de nuestro dataframe inicial, pero sí lo tendremos en cuenta cuando tengamos que analizar estudios que tengan que ver con el tiempo de reacción. 
-
 
 ```{r}
 print(sum(is.na(datos2015)))
@@ -390,7 +387,7 @@ shapiro.test(nadadoresParticipantes$edad)
 
 Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos. 
 
-### Análisis de géneros participantes[Salma].
+### Análisis de géneros participantes [Salma].
 
 Veamos el número exacto de mujeres y hombres en la competición:
 
@@ -500,7 +497,7 @@ rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
 
 ```
 
-### Análisis de nacionalidades[Salma].
+### Análisis de nacionalidades [Salma].
 
 Vamos a ver la cantidad de nadadores por país.
 
@@ -720,7 +717,7 @@ resumenContinente <- nadadoresPruebas %>%
   )
 
 # Imprimir el resultado
-print(resumenContinente)
+print(resumenContinente %>% select(continent, relacion_puntos_por_participante))
 ```
 
 Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), despúes Asia y por último Africa.
@@ -1733,7 +1730,6 @@ Entre 18 y 30 vs. Mayores de 30: No hay evidencia suficiente para afirmar que ha
 Entre 18 y 30 vs. Menores de 18: Hay una diferencia altamente significativa en los puntos entre estos dos grupos. Esto indica que los nadadores menores de 18 años obtienen significativamente menos puntos que los nadadores entre 18 y 30.
 Mayores de 30 vs. Menores de 18: También hay una diferencia altamente significativa entre estos grupos, sugiriendo que los nadadores mayores de 30 años obtienen significativamente más puntos que los nadadores menores de 18.
 
-
 La comparación muestra que, mientras que no hay diferencia significativa entre los grupos de 18-30 y mayores de 30, los menores de 18 años se desempeñan significativamente peor en términos de puntos en comparación con ambos grupos de mayores edad.
 
 ```{r}
@@ -1881,7 +1877,6 @@ nadadoresPruebas<- nadadoresPruebasCopia
 
 ```
 
-
 ## Prueba 800m Libre femenino. [Alonso]
 
 Quiero evaluar la prueba 800m libres.
@@ -1971,7 +1966,6 @@ La pelea por la última medalla en juego dura hasta los 700 metros, donde un ade
 ```{r, echo=FALSE}
 rm(nadadoras800free)
 ```
-
 
 
 # PCA's
@@ -2314,7 +2308,7 @@ Viendo esta interpretación, podemos observar de una mejor manera, cuando un nad
 biplot(pca800libres)
 ```
 
-## PCA 100m mariposa femenino
+## PCA 100m mariposa femenino [JAVIER]
 
 En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
 A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime de la tabla prueba100MariposaFem.
