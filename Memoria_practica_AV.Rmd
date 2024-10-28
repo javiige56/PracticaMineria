@@ -147,7 +147,7 @@ summary(datos2015$relaycount)
 ```
 
 Observamos que sólo toma un único valor, 1.
-Esto se debe principalmente a que nuestro conjutno de datos consta de las pruebas individuales del mundial de Kazán 2015, luego como no hay relevos, todos los nadadores son el primer "relevista" en su prueba.
+Esto se debe principalmente a que nuestro conjunto de datos consta de las pruebas individuales del mundial de Kazán 2015, luego como no hay relevos, todos los nadadores son el primer "relevista" en su prueba.
 
 Luego la eliminamos:
 
@@ -284,9 +284,10 @@ Además, borramos la variable birthdate:
 datos2015$birthdate=NULL
 ```
 
+#Tablas
+A continuación procedo a presentar las tablas que vamos a utilizar a lo largo de nuestro estudio. Se presentan aquí, dada su aparición en múltiples apartados, facilitándose así su ejecución:
 
-## Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
-
+##Tabla nadadoresParticipantes
 Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes... Vamos a necesitar eliminar filas como bien hemos anunciado antes.
 
 Por ello, vamos a crear una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir.
@@ -304,7 +305,36 @@ nadadoresParticipantesCopia<-nadadoresParticipantes
 ```{r}
 summary(nadadoresParticipantes)
 ```
+##Tabla nadadoresPruebas
+Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
+Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
+Lo evaluamos seleccionando algún nadador que haya nadado en varias rondas:
+
+```{r}
+ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2015$code=="AUS", ]
+head(ejemplo,6)
+```
+
+```{r, echo=FALSE}
+rm(ejemplo)
+```
+
+Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio.
+Creamos la siguiente tabla:
+
+```{r}
+nadadoresPruebas <- datos2015 %>%
+  distinct(eventid, athleteid, .keep_all = TRUE)
+nadadoresPruebas
+
+#Copia de seguridad: 
+nadadoresPruebasCopia<-nadadoresPruebas
+```
+
+Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
+
+# Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
 Ya está preparado una tabla con nadadores únicos en el conjunto nadadoresParticipantes, lo cual es ideal para estudiar características individuales sin duplicados.
 Con este conjunto, vamos a explorar variables como género, país y edad de los participantes.
 
@@ -356,7 +386,7 @@ shapiro.test(nadadoresParticipantes$edad)
 
 Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos. 
 
-### Análisis de géneros participantes.
+### Análisis de géneros participantes[Salma].
 
 Veamos el número exacto de mujeres y hombres en la competición:
 
@@ -466,12 +496,11 @@ rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
 
 ```
 
-### Análisis de nacionalidades.
+### Análisis de nacionalidades[Salma].
 
 Vamos a ver la cantidad de nadadores por país.
 
 ```{r, warning=FALSE}
-
 # Utilizamos la tabla nadadoresParticipantes
 # Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
 nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
@@ -591,7 +620,7 @@ Es decir, si existe mayor proporción de ganadores en los países con más densi
 Para ello, analizaremos los puntos según las nacionalidades de los nadadores.
 
 ```{r}
-puntos_por_pais <- nadadoresParticipantes %>%
+puntos_por_pais <- nadadoresPruebas %>%
   group_by(name) %>%  
   summarise(total_puntos = sum(points, na.rm = TRUE))  
 
@@ -614,7 +643,29 @@ De la misma manera que nos ocurría antes, este gráfico es poco interpretativo.
 Lo vemos por continentes:
 
 ```{r}
-puntos_por_continente <- nadadoresParticipantes %>%
+# Utilizamos la tabla nadadoresPruebas
+# Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
+nadadoresPruebas$iso2 <- countrycode(nadadoresPruebas$name, "country.name", "iso2c")
+
+nombres<- unique(nadadoresPruebas$name) #Para no repetir
+print(nombres)
+
+#Nombres problemáticos
+manual <- data.frame(
+  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
+  iso2 = c("FI", "XK", "FM", "VI")  
+)
+
+# Agregamos la variable continente 
+nadadoresPruebas$continent <- countrycode(nadadoresPruebas$iso2, "iso2c", "continent")
+
+#solo es XK(KOSOVO, que está en Europa)
+#manualmente el continente para Kosovo (XK)
+nadadoresPruebas <- nadadoresPruebas %>%
+  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
+
+
+puntos_por_continente <- nadadoresPruebas %>%
   group_by(continent) %>%  #agrupar por continente
   summarise(total_puntos = sum(points, na.rm = TRUE))  #Sumar puntos por continente
 
@@ -631,11 +682,11 @@ ggplot(puntos_por_continente, aes(x = reorder(continent, total_puntos), y = tota
 ```
 
 ```{r}
-ggplot(na.omit(nadadoresParticipantes), aes(x = points, colour = continent)) +
+ggplot(na.omit(nadadoresPruebas), aes(x = points, colour = continent)) +
 # Añadir la capa de la densidad de probabilidad.
     geom_density()
 
-ggplot(na.omit(nadadoresParticipantes), aes(x=continent, y=points, color=continent)) +
+ggplot(na.omit(nadadoresPruebas), aes(x=continent, y=points, color=continent)) +
   geom_boxplot()
 ```
 
@@ -654,7 +705,7 @@ Lo que vamos a hacer a continuación es normalizar los puntos por continente, es
 
 ```{r}
 # Agrupar por continente, sumar puntos y contar participantes
-resumenContinente <- nadadoresParticipantes %>%
+resumenContinente <- nadadoresPruebas %>%
   group_by(continent) %>%
   summarise(
     puntos_totales_continente = sum(points, na.rm = TRUE),
@@ -674,7 +725,7 @@ Para terminar con esta sección, vamos a ver los 20 primeros en el ranking, y a 
 
 ```{r}
 # Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
-datos_100m_top <- nadadoresParticipantes[nadadoresParticipantes$distance==100,] %>% # Filtra para la prueba de 100 metros
+datos_100m_top <- nadadoresPruebas[nadadoresPruebas$distance==100,] %>% # Filtra para la prueba de 100 metros
   arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
   dplyr::slice(1:20)                        # Selecciona las primeras 20 
 
@@ -719,35 +770,34 @@ Esto podría estar relacionado con la inversión en programas de natación.
 Le sigue oceanía,ya que Oceanía, aunque es una región más pequeña en términos de población comparada con Europa, ha producido nadadores destacados que compiten a niveles muy altos.
 La presencia de nadadores de élite, especialmente de Australia, resalta la calidad del talento en la región.
 
-Los datos indican que África tiene solo un 5% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuanto a la inversión en infraestructura deportiva.
+Los datos indican que África tiene solo un 15% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuanto a la inversión en infraestructura deportiva.
 La falta de instalaciones de calidad para la natación, como piscinas adecuadas, puede limitar el desarrollo de talentos.
 
-Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 2 en 100 metros(hemos elegido 100 metros al haber una gran cantidad de nadadores, lo que refleja bien lo que buscamos).
+Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 4 en 100 metros(hemos elegido 100 metros al haber una gran cantidad de nadadores, lo que refleja bien lo que buscamos).
 Podríamos ver que a pesar de que en África no se llegue mucho al podio, cuando se llega es en los tres primeros puestos.
 ¿Hemos concluido bien?
 Veámoslo.
-Esto es el podio de los 3 primeros en 100 metros
+Esto es el podio de los 4 primeros en 100 metros
 
 ```{r}
 # Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
-datos_100m_top_3 <- nadadoresParticipantes[nadadoresParticipantes$distance==100,] %>% # Filtra para la prueba de 100 metros
+datos_100m_top_4 <- nadadoresPruebas[nadadoresPruebas$distance==100,] %>% # Filtra para la prueba de 100 metros
   arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
-  dplyr::slice(1:3)                        # Selecciona las primeras 20 
+  dplyr::slice(1:4)                        # Selecciona las primeras 20 
 
-datos_100m_top_3
+datos_100m_top_4
 ```
 
-La presencia de Sudáfrica en el segundo lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo.Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable.
+La presencia de Sudáfrica en el cuarto lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo.Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable.
 Esto podría implicar que los nadadores africanos son altamente competitivos cuando tienen la oportunidad de competir en el más alto nivel.
 Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de participantes, se obtiene una visión clara del rendimiento de los nadadores en este evento específico.
 Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
 
 ```{r}
-
 # Crear un gráfico para visualizar el podio de los 3 primeros
-grafico_podio_100m <- ggplot(datos_100m_top_3, aes(x = reorder(lastname, points), y = points, fill = continent)) +
+grafico_podio_100m <- ggplot(datos_100m_top_4, aes(x = reorder(lastname, points), y = points, fill = continent)) +
   geom_bar(stat = "identity") +
-  labs(title = "Podio de los 3 Primeros en 100 Metros",
+  labs(title = "Podio de los 4 Primeros en 100 Metros",
        x = "Nadador",
        y = "Puntos",
        fill = "Continente") +
@@ -758,7 +808,7 @@ grafico_podio_100m <- ggplot(datos_100m_top_3, aes(x = reorder(lastname, points)
 # Imprimir el gráfico
 print(grafico_podio_100m)
 
-grafico_podio_100mrepresentacion <- ggplot(datos_100m_top_3, aes(x = reorder(continent, points), y = points, fill = continent)) +
+grafico_podio_100mrepresentacion <- ggplot(datos_100m_top_4, aes(x = reorder(continent, points), y = points, fill = continent)) +
   geom_bar(stat = "identity") +
   labs(title = "Representación podium de África VS Europa  (en Puntos)",
        x = "Nadador",
@@ -774,38 +824,16 @@ print(grafico_podio_100mrepresentacion)
 ```
 
 
+Antes de continuar con el estudio, reiniciamos nuestras tablas originales:
+```{r}
+nadadoresParticipantes<-nadadoresParticipantesCopia
+nadadoresPruebas<-nadadoresPruebasCopia
+#Vemos que desaparece iso,continentes...
+nadadoresPruebas
+```
 
 
 ## Estudio sobre los eventos, reactiontime, lane, heats, daytime: [Alonso. Sólo el inicio.]
-
-Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
-
-Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
-Lo evaluamos seleccionando algún nadador que haya nadado en varias rondas:
-
-```{r}
-ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2015$code=="AUS", ]
-head(ejemplo,6)
-```
-
-```{r, echo=FALSE}
-rm(ejemplo)
-```
-
-Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio.
-Creamos la siguiente tabla:
-
-```{r}
-nadadoresPruebas <- datos2015 %>%
-  distinct(eventid, athleteid, .keep_all = TRUE)
-nadadoresPruebas
-
-#Copia de seguridad: 
-nadadoresPruebasCopia<-nadadoresPruebas
-```
-
-Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
-
 ### Reactiontime. Hombres vs Mujeres
 
 Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores. Para ello, no tenemos en cuenta las dos filas con datos nulos. 
@@ -1137,13 +1165,65 @@ rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos
 
 
 ## Estudio sobre la variable distancia y su asociación con los tipos de nado. (SALMA)
+Una variable que aún no hemos tratado de comprender es el tipo de nado, es decir, la variable 'stroke'.
+Una pregunta que nos puede surgir es, ¿dependiendo de la distancia se nada con un estilo u otro? Veamos sobre 'nadadoresPruebas' el estilo de nado en el que se usar en distintas distancias.
+
+```{r}
+distancia_stroke <- table(nadadoresPruebas$distance, nadadoresPruebas$stroke)
+print(distancia_stroke)
+
+```
+
+Para analizar la relación entre las distancias y los estilos de nado en este conjunto de datos, examinaremos cómo se distribuyen los distintos estilos (BACK, BREAST, FLY, FREE, MEDLEY) en función de la distancia recorrida en metros (50, 100, 200, 400, 800, 1500).
+
+A partir de la tabla proporcionada, se observa lo siguiente:
+
+-En distancias cortas (50 m y 100 m) los estilos BACK, BREAST, FLY, y FREE tienen una alta frecuencia.
+MEDLEY no está presente en estas distancias, lo que sugiere que este estilo no se usa en distancias cortas. El término "medley" se refiere a una prueba en la que el nadador (o el equipo en el caso de un relevo) utiliza una combinación de los cuatro estilos principales de nado en un solo evento, en un orden específico. Cada estilo debe nadarse en una sección de la carrera.
+-En distancias intermedias (200 m), los estilos BACK, BREAST, FLY, y FREE siguen estando presentes. Sin embargo, hay un número significativo de pruebas en el estilo MEDLEY (136), sugiriendo que este estilo comienza a ser popular en esta distancia.
+-En largas distancias (400 m, 800 m, y 1500 m), tenemos por una parte que para las distancias que comienzan a ser largas (400 m), el estilo FREE es el más utilizado, seguido de MEDLEY, con 92 pruebas.Cabe destacar, que los estilos BACK, BREAST, y FLY no se encuentran en esta distancia. Por otro lado, en los 800 m y 1500 m, sólo el estilo FREE tiene registros, lo cual es característico, ya que estas distancias se suelen nadar en estilo libre para reducir la fatiga, donde se busca mantener la velocidad y resistencia sin variaciones de estilo que pueden desgastar al nadador.
+
+Podemos verlo con porcentajes:
+```{r}
+# proporciones
+prop.table(distancia_stroke, margin = 1)  #proporciones por distancia
+
+```
+```{r}
+ggplot(nadadoresPruebas, aes(x = factor(distance), y = stroke)) +
+  geom_count() +
+  labs(x = "Distancia", y = "Estilo de Nado", size = "Frecuencia") +
+  ggtitle("Frecuencia de Estilos de Nado según la Distancia") +
+  theme_minimal()
+
+```
+Podemos replantearnos ahora si esto se mantiene indistintamente del género del nadador.Es decir,¿En las pruebas femeninas de 200 m, también se nadan todos los estilos?
+
+Primero, crearemos subconjuntos de datos para cada género.
+
+```{r}
+# Filtrar los datos por género
+nadadoresFemeninas <- subset(nadadoresPruebas, gender == "F")
+nadadoresMasculinos <- subset(nadadoresPruebas, gender == "M")
+```
 
 
+```{r}
+#género femenino
+tabla_femenino <- table(nadadoresFemeninas$distance, nadadoresFemeninas$stroke)
+print("Tabla de estilo de nado por distancia (Femenino):")
+print(tabla_femenino)
+
+# género masculino
+tabla_masculino <- table(nadadoresMasculinos$distance, nadadoresMasculinos$stroke)
+print("Tabla de estilo de nado por distancia (Masculino):")
+print(tabla_masculino)
+
+```
+Parece que todo está funcionando como esperábamos, tanto en el análisis conjunto como en los análisis individuales. Esto confirma que los resultados son consistentes y los datos están bien estructurados para las pruebas.
 
 
-
-
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan.
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan.(Salma)
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
@@ -1607,7 +1687,7 @@ ggplot(resumen_puntos, aes(x = edad, y = points)) +
 # pairs(nadadoresPruebas$points,splitswimtime)
 ```
 
-*poner aqui todo juntos en un pairs* Empezamos viendo la relación lineal (que ya sabemos que será alta) entre puntos y tiempo.
+Empezamos viendo la relación lineal (que ya sabemos que será alta) entre puntos y tiempo.
 Es evidente que a mayor tiempo, hay menos puntos.
 Veámoslo
 
@@ -1615,7 +1695,8 @@ Veámoslo
 nadadoresPruebas50crol<- nadadoresPruebas[nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=='FREE', ]
 t= nadadoresPruebas50crol$swimtime
 p= nadadoresPruebas50crol$points
-cor(t,p)
+cor(nadadoresPruebas50crol$swimtime,nadadoresPruebas50crol$points)
+nadadoresPruebas50crol
 #verlo pero 
 ```
 
