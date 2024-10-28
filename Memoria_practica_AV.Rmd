@@ -29,6 +29,10 @@ library(ggExtra)
 library(cluster)
 library(purrr)
 library(dendextend)
+library(RColorBrewer)
+library(knitr)
+#install.packages("FSA")  
+library(FSA)
 
 ```
 
@@ -1648,33 +1652,104 @@ summary(anova_puntos_genero)
 ```
 
 ### Puntos. ¿La edad influye?
-
-(parte de Javi) En esta sección vamos a comparar los puntos con la edad.
-Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
-
-```{r}
-nadadores_menores <- nadadoresParticipantes[nadadoresParticipantes$edad < 18, ]
-
-```
-
-(Parte de Salma) Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
+Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
 ```{r, warning=FALSE}
-#QUERIA PONERLO CON COLORES Q SE VEA MEJOR EL GRAFICO DE CALOR(POR SER CREATIVOS Y TAL)
+# Resumen de puntos por edad
 resumen_puntos <- nadadoresPruebas %>%
   group_by(edad, points) %>%
   summarise(frecuencia = n(), .groups = 'drop')
 
 # Crear el gráfico de calor
 ggplot(resumen_puntos, aes(x = edad, y = points)) +
-  geom_tile(aes(fill = frecuencia), color = "white") +
-  scale_fill_gradient(low = "pink", high = "darkred",limits = c(min(resumen_puntos$frecuencia), max(resumen_puntos$frecuencia)))+
+  geom_tile(aes(fill = frecuencia), color = "black") +
+  # Usar una paleta de colores divergente
+  scale_fill_gradientn(colors = brewer.pal(9, "Reds"), 
+                       limits = c(min(resumen_puntos$frecuencia), max(resumen_puntos$frecuencia))) + 
   theme_bw() +
   labs(title = "Gráfico de Calor: Edades y Puntos Obtenidos",
        x = "Edad",
        y = "Puntos Obtenidos") +
-  theme(panel.grid.major = element_blank(), 
+  theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
+```
+```{r}
+# Crear una nueva columna que clasifica a los nadadores en grupos de edad
+nadadoresPruebas <- nadadoresPruebas %>%
+  mutate(grupo_edad = case_when(
+    edad < 18 ~ "Menores de 18",
+    edad >= 18 & edad <= 30 ~ "Entre 18 y 30",
+    edad > 30 ~ "Mayores de 30"
+  ))
+
+# Calcular el promedio de puntos por grupo de edad
+promedio_puntos <- nadadoresPruebas %>%
+  group_by(grupo_edad) %>%
+  summarise(promedio = mean(points, na.rm = TRUE))
+
+# Crear un gráfico de barras para visualizar el promedio de puntos
+ggplot(promedio_puntos, aes(x = grupo_edad, y = promedio, fill = grupo_edad)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_brewer(palette = "Reds") +  # Cambiar la paleta si es necesario
+  theme_bw() +
+  labs(title = "Promedio de Puntos por Grupo de Edad",
+       x = "Grupo de Edad",
+       y = "Promedio de Puntos") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none")
+```
+Vamos a comparar los puntos con la edad. Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
+
+```{r}
+# Mostrar el promedio de puntos en una tabla
+promedio_puntos %>%
+  kable(caption = "Promedio de Puntos por Grupo de Edad", 
+        col.names = c("Grupo de Edad", "Promedio de Puntos"))
+
+```
+En el grupo de edad entre 18 y 30, el promedio de Puntos es 817.76.Este grupo presenta el promedio más alto en comparación con los otros grupos. Esto podría indicar que los nadadores en este rango de edad tienen un rendimiento superior en términos de puntos acumulados. Esto puede ser atribuible a varios factores, como una mayor experiencia. El grupo de Edad Mayores de 30 tiene un promedio de 806.32 puntos. Los nadadores mayores de 30 años tienen un promedio de puntos ligeramente inferior al grupo de 18 a 30 años. Sin embargo, el rendimiento sigue siendo fuerte, lo que sugiere que, aunque pueden enfrentar desafíos relacionados con la edad, muchos continúan siendo competitivos. El grupo de Edad Menores de 18 tiene un promedio de 621.36 puntos. Este grupo muestra el promedio más bajo en comparación con los otros dos. Esto puede ser indicativo de que los nadadores jóvenes aún están en desarrollo y adquiriendo habilidades y experiencia. Es natural que los nadadores más jóvenes, al estar en una etapa temprana de su carrera, acumulen menos puntos.
+
+
+La diferencia significativa en el rendimiento entre los grupos puede sugerir que la edad tiene un impacto positivo en el rendimiento de los nadadores, al menos hasta cierto punto. Esto también resalta la importancia del entrenamiento y la experiencia que se adquiere con la edad.
+Es posible que los nadadores más jóvenes tengan que enfocarse en su desarrollo técnico y competitivo para alcanzar a sus contrapartes mayores. Esto podría incluir mejorar sus técnicas de natación, preparación física, y estrategias de carrera.
+
+Realizamos un test para ver si la diferencia es significativa
+```{r}
+# Realiza la prueba de Kruskal-Wallis
+kruskal_result <- kruskal.test(points ~ grupo_edad, data = nadadoresPruebas)
+print(kruskal_result)
+```
+El p-value < 2.2e-16: Este valor p es extremadamente bajo, lo que indica que hay diferencias significativas en los puntos entre al menos uno de los grupos de edad. Dado que el valor p es muy pequeño, puedes rechazar la hipótesis nula, que sostiene que no hay diferencias en las medianas de los puntos entre los grupos.
+
+Aunque Kruskal-Wallis indica que hay diferencias, no te dice cuáles son esos grupos que difieren. Por lo tanto, es recomendable realizar pruebas post-hoc para identificar qué grupos son significativamente diferentes entre sí.
+```{r}
+# Prueba de Dunn
+dunn_test <- dunnTest(points ~ grupo_edad, data = nadadoresPruebas, method = "bonferroni")
+print(dunn_test)
+```
+
+Entre 18 y 30 vs. Mayores de 30: No hay evidencia suficiente para afirmar que hay una diferencia significativa en los puntos entre estos dos grupos de edad.
+Entre 18 y 30 vs. Menores de 18: Hay una diferencia altamente significativa en los puntos entre estos dos grupos. Esto indica que los nadadores menores de 18 años obtienen significativamente menos puntos que los nadadores entre 18 y 30.
+Mayores de 30 vs. Menores de 18: También hay una diferencia altamente significativa entre estos grupos, sugiriendo que los nadadores mayores de 30 años obtienen significativamente más puntos que los nadadores menores de 18.
+
+
+La comparación muestra que, mientras que no hay diferencia significativa entre los grupos de 18-30 y mayores de 30, los menores de 18 años se desempeñan significativamente peor en términos de puntos en comparación con ambos grupos de mayores edad.
+
+```{r}
+ggplot(nadadoresPruebas, aes(x = grupo_edad, y = points, fill = grupo_edad)) +
+  geom_boxplot() +
+  labs(title = "Distribución de Puntos por Grupo de Edad", 
+       x = "Grupo de Edad", 
+       y = "Puntos") +
+  theme_minimal()
+
+```
+
+
+```{r}
+#vuelvo de nuevo a la original
+nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
 ### Modelo de regresión lineal: reactiontime vs swimtime
