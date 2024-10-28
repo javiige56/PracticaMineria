@@ -1033,6 +1033,12 @@ Sigue sin ser normal la distribución de los residuos, luego parece que este no 
 
 De todas formas, si en algún momento existe relación entre los puntos y las calles usadas, será porque los nadadores con mejor tiempo se situan en las calles centrales. 
 
+```{r, echo=FALSE}
+rm(anova_tiempoReaccion_Calles, lmPuntosCalle, lmPuntosCalle2, colores )
+
+```
+
+
 ### Daytime
 
 Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
@@ -1125,8 +1131,14 @@ summary(pruebasVespertinas$round)
 
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
 
+```{r, echo=FALSE}
+rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos_hhmm, convertir_a_hhmm)
+```
+
 
 ## Estudio sobre la variable distancia y su asociación con los tipos de nado. (SALMA)
+
+
 
 
 
@@ -1179,8 +1191,6 @@ print(resumen_pruebas)
 Lo veo gráficamente:
 
 ```{r}
-library(ggplot2)
-
 # Gráfico de barras para el número de participantes por grupo de edad y distancia
 ggplot(resumen_pruebas, aes(x = factor(distance), y = num_participantes, fill = grupo_edad)) +
   geom_bar(stat = "identity", position = "dodge") +
@@ -1254,6 +1264,14 @@ print(participaciones_menores)
 Evidentemente, como ya nos podíamos esperar, la participación de nadadores menores de edad en pruebas explosivas es notablemente mayor que en pruebas de resistencia.
 Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosivas, como los 50 y 100 metros, requieren menos tiempo de entrenamiento prolongado en comparación con las pruebas de resistencia, que implican una mayor dedicación y condición física a largo plazo.
 
+
+
+```{r, echo=FALSE}
+rm(participaciones_menores,resumen_pruebas, total_nadadores)
+
+nadadoresPruebas<-nadadoresPruebasCopia
+
+```
 
 
 ## Estudio sobre la variable round. [Alonso]
@@ -1448,13 +1466,28 @@ medley200SEM
 Y efectivamente, empataron con un tiempo de 118.54 segundos, luego SOS equivale a las rondas de desempate producidas en las rondas semifinales.
 Además, observamos que se realizan por las tardes.
 
+Luego, ya hemos resuelto las dudas acerca de Round. 
+
+```{r, echo=FALSE}
+rm(datosSOP, datosSOS, fly100PREWomen, free50FinalWomens, free50PrelimWomens, free50SemisWomens, medley200SEM)
+
+```
+
+
 ## Estudios relacionados con los puntos.
 
 Veamos las posibles relaciones de puntos con las demás variables:
 
+Antes de ello, vamos a tener que eliminar de este estudio a los nadadores descalificados (es decir, los que tienen NA points).
+
+```{r}
+nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$points))
+```
+
+
 ### Mejor nadador por prueba nadada. MVP de los mundiales.
 
-Veamos ahora cómo se distribuyen los puntos:
+Veamos ahora cómo se distribuyen los puntos.
 
 ```{r, warning=FALSE}
 ggplot(nadadoresPruebas, aes(x = points)) +
@@ -1639,16 +1672,14 @@ cor(X,Y)
 De manera adicional, podemos incluir histogramas marginales en cada eje del gráfico, para ello usamos las librerías `ggplot2` y `ggExtra`.
 
 ```{r}
+datos<-data.frame(x=X,y=Y)
 
-#da error
-#datos<-data.frame(x=X,y=Y)
-
-#p<-ggplot(datos, aes(x = X, y = Y)) +
-  #geom_point()
+p<-ggplot(datos, aes(x = X, y = Y)) +
+  geom_point()
 #vemos la nube de puntos 
-#print(p)
+print(p)
 #Especificamos que se añadan histogramas en los márgenes
-#ggMarginal(p, type = "histogram")
+ggMarginal(p, type = "histogram")
 
 ```
 
@@ -1658,33 +1689,46 @@ Es decir, considerar un modelo de regresion lineal simple.
 La función que ajusta el modelo de regresión lineal simple en R es `lm`(con parametros B_0,B_1 y sigma\^2), directamente hacemos un `summary` para que nos devuelva la información más importante, aunque realmente `lm` calcula muchas cosas: estimaciones, residuos, predicciones, etc.
 
 ```{r}
- #lm=lm(Y~X)
-#summary(lm)
+lm=lm(Y~X)
+summary(lm)
 ```
 
 Podemos añadir la recta de regresión al gráfico usando el comando `abline`, y el objeto donde hemos guardado el ajuste de la recta, en este caso `lm4`:
 
 ```{r}
 #representamos
-#plot(X,Y)
+plot(X,Y)
 #añadimos la recta de regresion
-#abline(lm)
+abline(lm)
 ```
 
 Los coeficientes de la regresión estimados también están en el objeto donde hemos guardado el ajuste, en `lm`
 
 ```{r}
 #generamos un vector con los coeficientes de la regresion
-#coeficientes=lm$coefficients
+coeficientes=lm$coefficients
 #comprobamos que es lo mismo que nos salía en el summary
-#coeficientes
+coeficientes
 ```
 
 Sabemos que el valor de los puntos cuando X=0, es decir, que el tiempo de reacción sea cero, es de 1809 aproximadamente.
 Este parámetro no tendría sentido, pues el tiempo de reacción nunca va a ser cero.
 Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor que aumenta X, Y aumenta lo indicado.
 
+
+```{r, echo=FALSE}
+
+#Este código al final del estudio para no sobrecargar el entorno (Enviroment)
+rm(anova_puntos_genero, datos, lm, media_puntos, modelo, nadadores_menores, p, resumen_puntos, coeficientes, t, x, X, y, Y, nadadoresPruebas50, nadadoresPruebas50crol)
+
+nadadoresPruebas<- nadadoresPruebasCopia
+
+```
+
+
 ## Prueba 800m Libre femenino. [Alonso]
+
+Quiero evaluar la prueba 800m libres.
 
 Veamos qué nadadores nadaron el 800 libre femenino:
 
@@ -1694,7 +1738,8 @@ nadadoras800free<-nadadoresPruebas[nadadoresPruebas$distance==800 & nadadoresPru
 dim(nadadoras800free)
 ```
 
-Tenemos que 52 chicas nadaron el 800 libres, algunas de ellas dos veces ya que pasaron a la final.
+Se observa que no hay descalificaciones en el 800 libres femenino.
+Tenemos que 51 chicas nadaron el 800 libres, algunas de ellas dos veces ya que pasaron a la final.
 
 Nos vamos a fijar en la final, para ello, filtramos otra vez los datos:
 
@@ -1766,6 +1811,12 @@ ggplot(nadadoras800free, aes(x = splitdistance, y = Posicion, group = lastname))
 
 Observamos como Ledecky lidera toda la carrera, Boyle alcanza al paso de los 100 metros la segunda posición y la mantiene.
 La pelea por la última medalla en juego dura hasta los 700 metros, donde un adelantamiento de Carlin a Ashwood hace que la nadadora Jaz Carlin alcance el bronce olímpico.
+
+```{r, echo=FALSE}
+rm(nadadoras800free)
+```
+
+
 
 # PCA's
 
