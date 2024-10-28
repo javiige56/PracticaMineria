@@ -2077,7 +2077,7 @@ resumen200
 El punto 5 se corresponde con Castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto.
 En las edades también vemos que AL-Khulaifi es muy joven, como ya nos esperábamos.
 
-## PCA. 800M libres femenino. [Alonso]
+## Análisis de componentes principales del 800 libres femenino. Ronda preliminar [Alonso]
 
 Lo primero que debemos hacer es cargar los datos:
 
@@ -2094,41 +2094,68 @@ Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedem
 pruebawide <- prueba800libresPreliminar %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
-pruebawide
 #omito los valores nulos: 
 pruebawide<- na.omit(pruebawide)
-row.names(pruebawide) <- pruebawide$lastname # esto es para llamar a las filas con el nombre de los nadadores
 
+rownames(pruebawide) <- pruebawide$lastname
 
 ```
 
 Ahora que ya tenemos nuestra tabla hecha, vamos a hacer el PCA:
 
 ```{r}
-prcomp(pruebawide[,-1], scale=T)
-summary(prcomp(pruebawide[,-1],scale=T))
+pca800libres<-prcomp(pruebawide[,-1], scale=T)
+
+plot(pca800libres)
+
 ```
 
-Viendo el pca, observamos que con la primera componente, tenemos un 85% de la varianza.
-Con pc2 un 5%, luego con esas dos podemos explicar un 90% de los datos.
+Vemos la importancia de cadad componente. 
+
+Observemos además, un resumen numérico: 
+
+```{r}
+summary(pca800libres)
+```
+
+Viendo el pca, observamos que con la primera componente, tenemos un 84% de la varianza.
+Con pc2 un 6%, luego con esas dos logramos explicar un 90% de los datos.
+
+
+Hagamos una interpretación previa a la graficación de los datos: 
+
+```{r}
+pca800libres
+```
+
+La PCA1 corresponde a una media ponderada en la cual, lo que más ponderan son los parciales de la prueba, siendo los más significativos del 200 al 650. También toma algo de importancia la edad pero no se verá reflejada. Luego, nos esperaremos más a la izquierda los nadadores cuyo tiempo medio sea menor (es decir, las más rapidas de las preliminares), y a la derecha las nadadoras más lentas en promedio. 
+
+La PCA2, cobra muchísima importancia el tiempo de reacción y la edad. Luego, esperaremos, contra más arriba se encuentren, nadadoras con un buen tiempo de reacción o pocos años, y abajo nadadoras con mal tiempo de reacción o muchos años.
 
 Ahora, veamos cómo se ven los datos:
 
 ```{r}
-plot(prcomp(pruebawide[,-1],scale=T)$x[,1:2], type="n")
-text(prcomp(pruebawide[,-1],scale=T)$x[,1:2],rownames(pruebawide))
+plot(pca800libres$x[,1:2], type="n")
+text(pca800libres$x[,1:2],rownames(pruebawide), cex = 0.4)
 
 ```
 
-Si nos fijamos en la variable PC1, tenemos más a la izquierda a las nadadoras más rápidas en media en la prueba y a la derecha las más lentas.
+Luego, podríamos decir que, el grupo de Ledecky, Carlin... fueron las más rapidas de las preliminares. Chentson, Holowchak y Rannvaardottir las más lentas. 
 
-Si nos fijamos en la variable PC2, más arriba tenemos a las nadadoras con MENOR tiempo de reacción y abajo las que tienen mayor tiempo de reacción, variando un poco también con la edad pero no siendo tan significativa.
+También, podríamos decir que, nadadoras como Jo, corresponden a un tiempo de reacción muy bajo junto con una edad baja. Nadadoras como Kobrich y Elhenicka, serán nadadoras con más años y que además tienen un mal tiempo de reacción en comparación con todas las demás. 
 
-Veamos cómo queda el biplot:
+
+
+Veámos la ponderación de las variables con el siguiente gráfico: 
 
 ```{r}
-biplot(prcomp(pruebawide[,-1],scale=T))
+fviz_pca_var(pca800libres, col.var = "red")
+```
 
+Viendo esta interpretación, podemos observar de una mejor manera, cuando un nadador va a estar más "arriba" o "abajo", si es causa de la edad o del tiempo de reacción. Luego, si nos fijamos en las nadadoras del gráfico anterior, podremos asegurar que, Gill, tiene un tiempo de reacción pésimo, ledecky es rápida y joven y buen tiempo de reacción. Hassler es una nadadora con más edad pero de las más rapidas pero con mal tiempo de reacción. 
+
+```{r}
+biplot(pca800libres)
 ```
 
 ## PCA 100m mariposa femenino
@@ -2178,7 +2205,7 @@ Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23
 También tenemos una gráfica del PCA realizado.
 
 
-# Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
+## Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
 
 Vamos a ver en qué estilo predominan los nadadores de 1500 metros En la prueba de 1500, todos los nadadores nadan en estilo libre.
 Por tanto, no seleccionaremos según esa imposición, ya que nos viene de los propios datos.
