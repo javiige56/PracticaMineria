@@ -105,7 +105,6 @@ A continuación, vamos a ver un resumen de los datos:
 
 ```{r}
 summary(datos2015)
-
 ```
 
 De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, que como máximo hubo 12 series y como mínimo 1 y que la piscina disponía de 10 carriles numerados del 0 al 9.
@@ -137,8 +136,6 @@ Hay 5 tipos de ronda distintos.
 El menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
 Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tantas filas como parciales tenía en esa prueba, luego es obvio que para conocer mejor algunas variables, vamos a necesitar limpiar los datos para que los elementos repetidos no causen interferencia en nuestros datos.
-
-
 
 A continuación, vamos a ir realizando estudios para tratar de comprender más a fondo algunas variables.
 
@@ -2319,16 +2316,20 @@ prueba100MariposaFem <- datos2015[datos2015$distance==100 & datos2015$gender=="F
 
 # Selección de columnas relevantes
 prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime)
+prueba100MariposaFem
 ```
+
+A continuación, vamos a organizar los datos de la tabla _prueba100MariposaFem_. de modo que cada nadador tiene una fila única con columnas para cada distancia.
 
 ```{r}
 prueba <- prueba100MariposaFem %>%
-  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
-              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+  pivot_wider(names_from = splitdistance,       # Las diferenetes distancias se convierten en los nombres de las columnas
+              values_from =splitswimtime)     #los valores de las celdas serán los tiempos de nado
 
 #Eliminamos duplicados y NA de la columna 'lastname'
 prueba <- prueba[!duplicated(prueba$lastname) & !is.na(prueba$lastname), ]
 
+#Convertimos a data frame
 prueba <- as.data.frame(prueba)
 
 # Asignar los nombres de fila como el apellido del nadador
@@ -2336,9 +2337,10 @@ row.names(prueba) <- prueba$lastname
 
 #Eliminamos filas con NA restantes
 prueba <- na.omit(prueba)
+prueba
 ```
 
-Con todo esto, estamos preparados para realizar el PCA:
+Con todo esto, estamos preparados para realizar el PCA. 
 
 ```{r}
 #Realizamos el PCA
@@ -2350,9 +2352,14 @@ summary(pca_100mariposafemenino)
 #Visualización del PCA
 biplot(pca_100mariposafemenino)
 ```
+El resultado del análisis de componentes principales (PCA) muestra tres componentes principales (PC1, PC2, PC3). Veamos cada aspecto de la salida:
+Los datos de la fila de desivación estándar (Standard deviation, cuanto mayores sean, mas variabilidad de los datos se captura. En este caso, la componente principal PC1 es la que tiene mayor desviación estándar, lo que sugiere que capta la mayor parte de la varianza.
 
-Obtenemos que la componente 1 (PC1) explica un 74,23% de las prueba y la 2 un 23,28%.
-También tenemos una gráfica del PCA realizado.
+En segundo lugar, la proporción de la varianza indica indica qué porcentaje de la varianza total de los datos está capturado por cada componente. Aquí, PC1 captura el 74.23% de la varianza, mientras que PC2 captura el 23.28%, y PC3 solo el 2.493%. Esto significa que PC1 es el componente más relevante para representar la estructura de los datos, mientras que PC3 aporta muy poco.
+
+Por último, para la variable de proporción acumulada indica la varianza total capturada al considera las componentes en conjunto. PC1 junto con PC2 explican el 97,51% de la variabilidad de los datos (bastante alto). Esto sugiere que podemos reducir la dimensionalidad a estos dos primeros componentes sin perder mucha información.
+
+En definitiva, el análisis PCA muestra que los datos prueba pueden ser bien representados con solo dos componentes principales (PC1 y PC2). Este resultado implica que la mayor parte de la variabilidad de los tiempos de nado de los participantes se puede resumir en estas dos dimensiones.
 
 
 ## Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
@@ -2364,10 +2371,7 @@ Esto lo comprobamos viendo que
 
 ```{r}
 summary(nadadoresPruebas$stroke[nadadoresPruebas$distance == 1500])
-
 summary(nadadoresPruebas$round[nadadoresPruebas$distance == 1500])
-
-
 ```
 
 Como podemos observar, todos los nadadores nadan en estilo libre.
@@ -2463,7 +2467,36 @@ Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece
 
 ## Clusters
 
-#Cluster 200 masculina
+#Cluster 100 mariposa femenino [Javier]
+
+Vamos a escalar los datos de _prueba[,-1]_ (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga medio 0 y desviación estándar 1.
+
+```{r}
+cluster100mariposafem <- scale(prueba[,-1])
+cluster100mariposafem
+```
+
+Ahora, calculamos y visualizamos la matriz de distancias entre las observaciones de _cluster100mariposafem_ (REVISAR)
+
+```{r}
+#Calulamos la matriz de distancias
+distancias <- get_dist(cluster100mariposafem)
+#Vemos la matriz de distancias como un mapa de calor
+fviz_dist(distancias, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
+Aquí:
+- low = "#00AFBB" (azul claro) representa las distancias pequeñas entre observaciones.
+- mid = "white" representa las distancias medias.
+- high = "#FC4E07" (rojo) representa las distancias grandes.
+
+```{r}
+#Realizamos en clustering (en estecaso, 2 cluster)
+k100 <- kmeans(cluster100mariposafem, centers = 2, nstart = 25)
+str(k100)
+```
+
+
+#Cluster 200 mariposa masculina
 
 ```{r}
 clusterprueba200 <- scale(pruebita[,-1])
@@ -2581,8 +2614,6 @@ Vemos que coinciden.
 #Cluster para la prueba de 1500 masculina
 
 ```{r}
-
-
 # escalado de todas las variables
 clusterprueba1500 <- scale(prueba1500[,-1])
 
