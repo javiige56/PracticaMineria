@@ -35,7 +35,7 @@ library(FSA)
 
 ```
 
-# Introducción.
+# Introducción(Javier).
 
 En este proyecto, se analizarán los resultados del **mundial de natación de 2015** con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos.
 Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable
@@ -70,7 +70,7 @@ Las variables o atributos que conforman el conjunto de datos son:
 -   stroke: Estilo de nado en el que se realizó la prueba.
 -   splitswimtime: Tiempo del parcial (50m)
 
-# Entender los datos.
+# Entender los datos(Javi).
 
 Primeramente, vamos a leer los datos:
 
@@ -96,9 +96,9 @@ Observamos Noel Borshi, nadadora albanesa nacida un 13 de febrero de 1996, que t
 Noel Borshi nadó la prueba 1 en la serie 1 y carril 4.
 Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65s y pasó por el primer parcial (50m) en 29.63 segundos.
 
-# Análisis exploratorio de datos.
+# Análisis exploratorio de datos(Javi).
 
-## Resumen de los datos.
+## Resumen de los datos(JAVI).
 
 A continuación, vamos a ver un resumen de los datos:
 
@@ -138,7 +138,7 @@ Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tant
 
 A continuación, vamos a ir realizando estudios para tratar de comprender más a fondo algunas variables.
 
-##  Variable Relaycount. ¿Nos sirve de algo?
+##  Variable Relaycount. ¿Nos sirve de algo?(Javi)
 
 Si observamos el resumen de la variable relaycount: 
 
@@ -259,7 +259,7 @@ Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados.
 rm(datosNA, naReactionTime, todosNA, percent_na)
 ```
 
-## Variable birthdate. Creacion de nueva variable edad.
+## Variable birthdate. Creacion de nueva variable edad.(Ines)
 
 A continuación, vamos a crear una variable llamada *edad*, ya que será más representativo que trabajar con la variable birthdate.
 La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial.
@@ -278,7 +278,7 @@ Además, borramos la variable birthdate:
 datos2015$birthdate=NULL
 ```
 
-#Tablas
+#Tablas(Ines)
 
 Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba, luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor. Además, "ponderaría" más variables como el tiempo de reacción en nadadores de 1500 puesto que se usaría ese valor 15 veces por cada vez que se usa en un nadador de una prueba de 50 metros. 
 
@@ -502,15 +502,13 @@ rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
 Vamos a ver la cantidad de nadadores por país.
 
 ```{r, warning=FALSE}
-# Utilizamos la tabla nadadoresParticipantes
-# Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
+
 nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
-#Vemos que salta error EN FINA, KOSOVO,MICRONESIA Y VIRGIN ISLAND
-#Por tanto, revisamos los datos 
+
 nombres<- unique(nadadoresParticipantes$name) #Para no repetir
 print(nombres)
 
-#Nombres problemáticos
+
 manual <- data.frame(
   nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
   iso2 = c("FI", "XK", "FM", "VI")  
@@ -520,8 +518,7 @@ manual <- data.frame(
 nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
 #vuelve a fallar
 
-#solo es XK(KOSOVO, que está en Europa)
-#manualmente el continente para Kosovo (XK)
+
 nadadoresParticipantes <- nadadoresParticipantes %>%
   mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
 
@@ -835,7 +832,7 @@ nadadoresPruebas<-nadadoresPruebasCopia
 
 
 ## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
-### Reactiontime. Hombres vs Mujeres
+### Reactiontime. Hombres vs Mujeres(Ines)
 
 Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores. Para ello, no tenemos en cuenta las dos filas con datos nulos. 
 
@@ -881,7 +878,7 @@ Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo 
 No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el de Cohen).
 Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
 
-### Reactiontime. Distancias largas vs distancias cortas.
+### Reactiontime. Distancias largas vs distancias cortas(Ines).
 
 Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 800m libres y 50m libres:
 
@@ -986,7 +983,7 @@ nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
 
-### Calles usadas.
+### Calles usadas(Ines).
 
 Veamos cómo se distribuyen las calles usadas:
 
@@ -1068,7 +1065,7 @@ rm(anova_tiempoReaccion_Calles, lmPuntosCalle, lmPuntosCalle2, colores )
 ```
 
 
-### Daytime
+### Daytime(Ines)
 
 Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
 
@@ -1452,7 +1449,7 @@ dim(free50FinalWomens)
 
 Observamos que hay 8, luego las 8 primeras se clasificaron a la final.
 
-### ¿Se nadan las 3 rondas en cada prueba?
+### ¿Se nadan las 3 rondas en cada prueba?(ALONSO)
 
 Esta cuestión nos surge ya que, algunas pruebas requieren más esfuerzo y el tiempo de descanso para la recuperación total es más largo, por ello alomejor hay pruebas en las que sólo hay 1 ronda, o 2, o esta suposición es falsa y en cada prueba se nadan 3 rondas.
 Para ello, echemos un cálculo inicial.
@@ -1566,7 +1563,7 @@ rm(datosSOP, datosSOS, fly100PREWomen, free50FinalWomens, free50PrelimWomens, fr
 ```
 
 
-## Estudios relacionados con los puntos.
+## Estudios relacionados con los puntos(Javi).
 
 Veamos las posibles relaciones de puntos con las demás variables:
 
@@ -1577,7 +1574,7 @@ nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$points))
 ```
 
 
-### Mejor nadador por prueba nadada. MVP de los mundiales.
+### Mejor nadador por prueba nadada. MVP de los mundiales(Javi).
 
 Veamos ahora cómo se distribuyen los puntos.
 
@@ -1631,7 +1628,7 @@ nadadoresParticipantes[nadadoresParticipantes$athleteid==102630 | nadadoresParti
 
 Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie Ledecky.
 
-### Puntos. Hombres vs Mujeres
+### Puntos. Hombres vs Mujeres(Ines)
 
 A continuación, vamos a comparar los puntos realizados por hombres y mujeres, para ver si podemos sacar alguna conclusión.
 
@@ -1660,7 +1657,7 @@ summary(anova_puntos_genero)
 ```
 
 
-### Puntos. ¿La edad influye?
+### Puntos. ¿La edad influye?(Salma)
 Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
 ```{r, warning=FALSE}
@@ -1764,7 +1761,7 @@ rm(anova_puntos_genero, dunn_test, kruskal_result, media_puntos, modelo, promedi
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
-### Modelo de regresión lineal: reactiontime vs swimtime
+### Modelo de regresión lineal: reactiontime vs swimtime(Salma)
 
 ```{r}
 # Esto no funciona porque las dos variables continuas tienen distinto tamaño
@@ -1915,7 +1912,7 @@ nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & da
 
 ```
 
-#### Estudio sobre los parciales de la carrera.
+#### Estudio sobre los parciales de la carrera.(ALONSO)
 
 Vamos a evaluar cómo fueron los parciales de las nadadoras, para ello hacemos el siguiente gráfico:
 
@@ -1946,7 +1943,7 @@ También vemos alguna otra nadadora más que hace algo similar como Van Rouwenda
 Otras en cambio, intentan conservar el ritmo marcado desde el inicio y ser constantes.
 Carlin mete un cambio de ritmo muy drástico al paso de los 650m de 31s altos a 31s bajos y sigue luego bajando.
 
-#### Visualización de la carrera.
+#### Visualización de la carrera.(alonso)
 
 Ahora, vamos a definir una tabla en la que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial:
 
