@@ -70,7 +70,7 @@ Las variables o atributos que conforman el conjunto de datos son:
 -   stroke: Estilo de nado en el que se realizó la prueba.
 -   splitswimtime: Tiempo del parcial (50m)
 
-# Entender los datos(Javi).
+# Entender los datos (Javi).
 
 Primeramente, vamos a leer los datos:
 
@@ -109,7 +109,8 @@ summary(datos2015)
 De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, que como máximo hubo 12 series y como mínimo 1 y que la piscina disponía de 10 carriles numerados del 0 al 9.
 También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 
-Tenemos variables categóricas las cuales se han tratado como continuas de partida. Por lo cual, usando la librería "dyplr", vamos a convertirlas a variables categóricas en R para tener una mejor visualización de ellas.
+Tenemos variables categóricas las cuales se han tratado como continuas de partida.
+Por lo cual, usando la librería "dyplr", vamos a convertirlas a variables categóricas en R para tener una mejor visualización de ellas.
 
 ```{r}
 datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke, relaycount)
@@ -129,8 +130,7 @@ Se trata del país de procedencia de cada nadador.
 
 Vemos que hay 5 ***tipos de nado***: braza, mariposa, crol, espalda y estilos individual.
 
-No hemos guardado la distancia como una variable categórica, pero más adelante veremos que hay 6 distancias (50, 100, 200, 400, 800, 1500)
-Hay 5 tipos de ronda distintos.
+No hemos guardado la distancia como una variable categórica, pero más adelante veremos que hay 6 distancias (50, 100, 200, 400, 800, 1500) Hay 5 tipos de ronda distintos.
 
 El menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
@@ -138,9 +138,9 @@ Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tant
 
 A continuación, vamos a ir realizando estudios para tratar de comprender más a fondo algunas variables.
 
-##  Variable Relaycount. ¿Nos sirve de algo?(Javi)
+## Variable Relaycount. ¿Nos sirve de algo?(Javi)
 
-Si observamos el resumen de la variable relaycount: 
+Si observamos el resumen de la variable relaycount:
 
 ```{r}
 summary(datos2015$relaycount)
@@ -155,31 +155,36 @@ Luego, la eliminamos:
 datos2015$relaycount <- NULL
 ```
 
-Luego ahora, tenemos 21 variables en vez de 22. 
-
+Luego ahora, tenemos 21 variables en vez de 22.
 
 ## Valores NA. Datos faltantes. [Expone Alonso todo.]
 
 Si volvemos a mirar nuestro resumen, observamos que hay valores faltantes.
 Vamos a tratar de identificarlos, intentar entender el por qué de esos datos faltantes, y razonar cuándo será conveniente eliminarlos o no de nuestro estudio.
 
-Para ello, vamos a obtener primeramente un resumen de cómo se distribuyen los datos faltantes: 
+Para ello, vamos a obtener primeramente un resumen de cómo se distribuyen los datos faltantes:
 
 ```{r}
 print(sum(is.na(datos2015)))
 ```
-Observamos que hay 309 valores faltantes. 
 
-Vamos a crear una tabla donde se nos muestren dónde se encuentran los valores faltantes: 
+Observamos que hay 309 valores faltantes.
+
+Vamos a crear una tabla donde se nos muestren dónde se encuentran los valores faltantes:
 
 ```{r}
 datosNA <- datos2015[rowSums(is.na(datos2015)) > 0, ]
 dim(datosNA)
 
 ```
-Observamos que, de 11429 observaciones de mi tabla original, en 73 de ellas, existe algún valor nulo. Es decir, un 0.63 %  por ciento. Un valor muy bajo. 
 
-En principio y sin estudiar nada más, podríamos considerar eliminar las filas que contengan datos faltantes ya que toman un valor muy pequeño con respecto al total. Aún así, vamos a ver dónde se suelen tomar más valores nulos y intentar explicar el por qué. Hacemos una tabla con los valores nulos de cada variable en porcentaje: 
+Observamos que, de 11429 observaciones de mi tabla original, en 73 de ellas, existe algún valor nulo.
+Es decir, un 0.63 % por ciento.
+Un valor muy bajo.
+
+En principio y sin estudiar nada más, podríamos considerar eliminar las filas que contengan datos faltantes ya que toman un valor muy pequeño con respecto al total.
+Aún así, vamos a ver dónde se suelen tomar más valores nulos y intentar explicar el por qué.
+Hacemos una tabla con los valores nulos de cada variable en porcentaje:
 
 ```{r}
 percent_na <- colSums(is.na(datosNA)) / nrow(datosNA) * 100
@@ -187,19 +192,25 @@ percent_na
 
 ```
 
-Observamos de manera bastante clara que los datos nulos tienen mucho que ver con el tiempo acumulado, los puntos finales, el tiempo de reacción, el tiempo final y el tiempo al paso por el parcial. 
+Observamos de manera bastante clara que los datos nulos tienen mucho que ver con el tiempo acumulado, los puntos finales, el tiempo de reacción, el tiempo final y el tiempo al paso por el parcial.
 
-A continuación vamos a intentar clasificar los nulos dependiendo qué falta: 
+A continuación, vamos a intentar clasificar los nulos dependiendo qué falta:
 
 ### Valores nulos en los que faltan todas las variables.
 
-Visualicemos los datos donde faltan todas las variables dichas anteriormente: 
+Visualicemos los datos donde faltan todas las variables dichas anteriormente:
 
 ```{r}
 todosNA<-datosNA[is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(datosNA$swimtime) & is.na(datosNA$cumswimtime) & is.na(datosNA$splitswimtime), ]
 ```
 
-Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados... Es decir, nadadores que posiblemente se dieron de baja en la prueba. La mayoría de nadadores causaron baja en la ronda preliminar, pero hay uno, el nadador chino Sun Yang, que causó baja en la final del 1500m libres masculino. Haciendo una pequeña búsqueda en los resultados de la World Aquatics de los mundiales de 2015, observamos que Sun Yang produjo DNS (Did not Start). También, buscando a César Cielo en el 50 libres de las preliminares, observamos que causó baja DNS. Luego todo parece indicar que estos nadadores fueron baja en esa prueba y por ello no sale ningún dato en esas variables. Los eliminamos: 
+Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados...
+Es decir, nadadores que posiblemente se dieron de baja en la prueba.
+La mayoría de nadadores causaron baja en la ronda preliminar, pero hay uno, el nadador chino Sun Yang, que causó baja en la final del 1500m libres masculino.
+Haciendo una pequeña búsqueda en los resultados de la World Aquatics de los mundiales de 2015, observamos que Sun Yang produjo DNS (Did not Start).
+También, buscando a César Cielo en el 50 libres de las preliminares, observamos que causó baja DNS.
+Luego todo parece indicar que estos nadadores fueron baja en esa prueba y por ello no sale ningún dato en esas variables.
+Los eliminamos:
 
 ```{r}
 #Primero de la tabla datosNA: 
@@ -212,47 +223,54 @@ datos2015<-datos2015 %>%
 
 ```
 
-
-Bien, ahora, tenemos solamente datos en los que falta alguna de las variables. Analizamos nuevamente para poder reclasificarlos: 
+Bien, ahora, tenemos solamente datos en los que falta alguna de las variables.
+Analizamos nuevamente para poder reclasificarlos:
 
 ```{r}
 datosNA
 ```
 
-Nos quedan solamente 14 filas en los que hay datos nulos. Si seguimos con nuestra limpieza: 
+Nos quedan solamente 14 filas en los que hay datos nulos.
+Si seguimos con nuestra limpieza:
 
-### Valores nulos donde faltan los puntos: 
+### Valores nulos donde faltan los puntos:
 
-Veamos qué sucede si sólo faltan los puntos: 
+Veamos qué sucede si sólo faltan los puntos:
 
 ```{r}
 naReactionTime<-datosNA[is.na(datosNA$points),]
 naReactionTime
 ```
 
-Vamos a buscar los resultados de World Aquatics de alguno de ellos, para estimar qué esta sucediendo. ¿Fueron descalificados?. 
+Vamos a buscar los resultados de World Aquatics de alguno de ellos, para estimar qué esta sucediendo.
+¿Fueron descalificados?.
 
-Nuestro nadador de la primera fila, Ben Treffers, fue descalificado. Buscamos también a Vladimir Morozov, y también fue descalificado. 
-Luego, son participantes que nadaron pero quedaron descalificados. Por tanto, sus datos nos servirán para hacer estudios sobre participación, pero no para cualquier estudio que involucre los resultados. Luego estos, no los eliminamos del dataframe inicial datos2015
+Nuestro nadador de la primera fila, Ben Treffers, fue descalificado.
+Buscamos también a Vladimir Morozov, y también fue descalificado.
+Luego, son participantes que nadaron pero quedaron descalificados.
+Por tanto, sus datos nos servirán para hacer estudios sobre participación, pero no para cualquier estudio que involucre los resultados.
+Luego estos, no los eliminamos del dataframe inicial datos2015
 
 ```{r}
 datosNA <- datosNA %>%
   filter(!(is.na(datosNA$points)))
 ```
 
-Me quedan las dos ultimas observaciones por ver: 
+Me quedan las dos ultimas observaciones por ver:
 
 ```{r}
 datosNA
 ```
 
-Tenemos dos observaciones en las cuales no existe el tiempo de reacción. Seguramente se deba a algún fallo en el sistema electrónico o algún fallo al pasar los datos. Por lo tanto, al igual que con los anteriores, no lo eliminaremos de nuestro dataframe inicial, pero sí lo tendremos en cuenta cuando tengamos que analizar estudios que tengan que ver con el tiempo de reacción. 
+Tenemos dos observaciones en las cuales no existe el tiempo de reacción.
+Seguramente se deba a algún fallo en el sistema electrónico o algún fallo al pasar los datos.
+Por lo tanto, al igual que con los anteriores, no lo eliminaremos de nuestro dataframe inicial, pero sí lo tendremos en cuenta cuando tengamos que analizar estudios que tengan que ver con el tiempo de reacción.
 
 ```{r}
 print(sum(is.na(datos2015)))
 ```
 
-Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados. 
+Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados.
 
 ```{r, echo=FALSE}
 #Elimino las tablas creadas para no sobrecargar. Ya que no las vamos a volver a usar.
@@ -272,23 +290,25 @@ fechaKazan<- as.Date("2015-07-24")
 datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
 ```
 
-Además, borramos la variable birthdate: 
+Además, borramos la variable birthdate:
 
 ```{r}
 datos2015$birthdate=NULL
 ```
 
-#Tablas(Ines)
+#Tablas [Inés]
 
-Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba. Luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor (en el caso de las carreras de 1500m). Además, no estaríamos haciendo un análisis correcto, puesto que los resultados estarían claramente sesgados hacia los de las distancias más largas. 
-Por ejemplo, en el caso del tiempo de reacción, los tiempos de los nadadores de 1500 metros se contabilizarían 15 veces. Mientras que en los nadadores de 50 metros sólo una vez. 
+Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba.
+Luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor (en el caso de las carreras de 1500m).
+Además, no estaríamos haciendo un análisis correcto, puesto que los resultados estarían claramente sesgados hacia los de las distancias más largas.
+Por ejemplo, en el caso del tiempo de reacción, los tiempos de los nadadores de 1500 metros se contabilizarían 15 veces.
+Mientras que en los nadadores de 50 metros sólo una vez.
 
-A continuación, procedemos a presentar las tablas que vamos a utilizar dependiendo lo que queramos estudiar: 
+A continuación, procedemos a presentar las tablas que vamos a utilizar dependiendo lo que queramos estudiar:
 
-
-##Tabla nadadoresParticipantes
-Utilizaremos esta tabla para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc. Es decir, análisis sobre datos que no requieren el conocimiento de la progresión en sus splits. 
-Para ello, nos bastará con tener la primera fila de cada participante. 
+##Tabla nadadoresParticipantes Utilizaremos esta tabla para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc.
+Es decir, análisis sobre datos que no requieren el conocimiento de la progresión en sus splits.
+Para ello, nos bastará con tener la primera fila de cada participante.
 
 Creamos, por tanto, una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir.
 Nos basaremos en la variable athleteid para llegar a esta tabla, la cual es única para cada participante.
@@ -306,8 +326,7 @@ nadadoresParticipantesCopia<-nadadoresParticipantes
 summary(nadadoresParticipantes)
 ```
 
-##Tabla nadadoresPruebas
-Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
+##Tabla nadadoresPruebas Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
 Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
 
@@ -339,7 +358,8 @@ Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
 
 # Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
 
-Usaremos la tabla nadadoresParticipantes. Ahora, comenzamos nuestro estudio:
+Usaremos la tabla nadadoresParticipantes.
+Ahora, comenzamos nuestro estudio:
 
 ### Edad [Alonso]
 
@@ -386,8 +406,7 @@ Podríamos preguntarnos si la edad sigue una distribución normal en estos datos
 shapiro.test(nadadoresParticipantes$edad)
 ```
 
-Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos. 
-
+Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos.
 
 ### Análisis de géneros participantes [Salma].
 
@@ -490,7 +509,6 @@ ggplot(datos_porcentajes, aes(x = Genero, y = Porcentaje, fill = Genero)) +
 
 ```
 
-
 ```{r, echo=FALSE}
 
 #elimino las cosas creadas para no interferir luego. 
@@ -583,8 +601,8 @@ print(oda_bar1)
 
 ```
 
-Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países. Por ello, intentaremos analizar los resultados en función de proporciones relativas a continentes.
-
+Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países.
+Por ello, intentaremos analizar los resultados en función de proporciones relativas a continentes.
 
 ```{r}
 paleta <- c("Americas" = "#0084ff", 
@@ -818,8 +836,6 @@ print(grafico_podio_100mrepresentacion)
 
 ```
 
-
-
 ```{r, echo=FALSE}
 
 rm(conteo_por_continente, datos_100m_top, datos_100m_top_4, grafico_circular, grafico_distribucion_continente, grafico_podio_100m, grafico_podio_100mrepresentacion, histograma_nadadores, manual, oda_bar, oda_bar1, puntos_por_continente, puntos_por_pais, resumen_paises, resumenContinente, nombres, paleta)
@@ -827,11 +843,12 @@ nadadoresParticipantes<-nadadoresParticipantesCopia
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
-
 ## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
+
 ### Reactiontime. Hombres vs Mujeres(Ines)
 
-Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores. Para ello, no tenemos en cuenta las dos filas con datos nulos. 
+Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores.
+Para ello, no tenemos en cuenta las dos filas con datos nulos.
 
 ```{r}
 ggplot(na.omit(nadadoresPruebas), aes(x = reactiontime)) +
@@ -840,13 +857,14 @@ ggtitle("Distribución. reactiontime")
 
 ```
 
-Parece que los datos siguen una distribución normal a priori. Igual que antes, vamos a hacer el test de shapiro: 
+Parece que los datos siguen una distribución normal a priori.
+Igual que antes, vamos a hacer el test de shapiro:
 
 ```{r}
 shapiro.test(na.omit(nadadoresPruebas$reactiontime))
 ```
 
-Al tener un p-valor tan bajo, no parece que siga una distribución normal. 
+Al tener un p-valor tan bajo, no parece que siga una distribución normal.
 
 Comparamos las funciones de densidad de mujeres y hombres en general:
 
@@ -857,8 +875,7 @@ geom_density()+
   ggtitle("Distribución. Hombres vs Mujeres")
 ```
 
-
-De esta gráfica nos podemos plantear realizar un contraste de hipótesis, en el cual analizaremos sobre la posible diferencia significativa del tiempo de reacción en ambos géneros. 
+De esta gráfica nos podemos plantear realizar un contraste de hipótesis, en el cual analizaremos sobre la posible diferencia significativa del tiempo de reacción en ambos géneros.
 Por tanto, realizamos el siguiente test:
 
 -   H0: El tiempo de reacción es igual en mujeres y hombres.
@@ -870,16 +887,19 @@ t.test(reactiontime~gender,data=nadadoresParticipantes)
 
 Si observamos los resultados, el p- valor nos indica que hay una evidencia significativa para rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
 Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevancia a la hora de los resultados finales.
-Calculamos la diferencia relativa, ya que los tiempos de reacción son muy pequeños y de esta forma nos podemos hacer una idea de lo representativa que es la diferencia de medias. 
+Calculamos la diferencia relativa, ya que los tiempos de reacción son muy pequeños y de esta forma nos podemos hacer una idea de lo representativa que es la diferencia de medias.
 
 ```{r}
 mediaTiempoReaccion <- mean(nadadoresPruebas$reactiontime)
 mediaTiempoReaccion
 (0.7166871-0.6922862)/mediaTiempoReaccion*100
 ```
-Obtenemos que las mujeres tardan un 3.5% más de tiempo que los hombres. Debemos seguir analizando esta variable con otras para poder concluir cualquier resultado.
 
-En este punto, podríamos preguntarnos si las mujeres/hombres que tienen un tiempo de reacción más bajo le corresponderán puestos mas altos, y viceversa. Es decir, si existe una correlación negativa entre ambas variables. 
+Obtenemos que las mujeres tardan un 3.5% más de tiempo que los hombres.
+Debemos seguir analizando esta variable con otras para poder concluir cualquier resultado.
+
+En este punto, podríamos preguntarnos si las mujeres/hombres que tienen un tiempo de reacción más bajo le corresponderán puestos mas altos, y viceversa.
+Es decir, si existe una correlación negativa entre ambas variables.
 
 No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el de Cohen).
 Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
@@ -908,7 +928,6 @@ ggplot(nadadorasComparacionReactionTime, aes(x = factor(distance), y = reactiont
 ```
 
 El gráfico muestra los boxplots del tiempo de reacción para la prueba de 50 metros y otra para 800 metros.
-
 
 ```{r}
 # Crear el gráfico de densidad con colores por distancia
@@ -971,7 +990,8 @@ t.test(reactiontime~distance,data=nadadoresComparacionReactionTime)
 
 Al realizar el t-test para este grupo, vemos también como la diferencia es significativa entre el tiempo de reacción para la prueba de 50 metros y la de 800.
 
-La diferencia entre estos dos extremos en las pruebas es muy significativa. Dados estos resultados, queremos ver las tendencias en las carreras de distancia intermedia, dada nuestra intuición de que el tiempo de reacción aumente de manera gradual.
+La diferencia entre estos dos extremos en las pruebas es muy significativa.
+Dados estos resultados, queremos ver las tendencias en las carreras de distancia intermedia, dada nuestra intuición de que el tiempo de reacción aumente de manera gradual.
 Es decir, cuál es la diferencia entre las pruebas de 50 metros, las de 100, 200, etc.
 
 Para ello, realizaremos un gráfico de densidad conjunto.
@@ -1001,7 +1021,6 @@ Esto indica que, al menos una distancia tiene un tiempo de reacción diferente e
 El valor de F es alto (56.98), sugiere que la variación entre los grupos es mucho mayor que la variación dentro de los grupos.
 Esto refuerza la idea de que las medias de los tiempos de reacción son significativamente diferentes entre las carreras de diferente distancia.
 
-
 ```{r, echo=FALSE}
 rm(anova_tiempoReaccion_distancia, nadadorasComparacionReactionTime, nadadoresComparacionReactionTime)
 
@@ -1009,7 +1028,6 @@ rm(anova_tiempoReaccion_distancia, nadadorasComparacionReactionTime, nadadoresCo
 nadadoresPruebas<-nadadoresPruebasCopia
 
 ```
-
 
 ### Calles usadas(Ines).
 
@@ -1024,7 +1042,9 @@ theme_bw()
 Se observa que las calles menos usadas son tanto la 0 como la 9.
 Esto es un dato que puede resultar curioso al visualizar los datos.
 
-Informándonos acerca de ello, las calles 0 y 9 sólo se usan en la ronda preliminar, en las semifinales y finales se usan de la 1 a la 8, luego tiene sentido que sean las menos frecuentadas por los nadadores. Podríamos intentar visualizar si hay alguna relación entre alguna variable de nuestro dataframe y la calle usada, aunque podemos adelantar que, en cada serie, los nadadores se van colocando de más rapido a más lento de la siguiente forma: 4-5-3-6-2-7-1-8. Luego hay que tener esto en cuenta para no sacar conclusiones equivodadas. 
+Informándonos acerca de ello, las calles 0 y 9 sólo se usan en la ronda preliminar, en las semifinales y finales se usan de la 1 a la 8, luego tiene sentido que sean las menos frecuentadas por los nadadores.
+Podríamos intentar visualizar si hay alguna relación entre alguna variable de nuestro dataframe y la calle usada, aunque podemos adelantar que, en cada serie, los nadadores se van colocando de más rapido a más lento de la siguiente forma: 4-5-3-6-2-7-1-8.
+Luego hay que tener esto en cuenta para no sacar conclusiones equivodadas.
 
 ¿Habrá alguna relación entre la calle usada y el tiempo de reacción?
 
@@ -1108,7 +1128,6 @@ ggplot(nadadoresPruebas, aes(x = tiempo_hhmm)) +
 
 Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias van, por la mañana de 9:30 a 12:30, y por la tarde de 17:30 a 19:30.
 
-
 #### Pruebas matinales y vespertinas. [Alonso]
 
 Observamos que el número de nadadores que nadan por la mañana es mucho mayor al de por la tarde.
@@ -1154,11 +1173,11 @@ rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
-
 ## Estudio sobre la variable distancia y su asociación con los tipos de nado. (SALMA)
 
 Una variable que aún no hemos tratado de comprender es el tipo de nado, es decir, la variable 'stroke'.
-Una pregunta que nos puede surgir es, ¿dependiendo de la distancia se nada con un estilo u otro? Veamos sobre 'nadadoresPruebas' el estilo de nado en el que se usar en distintas distancias.
+Una pregunta que nos puede surgir es, ¿dependiendo de la distancia se nada con un estilo u otro?
+Veamos sobre 'nadadoresPruebas' el estilo de nado en el que se usar en distintas distancias.
 
 ```{r}
 distancia_stroke <- table(nadadoresPruebas$distance, nadadoresPruebas$stroke)
@@ -1171,11 +1190,16 @@ Para analizar la relación entre las distancias y los estilos de nado en este co
 A partir de la tabla proporcionada, se observa lo siguiente:
 
 -En distancias cortas (50 m y 100 m) los estilos BACK, BREAST, FLY, y FREE tienen una alta frecuencia.
-MEDLEY no está presente en estas distancias, lo que sugiere que este estilo no se usa en distancias cortas. El término "medley" se refiere a una prueba en la que el nadador (o el equipo en el caso de un relevo) utiliza una combinación de los cuatro estilos principales de nado en un solo evento, en un orden específico. Cada estilo debe nadarse en una sección de la carrera.
--En distancias intermedias (200 m), los estilos BACK, BREAST, FLY, y FREE siguen estando presentes. Sin embargo, hay un número significativo de pruebas en el estilo MEDLEY (136), sugiriendo que este estilo comienza a ser popular en esta distancia.
--En largas distancias (400 m, 800 m, y 1500 m), tenemos por una parte que para las distancias que comienzan a ser largas (400 m), el estilo FREE es el más utilizado, seguido de MEDLEY, con 92 pruebas.Cabe destacar, que los estilos BACK, BREAST, y FLY no se encuentran en esta distancia. Por otro lado, en los 800 m y 1500 m, sólo el estilo FREE tiene registros, lo cual es característico, ya que estas distancias se suelen nadar en estilo libre para reducir la fatiga, donde se busca mantener la velocidad y resistencia sin variaciones de estilo que pueden desgastar al nadador.
+MEDLEY no está presente en estas distancias, lo que sugiere que este estilo no se usa en distancias cortas.
+El término "medley" se refiere a una prueba en la que el nadador (o el equipo en el caso de un relevo) utiliza una combinación de los cuatro estilos principales de nado en un solo evento, en un orden específico.
+Cada estilo debe nadarse en una sección de la carrera.
+-En distancias intermedias (200 m), los estilos BACK, BREAST, FLY, y FREE siguen estando presentes.
+Sin embargo, hay un número significativo de pruebas en el estilo MEDLEY (136), sugiriendo que este estilo comienza a ser popular en esta distancia.
+-En largas distancias (400 m, 800 m, y 1500 m), tenemos por una parte que para las distancias que comienzan a ser largas (400 m), el estilo FREE es el más utilizado, seguido de MEDLEY, con 92 pruebas.Cabe destacar, que los estilos BACK, BREAST, y FLY no se encuentran en esta distancia.
+Por otro lado, en los 800 m y 1500 m, sólo el estilo FREE tiene registros, lo cual es característico, ya que estas distancias se suelen nadar en estilo libre para reducir la fatiga, donde se busca mantener la velocidad y resistencia sin variaciones de estilo que pueden desgastar al nadador.
 
 Podemos verlo con porcentajes:
+
 ```{r}
 # proporciones
 prop.table(distancia_stroke, margin = 1)  #proporciones por distancia
@@ -1190,6 +1214,7 @@ ggplot(nadadoresPruebas, aes(x = factor(distance), y = stroke)) +
   theme_minimal()
 
 ```
+
 Podemos replantearnos ahora si esto se mantiene indistintamente del género del nadador.Es decir,¿Hay las mismas pruebas para mujeres y hombres?
 
 Primero, crearemos subconjuntos de datos para cada género.
@@ -1199,7 +1224,6 @@ Primero, crearemos subconjuntos de datos para cada género.
 nadadoresFemeninas <- subset(nadadoresPruebas, gender == "F")
 nadadoresMasculinos <- subset(nadadoresPruebas, gender == "M")
 ```
-
 
 ```{r}
 #género femenino
@@ -1213,14 +1237,14 @@ print("Tabla de estilo de nado por distancia (Masculino):")
 print(tabla_masculino)
 
 ```
-Parece que todo está funcionando como esperábamos, tanto en el análisis conjunto como en los análisis individuales. Esto confirma que los resultados son consistentes y los datos están bien estructurados para las pruebas.
+
+Parece que todo está funcionando como esperábamos, tanto en el análisis conjunto como en los análisis individuales.
+Esto confirma que los resultados son consistentes y los datos están bien estructurados para las pruebas.
 
 ```{r, echo=FALSE}
 rm(distancia_stroke, tabla_femenino, tabla_masculino, nadadoresFemeninas, nadadoresMasculinos)
 
 ```
-
-
 
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan.(Salma)
 
@@ -1343,16 +1367,12 @@ print(participaciones_menores)
 Evidentemente, como ya nos podíamos esperar, la participación de nadadores menores de edad en pruebas explosivas es notablemente mayor que en pruebas de resistencia.
 Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosivas, como los 50 y 100 metros, requieren menos tiempo de entrenamiento prolongado en comparación con las pruebas de resistencia, que implican una mayor dedicación y condición física a largo plazo.
 
-
-
 ```{r, echo=FALSE}
 rm(participaciones_menores,resumen_pruebas, total_nadadores)
 
 nadadoresPruebas<-nadadoresPruebasCopia
 
 ```
-
-
 
 ## Estudio sobre la variable round. [Alonso]
 
@@ -1546,13 +1566,12 @@ medley200SEM
 Y efectivamente, empataron con un tiempo de 118.54 segundos, luego SOS equivale a las rondas de desempate producidas en las rondas semifinales.
 Además, observamos que se realizan por las tardes.
 
-Luego, ya hemos resuelto las dudas acerca de Round. 
+Luego, ya hemos resuelto las dudas acerca de Round.
 
 ```{r, echo=FALSE}
 rm(datosSOP, datosSOS, fly100PREWomen, free50FinalWomens, free50PrelimWomens, free50SemisWomens, medley200SEM)
 
 ```
-
 
 ## Estudios relacionados con los puntos(Javi).
 
@@ -1563,7 +1582,6 @@ Antes de ello, vamos a tener que eliminar de este estudio a los nadadores descal
 ```{r}
 nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$points))
 ```
-
 
 ### Mejor nadador por prueba nadada. MVP de los mundiales(Javi).
 
@@ -1647,8 +1665,8 @@ summary(anova_puntos_genero)
 
 ```
 
-
 ### Puntos. ¿La edad influye?(Salma)
+
 Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
 ```{r, warning=FALSE}
@@ -1670,7 +1688,6 @@ ggplot(resumen_puntos, aes(x = edad, y = points)) +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 ```
-
 
 ```{r}
 # Crear una nueva columna que clasifica a los nadadores en grupos de edad
@@ -1698,7 +1715,9 @@ ggplot(promedio_puntos, aes(x = grupo_edad, y = promedio, fill = grupo_edad)) +
         panel.grid.minor = element_blank(),
         legend.position = "none")
 ```
-Vamos a comparar los puntos con la edad. Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
+
+Vamos a comparar los puntos con la edad.
+Para ello, vamos a dividir en 3 grupos por edades (menores de 18, entre 18 y 30 y mayores de 30) y a comparar el promedio de puntos cosechados por cada franja de edad.
 
 ```{r}
 # Mostrar el promedio de puntos en una tabla
@@ -1707,21 +1726,37 @@ promedio_puntos %>%
         col.names = c("Grupo de Edad", "Promedio de Puntos"))
 
 ```
-En el grupo de edad entre 18 y 30, el promedio de Puntos es 817.76.Este grupo presenta el promedio más alto en comparación con los otros grupos. Esto podría indicar que los nadadores en este rango de edad tienen un rendimiento superior en términos de puntos acumulados. Esto puede ser atribuible a varios factores, como una mayor experiencia. El grupo de Edad Mayores de 30 tiene un promedio de 806.32 puntos. Los nadadores mayores de 30 años tienen un promedio de puntos ligeramente inferior al grupo de 18 a 30 años. Sin embargo, el rendimiento sigue siendo fuerte, lo que sugiere que, aunque pueden enfrentar desafíos relacionados con la edad, muchos continúan siendo competitivos. El grupo de Edad Menores de 18 tiene un promedio de 621.36 puntos. Este grupo muestra el promedio más bajo en comparación con los otros dos. Esto puede ser indicativo de que los nadadores jóvenes aún están en desarrollo y adquiriendo habilidades y experiencia. Es natural que los nadadores más jóvenes, al estar en una etapa temprana de su carrera, acumulen menos puntos.
 
+En el grupo de edad entre 18 y 30, el promedio de Puntos es 817.76.Este grupo presenta el promedio más alto en comparación con los otros grupos.
+Esto podría indicar que los nadadores en este rango de edad tienen un rendimiento superior en términos de puntos acumulados.
+Esto puede ser atribuible a varios factores, como una mayor experiencia.
+El grupo de Edad Mayores de 30 tiene un promedio de 806.32 puntos.
+Los nadadores mayores de 30 años tienen un promedio de puntos ligeramente inferior al grupo de 18 a 30 años.
+Sin embargo, el rendimiento sigue siendo fuerte, lo que sugiere que, aunque pueden enfrentar desafíos relacionados con la edad, muchos continúan siendo competitivos.
+El grupo de Edad Menores de 18 tiene un promedio de 621.36 puntos.
+Este grupo muestra el promedio más bajo en comparación con los otros dos.
+Esto puede ser indicativo de que los nadadores jóvenes aún están en desarrollo y adquiriendo habilidades y experiencia.
+Es natural que los nadadores más jóvenes, al estar en una etapa temprana de su carrera, acumulen menos puntos.
 
-La diferencia significativa en el rendimiento entre los grupos puede sugerir que la edad tiene un impacto positivo en el rendimiento de los nadadores, al menos hasta cierto punto. Esto también resalta la importancia del entrenamiento y la experiencia que se adquiere con la edad.
-Es posible que los nadadores más jóvenes tengan que enfocarse en su desarrollo técnico y competitivo para alcanzar a sus contrapartes mayores. Esto podría incluir mejorar sus técnicas de natación, preparación física, y estrategias de carrera.
+La diferencia significativa en el rendimiento entre los grupos puede sugerir que la edad tiene un impacto positivo en el rendimiento de los nadadores, al menos hasta cierto punto.
+Esto también resalta la importancia del entrenamiento y la experiencia que se adquiere con la edad.
+Es posible que los nadadores más jóvenes tengan que enfocarse en su desarrollo técnico y competitivo para alcanzar a sus contrapartes mayores.
+Esto podría incluir mejorar sus técnicas de natación, preparación física, y estrategias de carrera.
 
 Realizamos un test para ver si la diferencia es significativa
+
 ```{r}
 # Realiza la prueba de Kruskal-Wallis
 kruskal_result <- kruskal.test(points ~ grupo_edad, data = nadadoresPruebas)
 print(kruskal_result)
 ```
-El p-value < 2.2e-16: Este valor p es extremadamente bajo, lo que indica que hay diferencias significativas en los puntos entre al menos uno de los grupos de edad. Dado que el valor p es muy pequeño, puedes rechazar la hipótesis nula, que sostiene que no hay diferencias en las medianas de los puntos entre los grupos.
 
-Aunque Kruskal-Wallis indica que hay diferencias, no te dice cuáles son esos grupos que difieren. Por lo tanto, es recomendable realizar pruebas post-hoc para identificar qué grupos son significativamente diferentes entre sí.
+El p-value \< 2.2e-16: Este valor p es extremadamente bajo, lo que indica que hay diferencias significativas en los puntos entre al menos uno de los grupos de edad.
+Dado que el valor p es muy pequeño, puedes rechazar la hipótesis nula, que sostiene que no hay diferencias en las medianas de los puntos entre los grupos.
+
+Aunque Kruskal-Wallis indica que hay diferencias, no te dice cuáles son esos grupos que difieren.
+Por lo tanto, es recomendable realizar pruebas post-hoc para identificar qué grupos son significativamente diferentes entre sí.
+
 ```{r, warning=FALSE}
 # Prueba de Dunn
 dunn_test <- dunnTest(points ~ grupo_edad, data = nadadoresPruebas, method = "bonferroni")
@@ -1729,7 +1764,8 @@ print(dunn_test)
 ```
 
 Entre 18 y 30 vs. Mayores de 30: No hay evidencia suficiente para afirmar que hay una diferencia significativa en los puntos entre estos dos grupos de edad.
-Entre 18 y 30 vs. Menores de 18: Hay una diferencia altamente significativa en los puntos entre estos dos grupos. Esto indica que los nadadores menores de 18 años obtienen significativamente menos puntos que los nadadores entre 18 y 30.
+Entre 18 y 30 vs. Menores de 18: Hay una diferencia altamente significativa en los puntos entre estos dos grupos.
+Esto indica que los nadadores menores de 18 años obtienen significativamente menos puntos que los nadadores entre 18 y 30.
 Mayores de 30 vs. Menores de 18: También hay una diferencia altamente significativa entre estos grupos, sugiriendo que los nadadores mayores de 30 años obtienen significativamente más puntos que los nadadores menores de 18.
 
 La comparación muestra que, mientras que no hay diferencia significativa entre los grupos de 18-30 y mayores de 30, los menores de 18 años se desempeñan significativamente peor en términos de puntos en comparación con ambos grupos de mayores edad.
@@ -1743,7 +1779,6 @@ ggplot(nadadoresPruebas, aes(x = grupo_edad, y = points, fill = grupo_edad)) +
   theme_minimal()
 
 ```
-
 
 ```{r}
 #vuelvo de nuevo a la original
@@ -1871,7 +1906,6 @@ Sabemos que el valor de los puntos cuando X=0, es decir, que el tiempo de reacci
 Este parámetro no tendría sentido, pues el tiempo de reacción nunca va a ser cero.
 Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor que aumenta X, Y aumenta lo indicado.
 
-
 ```{r, echo=FALSE}
 
 #Este código al final del estudio para no sobrecargar el entorno (Enviroment)
@@ -1970,7 +2004,6 @@ La pelea por la última medalla en juego dura hasta los 700 metros, donde un ade
 ```{r, echo=FALSE}
 rm(nadadoras800free)
 ```
-
 
 # PCA's
 
@@ -2264,9 +2297,9 @@ plot(pca800libres)
 
 ```
 
-Vemos la importancia de cadad componente. 
+Vemos la importancia de cadad componente.
 
-Observemos además, un resumen numérico: 
+Observemos además, un resumen numérico:
 
 ```{r}
 summary(pca800libres)
@@ -2275,16 +2308,18 @@ summary(pca800libres)
 Viendo el pca, observamos que con la primera componente, tenemos un 84% de la varianza.
 Con pc2 un 6%, luego con esas dos logramos explicar un 90% de los datos.
 
-
-Hagamos una interpretación previa a la graficación de los datos: 
+Hagamos una interpretación previa a la graficación de los datos:
 
 ```{r}
 pca800libres
 ```
 
-La PCA1 corresponde a una media ponderada en la cual, lo que más ponderan son los parciales de la prueba, siendo los más significativos del 200 al 650. También toma algo de importancia la edad pero no se verá reflejada. Luego, nos esperaremos más a la izquierda los nadadores cuyo tiempo medio sea menor (es decir, las más rapidas de las preliminares), y a la derecha las nadadoras más lentas en promedio. 
+La PCA1 corresponde a una media ponderada en la cual, lo que más ponderan son los parciales de la prueba, siendo los más significativos del 200 al 650.
+También toma algo de importancia la edad pero no se verá reflejada.
+Luego, nos esperaremos más a la izquierda los nadadores cuyo tiempo medio sea menor (es decir, las más rapidas de las preliminares), y a la derecha las nadadoras más lentas en promedio.
 
-La PCA2, cobra muchísima importancia el tiempo de reacción y la edad. Luego, esperaremos, contra más arriba se encuentren, nadadoras con un buen tiempo de reacción o pocos años, y abajo nadadoras con mal tiempo de reacción o muchos años.
+La PCA2, cobra muchísima importancia el tiempo de reacción y la edad.
+Luego, esperaremos, contra más arriba se encuentren, nadadoras con un buen tiempo de reacción o pocos años, y abajo nadadoras con mal tiempo de reacción o muchos años.
 
 Ahora, veamos cómo se ven los datos:
 
@@ -2294,19 +2329,22 @@ text(pca800libres$x[,1:2],rownames(pruebawide), cex = 0.4)
 
 ```
 
-Luego, podríamos decir que, el grupo de Ledecky, Carlin... fueron las más rapidas de las preliminares. Chentson, Holowchak y Rannvaardottir las más lentas. 
+Luego, podríamos decir que, el grupo de Ledecky, Carlin...
+fueron las más rapidas de las preliminares.
+Chentson, Holowchak y Rannvaardottir las más lentas.
 
-También, podríamos decir que, nadadoras como Jo, corresponden a un tiempo de reacción muy bajo junto con una edad baja. Nadadoras como Kobrich y Elhenicka, serán nadadoras con más años y que además tienen un mal tiempo de reacción en comparación con todas las demás. 
+También, podríamos decir que, nadadoras como Jo, corresponden a un tiempo de reacción muy bajo junto con una edad baja.
+Nadadoras como Kobrich y Elhenicka, serán nadadoras con más años y que además tienen un mal tiempo de reacción en comparación con todas las demás.
 
-
-
-Veámos la ponderación de las variables con el siguiente gráfico: 
+Veámos la ponderación de las variables con el siguiente gráfico:
 
 ```{r}
 fviz_pca_var(pca800libres, col.var = "red")
 ```
 
-Viendo esta interpretación, podemos observar de una mejor manera, cuando un nadador va a estar más "arriba" o "abajo", si es causa de la edad o del tiempo de reacción. Luego, si nos fijamos en las nadadoras del gráfico anterior, podremos asegurar que, Gill, tiene un tiempo de reacción pésimo, ledecky es rápida y joven y buen tiempo de reacción. Hassler es una nadadora con más edad pero de las más rapidas pero con mal tiempo de reacción. 
+Viendo esta interpretación, podemos observar de una mejor manera, cuando un nadador va a estar más "arriba" o "abajo", si es causa de la edad o del tiempo de reacción.
+Luego, si nos fijamos en las nadadoras del gráfico anterior, podremos asegurar que, Gill, tiene un tiempo de reacción pésimo, ledecky es rápida y joven y buen tiempo de reacción.
+Hassler es una nadadora con más edad pero de las más rapidas pero con mal tiempo de reacción.
 
 ```{r}
 biplot(pca800libres)
@@ -2326,7 +2364,8 @@ prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactio
 prueba100MariposaFem
 ```
 
-A continuación, vamos a organizar los datos de la tabla _prueba100MariposaFem_. de modo que cada nadador tiene una fila única con columnas para cada distancia.
+A continuación, vamos a organizar los datos de la tabla *prueba100MariposaFem*.
+de modo que cada nadador tiene una fila única con columnas para cada distancia.
 
 ```{r}
 prueba <- prueba100MariposaFem %>%
@@ -2347,32 +2386,50 @@ prueba <- na.omit(prueba)
 prueba
 ```
 
-Con todo esto, estamos preparados para realizar el PCA. 
+Con todo esto, estamos preparados para realizar el PCA.
 
 ```{r}
-#Realizamos el PCA
+#Realizamos el PCA (estandarizamos los datos)
 pca_100mariposafemenino <- prcomp(prueba[,-1], scale=T)
+pca_100mariposafemenino
 
-# Resultados del PCA
-summary(pca_100mariposafemenino)
-
-#Visualización del PCA
-biplot(pca_100mariposafemenino)
 ```
-El resultado del análisis de componentes principales (PCA) muestra tres componentes principales (PC1, PC2, PC3). Veamos cada aspecto de la salida:
-Los datos de la fila de desivación estándar (Standard deviation, cuanto mayores sean, mas variabilidad de los datos se captura. En este caso, la componente principal PC1 es la que tiene mayor desviación estándar, lo que sugiere que capta la mayor parte de la varianza.
+Observamos que la primera y segunda componente son las que tienen mayor valor de standard deviations, luego serán las más relevantes a efectos de la visualización. Veamos la importancia relativa de cada componente
 
-En segundo lugar, la proporción de la varianza indica indica qué porcentaje de la varianza total de los datos está capturado por cada componente. Aquí, PC1 captura el 74.23% de la varianza, mientras que PC2 captura el 23.28%, y PC3 solo el 2.493%. Esto significa que PC1 es el componente más relevante para representar la estructura de los datos, mientras que PC3 aporta muy poco.
+```{r}
+plot(pca_100mariposafemenino)
+summary(pca_100mariposafemenino)
+```
 
-Por último, para la variable de proporción acumulada indica la varianza total capturada al considera las componentes en conjunto. PC1 junto con PC2 explican el 97,51% de la variabilidad de los datos (bastante alto). Esto sugiere que podemos reducir la dimensionalidad a estos dos primeros componentes sin perder mucha información.
+El resultado del análisis de componentes principales (PCA) muestra tres componentes principales (PC1, PC2, PC3).
+Veamos cada aspecto de la salida: Los datos de la fila de desivación estándar (Standard deviation), cuanto mayores sean, mas variabilidad de los datos se captura. En este caso, la componente principal PC1 es la que tiene mayor desviación estándar, lo que sugiere que capta la mayor parte de la varianza.
 
-En definitiva, el análisis PCA muestra que los datos prueba pueden ser bien representados con solo dos componentes principales (PC1 y PC2). Este resultado implica que la mayor parte de la variabilidad de los tiempos de nado de los participantes se puede resumir en estas dos dimensiones.
+En segundo lugar, la proporción de la varianza (proportion of variance) indica qué porcentaje de la varianza total de los datos está capturado por cada componente.
+Aquí, PC1 captura el 74.23% de la varianza, mientras que PC2 captura el 23.28%, y PC3 solo el 2.493%.
+Esto significa que PC1 es el componente más relevante para representar la estructura de los datos, mientras que PC3 aporta muy poco. (como habiámos adelantado anteriormente)
+
+Por último, para la variable de proporción acumulada (cumulative proportion) indica la varianza total capturada al considera las componentes en conjunto.
+PC1 junto con PC2 explican el 97,51% de la variabilidad de los datos (bastante alto).
+Esto sugiere que podemos reducir la dimensionalidad a estas dos primeros componentes sin perder mucha información.
+
+El análisis PCA muestra que los datos prueba pueden ser bien representados con solo dos componentes principales (PC1 y PC2).
+Este resultado implica que la mayor parte de la variabilidad de los tiempos de nado de los participantes se puede resumir en estas dos dimensiones.
+
+Por último, dibujamos los datos proyectados sobre las dos primeras componentes
+
+```{r}
+plot(pca_100mariposafemenino$x[,1:2])
+text(pca_100mariposafemenino$x[,1:2], rownames(prueba[,-1]))
+biplot(pca_100mariposafemenino) 
+```
+
+
+
 
 
 ## Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
 
 Vamos a ver en qué estilo predominan los nadadores de 1500 metros.
-
 
 ```{r}
 summary(nadadoresPruebas$stroke[nadadoresPruebas$distance == 1500])
@@ -2476,14 +2533,14 @@ Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece
 
 ##Cluster 100 mariposa femenino [Javier]
 
-Vamos a escalar los datos de _prueba[,-1]_ (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga medio 0 y desviación estándar 1.
+Vamos a escalar los datos de *prueba[,-1]* (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga media 0 y desviación estándar 1.
 
 ```{r}
 cluster100mariposafem <- scale(prueba[,-1])
 cluster100mariposafem
 ```
 
-Ahora, calculamos y visualizamos la matriz de distancias entre las observaciones de _cluster100mariposafem_ (REVISAR)
+Ahora, calculamos y visualizamos la matriz de distancias entre las observaciones de *cluster100mariposafem* (REVISAR)
 
 ```{r}
 #Calulamos la matriz de distancias
@@ -2491,19 +2548,31 @@ distancias <- get_dist(cluster100mariposafem)
 #Vemos la matriz de distancias como un mapa de calor
 fviz_dist(distancias, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
 ```
-Aquí:
+
+Aquí: 
 - low = "#00AFBB" (azul claro) representa las distancias pequeñas entre observaciones.
 - mid = "white" representa las distancias medias.
 - high = "#FC4E07" (rojo) representa las distancias grandes.
 
+
+Aplicamos el algoritmo de las k-medias con k=2 con la función k-means, ejecutando el algoritmo 25 veces, por ejemplo
+
 ```{r}
-#Realizamos en clustering (en estecaso, 2 cluster)
-k100 <- kmeans(cluster100mariposafem, centers = 2, nstart = 25)
-str(k100)
+k100Mariposafemenino <- kmeans(cluster100mariposafem, centers = 2, nstart = 25)
+k100Mariposafemenino
+```
+La técnica aplicada genera 2 agrupaciones de 48 y 21 observaciones cada una. Además se especifica a qué conglomerado pertenece cada asignación (por ejemplo, Borshi pertenece al la agrupación 2, Nobrega a la 2, Mckeon a la 1...)
+
+Ahora, visualicemos los resultados con fviz_cluster
+
+```{r}
+fviz_cluster(k100Mariposafemenino, data =cluster100mariposafem)
 ```
 
+Observamos gráficamente las dos agrupaciones mencionadas. 
 
-#Cluster 200 mariposa masculina
+
+## Cluster 200 mariposa masculina
 
 ```{r}
 clusterprueba200 <- scale(pruebita[,-1])
@@ -2572,7 +2641,7 @@ Los puntos 5 y 26 están en un cluster aislado, probablemente por tener caracter
 El cluster azul representa a nadadores mayores con tiempos de reacción más lentos, lo que afecta negativamente su rendimiento.
 Los otros clusters agrupan a los nadadores con características más cercanas entre sí en cuanto a edad y tiempos de reacción.
 
-#Cluster divisivo 200
+## Cluster divisivo 200
 
 ```{r}
 # Clustering jerárquico divisivo
@@ -2618,7 +2687,7 @@ fviz_cluster(k5_200, data = clusterprueba200)
 
 Vemos que coinciden.
 
-#Cluster para la prueba de 1500 masculina
+# Cluster para la prueba de 1500 masculina
 
 ```{r}
 # escalado de todas las variables
@@ -2820,8 +2889,8 @@ tanglegram(dend1, dend2)
 
 Como podemos observar, no nos dan dendrogramas isomorfos puesto que los dos métodos manejan de manera diferente las distancias entre grupos durante el proceso de fusión.
 
+##Cluster sobre el 800m libres femenino.
 
-
-##Cluster sobre el 800m libres femenino. 
-
-Vamos a intentar, normalizar de cierta manera los parciales respecto del tiempo final, para intentar ver estrategias de carrera en las nadadoras. Obsérvese que, normalizamos los datos porque pueden existir dos nadadoras cuya estrategia de carrera sea la misma, pero que se encuentren muy alejadas en el cluster debido a que sus tiempos son lo suficientemente distinto. Es por ello que normalizaremos los datos. 
+Vamos a intentar, normalizar de cierta manera los parciales respecto del tiempo final, para intentar ver estrategias de carrera en las nadadoras.
+Obsérvese que, normalizamos los datos porque pueden existir dos nadadoras cuya estrategia de carrera sea la misma, pero que se encuentren muy alejadas en el cluster debido a que sus tiempos son lo suficientemente distinto.
+Es por ello que normalizaremos los datos.
