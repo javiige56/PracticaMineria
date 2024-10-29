@@ -1,22 +1,26 @@
 paleta <- c("Americas" = "#0084ff", 
             "Asia" = "#44bec7", 
             "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c" 
-) 
+            "Oceania" = "#fa3c4c", "Africa" = "#ff6347") 
+ 
 
 
-
-# Crear una nueva columna que agrupe países con menos de 10 nadadores en "Otros"
 resumen_paises4 <- resumen_paises %>%
   filter(num_nadadores >= 10)
-resumen_paises4
 
-# Crear el gráfico
+resumen_paises4 <- nadadoresParticipantes %>%
+  group_by(name, iso2, continent) %>%
+  summarise(num_nadadores = n(), .groups = "drop")  %>%
+  filter(num_nadadores >= 10)%>%
+  arrange(desc(num_nadadores))
+
+summary(resumen_paises4)
+
 oda_bar3 <- resumen_paises4 %>% 
   ggplot(aes(x = reorder(name_group, num_nadadores), 
              y = num_nadadores, 
              fill = continent)) + 
-  geom_flag(y = -5, aes(image = iso2), size = 0.05) + 
+  geom_flag(y = -5, aes(image = iso2), size = 0.1) + 
   geom_bar(stat = "identity") + 
   labs(title = "Participación de Nadadores por País",
        subtitle = "Países con menos de 10 nadadores ocultados",

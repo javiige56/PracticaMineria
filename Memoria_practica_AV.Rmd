@@ -94,7 +94,7 @@ head(datos2015,1)
 
 Observamos Noel Borshi, nadadora albanesa nacida un 13 de febrero de 1996, que tiene como id el número (100784).
 Noel Borshi nadó la prueba 1 en la serie 1 y carril 4.
-Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65s y pasó por el primer parcial (50m) en 29.63 segundos.
+Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65 segundos y pasó por el primer parcial (50m) en 29.63 segundos.
 
 # Análisis exploratorio de datos(Javi).
 
@@ -109,7 +109,7 @@ summary(datos2015)
 De aquí, podemos observar que tenemos algunos valores nulos (NA's), durante toda la competición, que como máximo hubo 12 series y como mínimo 1 y que la piscina disponía de 10 carriles numerados del 0 al 9.
 También observamos que se nadaron pruebas de 50 y hasta 1500 metros.
 
-Tenemos variables categóricas las cuales no se ven bien en el resumen anterior, por lo que, usando la librería "dyplr", vamos a convertirlas a variables categóricas en R para tener una mejor visualización de ellas.
+Tenemos variables categóricas las cuales se han tratado como continuas de partida. Por lo cual, usando la librería "dyplr", vamos a convertirlas a variables categóricas en R para tener una mejor visualización de ellas.
 
 ```{r}
 datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke, relaycount)
@@ -149,7 +149,7 @@ summary(datos2015$relaycount)
 Observamos que sólo toma un único valor, 1.
 Esto se debe principalmente a que nuestro conjunto de datos consta de las pruebas individuales del mundial de Kazán 2015, luego como no hay relevos, todos los nadadores son el primer "relevista" en su prueba.
 
-Luego la eliminamos:
+Luego, la eliminamos:
 
 ```{r}
 datos2015$relaycount <- NULL
@@ -199,27 +199,27 @@ Visualicemos los datos donde faltan todas las variables dichas anteriormente:
 todosNA<-datosNA[is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(datosNA$swimtime) & is.na(datosNA$cumswimtime) & is.na(datosNA$splitswimtime), ]
 ```
 
-Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados... Es decir, nadadores que posiblemente se dieron de baja en la prueba. La mayoría de nadadores causaron baja en la ronda preliminar, pero hay uno, el chino Sun Yang, que causó baja en la final del 1500m libres masculino. Haciendo una pequeña búsqueda en los resultados de la World Aquatics de los mundiales de 2015, observamos que Sun Yang produció DNS (Did not Start). También, buscando a Cesar Cielo en el 50 libres de las preliminares, observo que causó baja DNS. Luego todo parece indicar que estos nadadores fueron baja en esa prueba y por ello no sale ningún dato en esas variables. Los elimino: 
+Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados... Es decir, nadadores que posiblemente se dieron de baja en la prueba. La mayoría de nadadores causaron baja en la ronda preliminar, pero hay uno, el nadador chino Sun Yang, que causó baja en la final del 1500m libres masculino. Haciendo una pequeña búsqueda en los resultados de la World Aquatics de los mundiales de 2015, observamos que Sun Yang produjo DNS (Did not Start). También, buscando a César Cielo en el 50 libres de las preliminares, observamos que causó baja DNS. Luego todo parece indicar que estos nadadores fueron baja en esa prueba y por ello no sale ningún dato en esas variables. Los eliminamos: 
 
 ```{r}
 #Primero de la tabla datosNA: 
 datosNA <- datosNA %>%
   filter(!(is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(datosNA$swimtime) & is.na(datosNA$cumswimtime) & is.na(datosNA$splitswimtime)))
 
-#Ahora, los elimino de la tabla datos2015: 
+#Ahora, los eliminamos de la tabla datos2015: 
 datos2015<-datos2015 %>%
   filter(!(is.na(datos2015$points) & is.na(datos2015$reactiontime) & is.na(datos2015$swimtime) & is.na(datos2015$cumswimtime) & is.na(datos2015$splitswimtime)))
 
 ```
 
 
-Bien, ahora, tenemos solamente datos en los que falta alguna de las variables, echemos un vistazo para volver a clasificarlos: 
+Bien, ahora, tenemos solamente datos en los que falta alguna de las variables. Analizamos nuevamente para poder reclasificarlos: 
 
 ```{r}
 datosNA
 ```
 
-Nos quedan solamente 14 filas en los que hay datos nulos. Sigamos nuestra limpieza: 
+Nos quedan solamente 14 filas en los que hay datos nulos. Si seguimos con nuestra limpieza: 
 
 ### Valores nulos donde faltan los puntos: 
 
@@ -233,7 +233,7 @@ naReactionTime
 Vamos a buscar los resultados de World Aquatics de alguno de ellos, para estimar qué esta sucediendo. ¿Fueron descalificados?. 
 
 Nuestro nadador de la primera fila, Ben Treffers, fue descalificado. Buscamos también a Vladimir Morozov, y también fue descalificado. 
-Luego, son gente que nadó pero quedó descalificada. Luego sus datos nos servirán para hacer estudios sobre participación, pero no para cualquier estudio que involucre los resultados. Luego estos, no los eliminamos del dataframe inicial datos2015
+Luego, son participantes que nadaron pero quedaron descalificados. Por tanto, sus datos nos servirán para hacer estudios sobre participación, pero no para cualquier estudio que involucre los resultados. Luego estos, no los eliminamos del dataframe inicial datos2015
 
 ```{r}
 datosNA <- datosNA %>%
@@ -255,7 +255,7 @@ print(sum(is.na(datos2015)))
 Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados. 
 
 ```{r, echo=FALSE}
-#Elimino las tablas creadas para no sobrecargar la escritura. Ya que no las vamos a volver a usar.
+#Elimino las tablas creadas para no sobrecargar. Ya que no las vamos a volver a usar.
 rm(datosNA, naReactionTime, todosNA, percent_na)
 ```
 
@@ -280,16 +280,18 @@ datos2015$birthdate=NULL
 
 #Tablas(Ines)
 
-Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba, luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor. Además, "ponderaría" más variables como el tiempo de reacción en nadadores de 1500 puesto que se usaría ese valor 15 veces por cada vez que se usa en un nadador de una prueba de 50 metros. 
+Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba. Luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor (en el caso de las carreras de 1500m). Además, no estaríamos haciendo un análisis correcto, puesto que los resultados estarían claramente sesgados hacia los de las distancias más largas. 
+Por ejemplo, en el caso del tiempo de reacción, los tiempos de los nadadores de 1500 metros se contabilizarían 15 veces. Mientras que en los nadadores de 50 metros sólo una vez. 
 
-A continuación procedo a presentar las tablas que vamos a utilizar dependiendo lo que queramos estudiar: 
+A continuación, procedemos a presentar las tablas que vamos a utilizar dependiendo lo que queramos estudiar: 
 
 
 ##Tabla nadadoresParticipantes
-Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes... Vamos a necesitar eliminar filas como bien hemos anunciado antes.
+Utilizaremos esta tabla para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc. Es decir, análisis sobre datos que no requieren el conocimiento de la progresión en sus splits. 
+Para ello, nos bastará con tener la primera fila de cada participante. 
 
-Por ello, vamos a crear una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir.
-Para ello usamos la variable athleteid, la cual es única para cada participante.
+Creamos, por tanto, una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir.
+Nos basaremos en la variable athleteid para llegar a esta tabla, la cual es única para cada participante.
 
 ```{r}
 nadadoresParticipantes <- datos2015 %>%
@@ -316,7 +318,7 @@ ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2
 head(ejemplo,6)
 ```
 
-Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio.
+Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto entre rondas pero es el mismo en la misma prueba.
 
 ```{r, echo=FALSE}
 rm(ejemplo)
@@ -533,7 +535,7 @@ resumen_paises
 
 #Creamos un gráfico con colores
 paleta <- c("Americas" = "#0084ff", "Asia" = "#44bec7", 
-            "Europe" = "#ffc300", "Oceania" = "#fa3c4c")
+            "Europe" = "#ffc300", "Oceania" = "#fa3c4c", "Africa"= "#ff6347")
 
 oda_bar <- resumen_paises %>% 
   ggplot(aes(x = reorder(name, num_nadadores), y = num_nadadores, fill = continent)) + 
@@ -558,7 +560,7 @@ Vemos también este mismo gráfico, pero separando los países por continentes.
 paleta <- c("Americas" = "#0084ff", 
             "Asia" = "#44bec7", 
             "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c")
+            "Oceania" = "#fa3c4c", "Africa"= "#ff6347")
 
 oda_bar1 <- resumen_paises %>% 
   ggplot(aes(x = reorder(name, num_nadadores), 
@@ -581,19 +583,14 @@ print(oda_bar1)
 
 ```
 
-Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países.
-Por ello, realizaremos un gráfico reduciendo la dimensión, juntando en un grupo llamado 'Otros' a aquellos países con menos de 10 nadadores.
-*añadirlo*
+Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países. Por ello, intentaremos analizar los resultados en función de proporciones relativas a continentes.
 
-```{r}
-#Este código se encuentra en el script codigoUsado11oct. Daba error por eso lo he cambiado
-```
 
 ```{r}
 paleta <- c("Americas" = "#0084ff", 
             "Asia" = "#44bec7", 
             "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c")
+            "Oceania" = "#fa3c4c", "Africa"="#ff6347")
 
 # Crear el histograma de cantidad de nadadores por continente
 histograma_nadadores <- resumen_paises %>% 
@@ -851,9 +848,7 @@ shapiro.test(na.omit(nadadoresPruebas$reactiontime))
 
 Al tener un p-valor tan bajo, no parece que siga una distribución normal. 
 
-Vamos a ir más alla para intentar sacar conclusiones más profundas.
-
-Vamos a comparar las funciones de densidad de chicos y chicas en general:
+Comparamos las funciones de densidad de mujeres y hombres en general:
 
 ```{r message=FALSE, warning=FALSE}
 nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$reactiontime))
@@ -862,8 +857,9 @@ geom_density()+
   ggtitle("Distribución. Hombres vs Mujeres")
 ```
 
-De esta gráfica nos surgen muchas preguntas, vamos a analizar esto más a fondo.
-Hagamos un test de hipótesis donde:
+
+De esta gráfica nos podemos plantear realizar un contraste de hipótesis, en el cual analizaremos sobre la posible diferencia significativa del tiempo de reacción en ambos géneros. 
+Por tanto, realizamos el siguiente test:
 
 -   H0: El tiempo de reacción es igual en mujeres y hombres.
 -   H1: El tiempo de reacción es menor en hombres que en mujeres.
@@ -872,9 +868,19 @@ Hagamos un test de hipótesis donde:
 t.test(reactiontime~gender,data=nadadoresParticipantes)
 ```
 
-De manera similar a lo realizado previamente, el p- valor nos indica que hay una evidencia significativa en rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
+Si observamos los resultados, el p- valor nos indica que hay una evidencia significativa para rechazar la hipótesis nula, y por ende concluir con que hay una diferencia estadística en el tiempo de reacción dependiendo del género.
 Ahora que hemos determinado que la diferencia es estadísticamente significativa, es importante considerar si la diferencia es también significativa en la práctica o si tiene relevancia a la hora de los resultados finales.
-Por ejemplo, de las mujeres/hombres que tienen un tiempo de reacción más bajo y aquellas/os que tienen un tiempo de reaccion más alto,¿ le corresponden puestos mas altos y bajos respectivamente?
+Calculamos la diferencia relativa, ya que los tiempos de reacción son muy pequeños y de esta forma nos podemos hacer una idea de lo representativa que es la diferencia de medias. 
+
+```{r}
+mediaTiempoReaccion <- mean(nadadoresPruebas$reactiontime)
+mediaTiempoReaccion
+(0.7166871-0.6922862)/mediaTiempoReaccion*100
+```
+Obtenemos que las mujeres tardan un 3.5% más de tiempo que los hombres. Debemos seguir analizando esta variable con otras para poder concluir cualquier resultado.
+
+En este punto, podríamos preguntarnos si las mujeres/hombres que tienen un tiempo de reacción más bajo le corresponderán puestos mas altos, y viceversa. Es decir, si existe una correlación negativa entre ambas variables. 
+
 No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el de Cohen).
 Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
 
@@ -885,36 +891,42 @@ Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 8
 Primeramente calculamos el conjunto de datos:
 
 ```{r}
-nadadorasComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="F" & nadadoresPruebas$stroke=="FREE", ]
+nadadorasComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="F" , ]
+
 ```
 
 ```{r}
-ggplot(nadadorasComparacionReactionTime, aes(x = reactiontime,group=distance)) +
-geom_density() +
-ggtitle("Distribución. Reaction time: 800m free vs 50m free")
+
+ggplot(nadadorasComparacionReactionTime, aes(x = factor(distance), y = reactiontime, fill = factor(distance))) +
+  geom_boxplot() +
+  labs(title = "Boxplot de Reaction Time: 50m vs 800m",
+       x = "Distancia (m)",
+       y = "Tiempo de Reacción") +
+  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  
+  theme_minimal()
 
 ```
 
-El gráfico muestra dos curvas de densidad superpuestas, una para la prueba de 50 metros y otra para 800 metros.
+El gráfico muestra los boxplots del tiempo de reacción para la prueba de 50 metros y otra para 800 metros.
+
 
 ```{r}
 # Crear el gráfico de densidad con colores por distancia
 ggplot(nadadorasComparacionReactionTime, aes(x = reactiontime, fill = factor(distance), group = distance)) +
-  geom_density(alpha = 0.6) +  # Usar alpha para hacer las curvas semi-transparentes
-  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  # Asignar colores específicos
+  geom_density(alpha = 0.6) +  #curvas semi-transparentes
+  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  
   ggtitle("Distribución del Tiempo de Reacción: 800m libre vs 50m libre") +
-  labs(fill = "Distancia (m)") +  # Etiqueta para la leyenda
-  theme_minimal() +  # Tema minimalista
-  xlab("Tiempo de Reacción (s)") +  # Etiqueta para el eje X
-  ylab("Densidad")  # Etiqueta para el eje Y
+  labs(fill = "Distancia (m)") +  
+  theme_minimal() +  
+  xlab("Tiempo de Reacción (s)") +  
+  ylab("Densidad")
 ```
 
-Las curvas se encuentran en un rango de aproximadamente 0.6 a 0.9, que representa los tiempos de reacción.
-La advertencia en la consola indica que algunos valores fueron eliminados debido a ser no finitos, lo que sugiere que puede haber valores faltantes u outliers en los datos de tiempo de reacción.
+Las curvas se encuentran en un rango de aproximadamente 0.5 a 1 segundos, que representa los tiempos de reacción.
 Para los 50 metros, la densidad es más alta en el rango de tiempos de reacción más cortos, lo que indica que las nadadoras tienden a tener tiempos de reacción más rápidos en esta distancia.
 Esto es esperado, ya que la carrera de 50 metros es más corta y requiere reacciones más rápidas y explosivas.
 En cuanto a la de 800 metros, la curva muestra una mayor dispersión en los tiempos de reacción, con una densidad más amplia.
-Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde las nadadoras pueden no necesitar un tiempo de reacción tan rápido.
+Esto sugiere que los tiempos de reacción son más variados en esta distancia, probablemente debido a la naturaleza más larga y estratégica de la carrera, donde el triunfo de las nadadoras puede estar influenciado por otras variables más determinantes.
 
 Aquí también podemos hacer un test de hipótesis.
 
@@ -929,13 +941,27 @@ Las nadadoras que participan en distancias más cortas (50 metros) tienen un tie
 A continuación, realizamos el mismo estudio pero con hombres y vemos si la situación es similar.
 
 ```{r}
-nadadoresComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="M" & nadadoresPruebas$stroke=="FREE", ]
+nadadoresComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="M", ]
 ```
 
 ```{r}
-ggplot(nadadoresComparacionReactionTime, aes(x = reactiontime,group=distance)) +
-geom_density() +
-ggtitle("Distribución para Hombres. Reaction time: 800m free vs 50m free")
+ggplot(nadadoresComparacionReactionTime, aes(x = factor(distance), y = reactiontime, fill = factor(distance))) +
+  geom_boxplot() +
+  labs(title = "Boxplot de Reaction Time: 50m vs 800m en hombres",
+       x = "Distancia (m)",
+       y = "Tiempo de Reacción") +
+  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  
+  theme_minimal()
+
+# Crear el gráfico de densidad con colores por distancia
+ggplot(nadadoresComparacionReactionTime, aes(x = reactiontime, fill = factor(distance), group = distance)) +
+  geom_density(alpha = 0.6) +  #curvas 
+  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  
+  ggtitle("Distribución del Tiempo de Reacción: 800m libre vs 50m en hombres") +
+  labs(fill = "Distancia (m)") +  
+  theme_minimal() +  
+  xlab("Tiempo de Reacción (s)") +  
+  ylab("Densidad")
 
 ```
 
@@ -945,8 +971,9 @@ t.test(reactiontime~distance,data=nadadoresComparacionReactionTime)
 
 Al realizar el t-test para este grupo, vemos también como la diferencia es significativa entre el tiempo de reacción para la prueba de 50 metros y la de 800.
 
-La diferencia entre estos dos extremos en las pruebas es muy significativa, pero queremos saber también como se distribuyen todas.
+La diferencia entre estos dos extremos en las pruebas es muy significativa. Dados estos resultados, queremos ver las tendencias en las carreras de distancia intermedia, dada nuestra intuición de que el tiempo de reacción aumente de manera gradual.
 Es decir, cuál es la diferencia entre las pruebas de 50 metros, las de 100, 200, etc.
+
 Para ello, realizaremos un gráfico de densidad conjunto.
 
 ```{r}
@@ -960,6 +987,7 @@ ggplot(nadadoresPruebas, aes(x = reactiontime, color = as.factor(distance), fill
 Como podemos observar, nuestras suposiciones parecen ser ciertas acerca de que las medias de los tiempos de reacción aumentan según la carrera es más larga.
 Si bien es cierto, para distancias largas, como son 800 y 1500 metros, no se observan diferencias en torno a su valor central.
 Del mismo modo, para carreras de 100 y 200 tampoco se observa una diferencia signifiticativa.
+
 Contrastamos esto de forma más precisa realizando el test ANOVA de diferencia de medias.
 
 ```{r}
@@ -967,7 +995,7 @@ anova_tiempoReaccion_distancia <- aov(reactiontime ~ as.factor(distance), data =
 summary(anova_tiempoReaccion_distancia)
 ```
 
-Interpretando estos resultado, tenemos que el valor p es un valor de orden e\^-16.
+Interpretando estos resultados, tenemos que el p-valor es de orden e\^-16.
 Por ello, podemos concluir que hay diferencias significativas en los tiempos de reacción entre al menos uno de los grupos de distancia.
 Esto indica que, al menos una distancia tiene un tiempo de reacción diferente en comparación con las otras distancias.
 El valor de F es alto (56.98), sugiere que la variación entre los grupos es mucho mayor que la variación dentro de los grupos.
@@ -1027,43 +1055,6 @@ summary(anova_tiempoReaccion_Calles)
 
 El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada.
 Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir.
-
-
-Realizamos un modelo lineal para ver si existe una relación entre los puntos de los participantes y el número de calle en el que compiten.
-
-```{r}
-lmPuntosCalle = lm(nadadoresPruebas$points~nadadoresPruebas$lane)
-summary(lmPuntosCalle)
-plot(lmPuntosCalle)
-
-```
-
-Podemos ver como tenemos unos valores de los parámetros de nuestra aproximación con p valores muy significativos.
-Sin embargo, si observamos la gráfica qqplot, la tendencia no es lineal.
-Para conseguir un mejor ajuste, realizaremos una transformación de la variable puntos mediante Box-Cox.
-
-```{r}
-boxcox(lmPuntosCalle)
-```
-
-El mejor ajuste que nos devuelve Box-Cox es con \lambda=2.
-Por tanto,
-
-```{r}
-lmPuntosCalle2 = lm((nadadoresPruebas$points)^2~nadadoresPruebas$lane)
-summary(lmPuntosCalle)
-plot(lmPuntosCalle)
-```
-
-Sigue sin ser normal la distribución de los residuos, luego parece que este no es el camino indicado si queremos explicar los puntos a partir de las calles. 
-
-De todas formas, si en algún momento existe relación entre los puntos y las calles usadas, será porque los nadadores con mejor tiempo se situan en las calles centrales. 
-
-```{r, echo=FALSE}
-rm(anova_tiempoReaccion_Calles, lmPuntosCalle, lmPuntosCalle2, colores )
-
-```
-
 
 ### Daytime(Ines)
 
@@ -2380,10 +2371,8 @@ En definitiva, el análisis PCA muestra que los datos prueba pueden ser bien rep
 
 ## Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
 
-Vamos a ver en qué estilo predominan los nadadores de 1500 metros En la prueba de 1500, todos los nadadores nadan en estilo libre.
-Por tanto, no seleccionaremos según esa imposición, ya que nos viene de los propios datos.
-Gracias a ello, tenemos un enfoque más global de la carrera de 1500 metros.
-Esto lo comprobamos viendo que
+Vamos a ver en qué estilo predominan los nadadores de 1500 metros.
+
 
 ```{r}
 summary(nadadoresPruebas$stroke[nadadoresPruebas$distance == 1500])
@@ -2391,7 +2380,9 @@ summary(nadadoresPruebas$round[nadadoresPruebas$distance == 1500])
 ```
 
 Como podemos observar, todos los nadadores nadan en estilo libre.
-Por tanto, no debemos hacer distinción en este tipo de carrera.
+Por tanto, no seleccionaremos según esa imposición, ya que nos viene de los propios datos.
+Gracias a ello, tenemos un enfoque más global de la carrera de 1500 metros.
+
 Además, tenemos 70 participantes en rondas preliminares y 15 finales.
 Por tanto, tomaremos la ronda preliminar para hacer nuestro análisis de componentes principales.
 
