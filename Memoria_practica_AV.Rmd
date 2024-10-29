@@ -31,7 +31,6 @@ library(purrr)
 library(dendextend)
 library(RColorBrewer)
 library(knitr)
-#install.packages("FSA")  
 library(FSA)
 
 ```
@@ -257,10 +256,7 @@ Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados.
 
 ```{r, echo=FALSE}
 #Elimino las tablas creadas para no sobrecargar la escritura. Ya que no las vamos a volver a usar.
-rm(datosNA)
-rm(naReactionTime)
-rm(todosNA)
-rm(percent_na)
+rm(datosNA, naReactionTime, todosNA, percent_na)
 ```
 
 ## Variable birthdate. Creacion de nueva variable edad.
@@ -283,7 +279,11 @@ datos2015$birthdate=NULL
 ```
 
 #Tablas
-A continuación procedo a presentar las tablas que vamos a utilizar a lo largo de nuestro estudio. Se presentan aquí, dada su aparición en múltiples apartados, facilitándose así su ejecución:
+
+Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba, luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor. Además, "ponderaría" más variables como el tiempo de reacción en nadadores de 1500 puesto que se usaría ese valor 15 veces por cada vez que se usa en un nadador de una prueba de 50 metros. 
+
+A continuación procedo a presentar las tablas que vamos a utilizar dependiendo lo que queramos estudiar: 
+
 
 ##Tabla nadadoresParticipantes
 Para estudiar el número de nadadores, ver cuantos hombres y mujeres había, la edad de los participantes... Vamos a necesitar eliminar filas como bien hemos anunciado antes.
@@ -303,10 +303,12 @@ nadadoresParticipantesCopia<-nadadoresParticipantes
 ```{r}
 summary(nadadoresParticipantes)
 ```
+
 ##Tabla nadadoresPruebas
 Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
 Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
+
 Lo evaluamos seleccionando algún nadador que haya nadado en varias rondas:
 
 ```{r}
@@ -314,11 +316,12 @@ ejemplo<-datos2015[datos2015$distance == 100 & datos2015$stroke=="BACK" & datos2
 head(ejemplo,6)
 ```
 
+Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio.
+
 ```{r, echo=FALSE}
 rm(ejemplo)
 ```
 
-Bien, vemos que el australiano nadó tanto las preliminares, como las semifinales como la final y el eventid era distinto, luego parece que podemos seguir con nuestro estudio.
 Creamos la siguiente tabla:
 
 ```{r}
@@ -333,10 +336,8 @@ nadadoresPruebasCopia<-nadadoresPruebas
 Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
 
 # Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
-Ya está preparado una tabla con nadadores únicos en el conjunto nadadoresParticipantes, lo cual es ideal para estudiar características individuales sin duplicados.
-Con este conjunto, vamos a explorar variables como género, país y edad de los participantes.
 
-Ahora, comenzamos nuestro estudio:
+Usaremos la tabla nadadoresParticipantes. Ahora, comenzamos nuestro estudio:
 
 ### Edad [Alonso]
 
@@ -378,11 +379,13 @@ La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alre
 Esto sugiere que los participantes en la competición están en su mayoría en la etapa juvenil o temprana adultez.
 
 Podríamos preguntarnos si la edad sigue una distribución normal en estos datos, para ello, hacemos uso del test shapiro:
+
 ```{r}
 shapiro.test(nadadoresParticipantes$edad)
 ```
 
 Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos. 
+
 
 ### Análisis de géneros participantes [Salma].
 
@@ -465,7 +468,7 @@ Podemos ver, de manera más representativa, como existe el doble de proporción 
 Dicho en otras palabras, *2 de cada 10 mujeres son menores de 18 años, mientras que esto sólo ocurre en 1 de cada 10 hombres*:
 
 ```{r}
- # Supongamos que tienes los siguientes porcentajes:
+
 porcentajes <- c(10.88, 21.66)  # 10% para hombres y 20% para mujeres
 generos <- c("Hombres", "Mujeres")
 
@@ -822,16 +825,16 @@ print(grafico_podio_100mrepresentacion)
 ```
 
 
-Antes de continuar con el estudio, reiniciamos nuestras tablas originales:
-```{r}
+
+```{r, echo=FALSE}
+
+rm(conteo_por_continente, datos_100m_top, datos_100m_top_4, grafico_circular, grafico_distribucion_continente, grafico_podio_100m, grafico_podio_100mrepresentacion, histograma_nadadores, manual, oda_bar, oda_bar1, puntos_por_continente, puntos_por_pais, resumen_paises, resumenContinente, nombres, paleta)
 nadadoresParticipantes<-nadadoresParticipantesCopia
 nadadoresPruebas<-nadadoresPruebasCopia
-#Vemos que desaparece iso,continentes...
-nadadoresPruebas
 ```
 
 
-## Estudio sobre los eventos, reactiontime, lane, heats, daytime: [Alonso. Sólo el inicio.]
+## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
 ### Reactiontime. Hombres vs Mujeres
 
 Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores. Para ello, no tenemos en cuenta las dos filas con datos nulos. 
@@ -1158,11 +1161,14 @@ summary(pruebasVespertinas$round)
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
 
 ```{r, echo=FALSE}
-rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos_hhmm, convertir_a_hhmm)
+rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos_hhmm, convertir_a_hhmm,pruebasMatinales, pruebasVespertinas)
+
+nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
 
 ## Estudio sobre la variable distancia y su asociación con los tipos de nado. (SALMA)
+
 Una variable que aún no hemos tratado de comprender es el tipo de nado, es decir, la variable 'stroke'.
 Una pregunta que nos puede surgir es, ¿dependiendo de la distancia se nada con un estilo u otro? Veamos sobre 'nadadoresPruebas' el estilo de nado en el que se usar en distintas distancias.
 
@@ -1187,6 +1193,7 @@ Podemos verlo con porcentajes:
 prop.table(distancia_stroke, margin = 1)  #proporciones por distancia
 
 ```
+
 ```{r}
 ggplot(nadadoresPruebas, aes(x = factor(distance), y = stroke)) +
   geom_count() +
@@ -1195,7 +1202,7 @@ ggplot(nadadoresPruebas, aes(x = factor(distance), y = stroke)) +
   theme_minimal()
 
 ```
-Podemos replantearnos ahora si esto se mantiene indistintamente del género del nadador.Es decir,¿En las pruebas femeninas de 200 m, también se nadan todos los estilos?
+Podemos replantearnos ahora si esto se mantiene indistintamente del género del nadador.Es decir,¿Hay las mismas pruebas para mujeres y hombres?
 
 Primero, crearemos subconjuntos de datos para cada género.
 
@@ -1219,6 +1226,12 @@ print(tabla_masculino)
 
 ```
 Parece que todo está funcionando como esperábamos, tanto en el análisis conjunto como en los análisis individuales. Esto confirma que los resultados son consistentes y los datos están bien estructurados para las pruebas.
+
+```{r, echo=FALSE}
+rm(distancia_stroke, tabla_femenino, tabla_masculino, nadadoresFemeninas, nadadoresMasculinos)
+
+```
+
 
 
 ## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan.(Salma)
@@ -1350,6 +1363,7 @@ rm(participaciones_menores,resumen_pruebas, total_nadadores)
 nadadoresPruebas<-nadadoresPruebasCopia
 
 ```
+
 
 
 ## Estudio sobre la variable round. [Alonso]
@@ -1645,6 +1659,7 @@ summary(anova_puntos_genero)
 
 ```
 
+
 ### Puntos. ¿La edad influye?
 Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
@@ -1667,6 +1682,8 @@ ggplot(resumen_puntos, aes(x = edad, y = points)) +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 ```
+
+
 ```{r}
 # Crear una nueva columna que clasifica a los nadadores en grupos de edad
 nadadoresPruebas <- nadadoresPruebas %>%
@@ -1717,7 +1734,7 @@ print(kruskal_result)
 El p-value < 2.2e-16: Este valor p es extremadamente bajo, lo que indica que hay diferencias significativas en los puntos entre al menos uno de los grupos de edad. Dado que el valor p es muy pequeño, puedes rechazar la hipótesis nula, que sostiene que no hay diferencias en las medianas de los puntos entre los grupos.
 
 Aunque Kruskal-Wallis indica que hay diferencias, no te dice cuáles son esos grupos que difieren. Por lo tanto, es recomendable realizar pruebas post-hoc para identificar qué grupos son significativamente diferentes entre sí.
-```{r}
+```{r, warning=FALSE}
 # Prueba de Dunn
 dunn_test <- dunnTest(points ~ grupo_edad, data = nadadoresPruebas, method = "bonferroni")
 print(dunn_test)
@@ -1742,6 +1759,8 @@ ggplot(nadadoresPruebas, aes(x = grupo_edad, y = points, fill = grupo_edad)) +
 
 ```{r}
 #vuelvo de nuevo a la original
+
+rm(anova_puntos_genero, dunn_test, kruskal_result, media_puntos, modelo, promedio_puntos, resumen_puntos)
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
@@ -2465,9 +2484,9 @@ Además, se localizan en la posición central, lo que parece indicar que sus tie
 Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee Sheng, observamos que efectivamente están en los extremos izquierdos del eje x.
 Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece indicar que obtuvieron tiempos más largos en sus splits finales, posiblemente debido a una falta de resistencia y mayor fatiga en estos tiempos, que es un factor crucial para el desarrollo de este tipo de pruebas.
 
-## Clusters
+# Clusters
 
-#Cluster 100 mariposa femenino [Javier]
+##Cluster 100 mariposa femenino [Javier]
 
 Vamos a escalar los datos de _prueba[,-1]_ (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga medio 0 y desviación estándar 1.
 
@@ -2812,3 +2831,9 @@ tanglegram(dend1, dend2)
 ```
 
 Como podemos observar, no nos dan dendrogramas isomorfos puesto que los dos métodos manejan de manera diferente las distancias entre grupos durante el proceso de fusión.
+
+
+
+##Cluster sobre el 800m libres femenino. 
+
+Vamos a intentar, normalizar de cierta manera los parciales respecto del tiempo final, para intentar ver estrategias de carrera en las nadadoras. Obsérvese que, normalizamos los datos porque pueden existir dos nadadoras cuya estrategia de carrera sea la misma, pero que se encuentren muy alejadas en el cluster debido a que sus tiempos son lo suficientemente distinto. Es por ello que normalizaremos los datos. 
