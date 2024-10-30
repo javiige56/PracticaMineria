@@ -2621,6 +2621,24 @@ Las nadadoras del cluster 2, se aprecia que sus parciales tienen una forma de U 
 Las nadadoras del último cluster, observamos que son nadadoras muy constantes en cuanto a los parciales. 
 
 
+### IDEAS DE LOS PROFES
+Graficar los centroides del kmeans para ver más claro cada tipo de estrategia. Además, intentar sacar conclusiones sobre los cluster, ¿cuál es el óptimo, es decir, en cuál están las mejores nadadoras?. 
+
+
+Cambiar cada "tabla" por un dataframe. Mirar las gráficas e intentar ponerlas todas en colores para personas con daltonismo. 
+
+Poner en análisis de nacionalidades las paletas de los colores de los ¿juegos olímpicos? (son el mundial)
+
+
+Sobre los test shapiro, cambiar e intentar hacer 3 cosas para ver si son normales: 
+
+1. Probabilidad de que en mis datos, el reaction time sea mayor que 0.8?
+2. Calcular la media y la desviación típica y calcular la probabilidad como una Normal. 
+3. Calcular la media y la desviación típica y calcular la probabilidad simulando los datos. 
+
+
+
+
 ##Cluster 100 mariposa femenino [Javier]
 
 Vamos a escalar los datos de *prueba[,-1]* (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga media 0 y desviación estándar 1.
