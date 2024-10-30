@@ -32,7 +32,7 @@ library(dendextend)
 library(RColorBrewer)
 library(knitr)
 library(FSA)
-
+library(tidyverse)
 ```
 
 # Introducción(Javier).
@@ -369,7 +369,8 @@ Creamos la siguiente tabla:
 ```{r}
 nadadoresPruebas <- datos2015 %>%
   distinct(eventid, athleteid, .keep_all = TRUE)
-nadadoresPruebas
+
+head(nadadoresPruebas,6)
 
 #Copia de seguridad: 
 nadadoresPruebasCopia<-nadadoresPruebas
@@ -547,9 +548,7 @@ Vamos a ver la cantidad de nadadores por país.
 nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
 
 nombres<- unique(nadadoresParticipantes$name) #Para no repetir
-print(nombres)
-
-
+#print(nombres)
 manual <- data.frame(
   nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
   iso2 = c("FI", "XK", "FM", "VI")  
@@ -570,7 +569,7 @@ resumen_paises <- nadadoresParticipantes %>%
   summarise(num_nadadores = n(), .groups = "drop") %>%
   arrange(desc(num_nadadores))  # Ordenar por número de nadadores
 
-resumen_paises
+head(resumen_paises,6)
 
 #Creamos un gráfico con colores
 paleta <- c("Americas" = "#0084ff", "Asia" = "#44bec7", 
@@ -659,7 +658,7 @@ puntos_por_pais <- nadadoresPruebas %>%
   summarise(total_puntos = sum(points, na.rm = TRUE))  
 
 # Ver el resultado
-puntos_por_pais
+head(puntos_por_pais,20)
 
 ```
 
@@ -676,13 +675,14 @@ ggplot(puntos_por_pais, aes(x = reorder(name, total_puntos), y = total_puntos)) 
 De la misma manera que nos ocurría antes, este gráfico es poco interpretativo.
 Lo vemos por continentes:
 
-```{r}
+```{r, warning=FALSE}
 # Utilizamos la tabla nadadoresPruebas
 # Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
 nadadoresPruebas$iso2 <- countrycode(nadadoresPruebas$name, "country.name", "iso2c")
 
 nombres<- unique(nadadoresPruebas$name) #Para no repetir
-print(nombres)
+
+#print(nombres)
 
 #Nombres problemáticos
 manual <- data.frame(
@@ -1422,7 +1422,7 @@ Seleccionamos las nadadoras que nadaron preliminares en el 50 libre femenino:
 ```{r}
 free50PrelimWomens<- nadadoresPruebas[nadadoresPruebas$round=="PRE" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
 
-free50PrelimWomens
+head(free50PrelimWomens,10)
 ```
 
 Ahora, vamos a hacer el ranking de resultados de esta prueba, para ello:
@@ -1551,7 +1551,7 @@ fly100PREWomen<-nadadoresPruebas[nadadoresPruebas$distance==100 & nadadoresPrueb
 fly100PREWomen<-fly100PREWomen[order(fly100PREWomen$swimtime), ]
 #Las ordeno
 rownames(fly100PREWomen) <- 1:nrow(fly100PREWomen)
-fly100PREWomen
+head(fly100PREWomen,20)
 
 ```
 
@@ -1827,8 +1827,8 @@ nadadoresPruebas50crol<- nadadoresPruebas[nadadoresPruebas$distance==50 & nadado
 t= nadadoresPruebas50crol$swimtime
 p= nadadoresPruebas50crol$points
 cor(nadadoresPruebas50crol$swimtime,nadadoresPruebas50crol$points)
-nadadoresPruebas50crol
-#verlo pero 
+head(nadadoresPruebas50crol,10)
+
 ```
 
 Esto no es de mucho estudio, ya que es lo lógico.
@@ -1962,7 +1962,7 @@ nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & da
 
 Vamos a evaluar cómo fueron los parciales de las nadadoras, para ello hacemos el siguiente gráfico:
 
-```{r}
+```{r, warning=FALSE}
 ggplot(nadadoras800free, aes(y=nadadoras800free$lastname, x=nadadoras800free$splitswimtime, fill=nadadoras800free$lastname))+
   geom_boxplot()+
   labs(x="Parciales", y="Nadadoras")
@@ -1974,7 +1974,7 @@ Además, podemos observar que algunas nadadoras como Kapas y Friis, tuvieron una
 
 Vamos a observar, para cada nadador, los parciales realizados para ver si podemos conseguir algún patrón de tipo de carrera:
 
-```{r}
+```{r, warning=FALSE}
 ggplot(nadadoras800free, aes(x=nadadoras800free$splitdistance, y=nadadoras800free$splitswimtime, group = lastname, colour =lastname )) + 
   geom_line()  + 
   geom_point( size=2, shape=21, fill="white") + 
@@ -2050,11 +2050,11 @@ Creamos una tabla en la que nos quedamos con el nombre, apellidos y parciales
 pruebita <- prueba200MariposaMasc %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
-pruebita
+head(pruebita,10)
 #omito los valores nulos: 
 pruebita<- na.omit(pruebita)
 row.names(pruebita) <- pruebita$lastname # esto es para llamar a las filas con el nombre de los nadadores
-pruebita
+head(pruebita,10)
 ```
 
 Calculas estadísticas descriptivas utilizando 'pastecs::stat.desc' para entender mejor tus datos:
@@ -2256,7 +2256,7 @@ resumen200 <- resumen200 %>% dplyr::select(lastname,reactiontime,edad) %>%
     arrange(desc(reactiontime))
 
 
-resumen200
+head(resumen200,15)
 #habria q ver quienes son el 5 y el 15 aqui
 ```
 
@@ -2279,7 +2279,7 @@ fviz_pca_biplot(componentess,
                                y = componentess$x[, 2], 
                                label = lastname), 
             vjust = -1)  # Ajustar el desplazamiento vertical
-resumen200
+head(resumen200,15)
 ```
 
 El punto 5 se corresponde con Castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto.
@@ -2310,7 +2310,7 @@ pruebawide <- prueba800libresPreliminar %>%
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
 #omito los valores nulos: 
 pruebawide<- na.omit(pruebawide)
-
+pruebawide<- as.data.frame(pruebawide)
 rownames(pruebawide) <- pruebawide$lastname
 
 ```
@@ -2373,6 +2373,8 @@ Luego, si nos fijamos en las nadadoras del gráfico anterior, podremos asegurar 
 Hassler es una nadadora con más edad pero de las más rapidas pero con mal tiempo de reacción.
 
 ```{r}
+biplot(pca800libres)
+
 fviz_pca_biplot(pca800libres, repel = TRUE)
 ```
 
@@ -2392,7 +2394,7 @@ prueba100MariposaFem <- datos2015[datos2015$distance==100 & datos2015$gender=="F
 
 # Selección de columnas relevantes
 prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime)
-prueba100MariposaFem
+head(prueba100MariposaFem, 10)
 ```
 
 A continuación, vamos a organizar los datos de la tabla *prueba100MariposaFem*.
@@ -2414,7 +2416,7 @@ row.names(prueba) <- prueba$lastname
 
 #Eliminamos filas con NA restantes
 prueba <- na.omit(prueba)
-prueba
+head(prueba,10)
 ```
 
 Con todo esto, estamos preparados para realizar el PCA.
@@ -2485,7 +2487,7 @@ datos1500Masc <- datos2015[datos2015$distance==1500 & datos2015$gender=="M" & da
 
 # Selección de columnas relevantes
 datos1500Masc <- datos1500Masc %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime)
-datos1500Masc
+head(datos1500Masc,15)
 ```
 
 ```{r}
@@ -2503,7 +2505,7 @@ row.names(prueba1500) <- prueba1500$lastname
 
 #Eliminamos filas con NA restantes
 prueba1500 <- na.omit(prueba1500)
-prueba1500
+head(prueba1500,15)
 ```
 
 Con todo esto, estamos preparados para realizar el PCA:
@@ -2573,7 +2575,7 @@ rm(datos1500Masc, pca_1500masculino, resumen1500)
 
 # Clusters
 
-##Cluster sobre el 800m libres femenino. Análisis de estrategias de las nadadoras. [Alonso]
+## Cluster sobre el 800m libres femenino. Análisis de estrategias de las nadadoras. [Alonso]
 
 Voy a crear a continuación una tabla en la cual, tenga el nombre de las nadadoras del 800 libres femenino. Además, quiero los parciales al paso por cada 50 y el tiempo final. 
 
@@ -2595,6 +2597,8 @@ free800WomensPre <- prueba800libresPreliminar %>%
 #omito los valores nulos: 
 free800WomensPre<- na.omit(free800WomensPre)
 
+free800WomensPre <- as.data.frame(free800WomensPre)
+
 rownames(free800WomensPre) <- free800WomensPre$lastname
 ```
 
@@ -2614,7 +2618,10 @@ free800WomensNormalizado <- free800WomensPre %>%
                 ~ . / swimtime))
 
 free800WomensNormalizado$swimtime=NULL
+free800WomensNormalizado <- as.data.frame(free800WomensNormalizado)
 rownames(free800WomensNormalizado) <- free800WomensNormalizado$lastname
+
+
 ```
 
 
@@ -2632,39 +2639,86 @@ Esto empieza a ilustrar qué estados tienen grandes disimilitudes (rojo) frente 
 Veamos ahora, mediante el método de las siluetas, el número óptimo de clusters: 
 
 ```{r}
-
+fviz_nbclust(free800WomensNormalizado[,-1], kmeans, method = "silhouette")
 ```
 
 A continuación, hacemos el cluster: 
 
 ```{r}
 cluster800libres <- kmeans(free800WomensNormalizado[,-1], centers = 3, nstart = 25)
+cluster800libres
 ```
+
 
 ```{r}
-set.seed(123)  # Para reproducibilidad
-kmeans_model <- kmeans(datos_normalizados[, c("50", "100", "150", "200", "250", 
-                                              "300", "350", "400", "450", "500", 
-                                              "550", "600", "650", "700", "750", 
-                                              "800")], centers = 3)
-
-# Añade los grupos a los datos
-datos_normalizados$grupo <- as.factor(kmeans_model$cluster)
-
-# Transformar los datos a formato largo para ggplot
-datos_largos <- datos_normalizados %>%
-  pivot_longer(cols = c("50", "100", "150", "200", "250", "300", "350", "400", 
-                        "450", "500", "550", "600", "650", "700", "750", "800"), 
-               names_to = "parcial", values_to = "tiempo_normalizado")
-
-# Graficar
-ggplot(datos_largos, aes(x = as.numeric(parcial), y = tiempo_normalizado, 
-                         group = nombre, color = grupo)) +
-  geom_line(alpha = 0.6) +
-  labs(x = "Parcial (m)", y = "Tiempo Normalizado", color = "Grupo") +
-  theme_minimal() +
-  ggtitle("Estrategias de Carrera Agrupadas por Clustering")
+fviz_cluster(cluster800libres, data = free800WomensNormalizado[,-1])
 ```
+
+Bien, ahora para poder sacar las conclusiones debidas, voy a querer graficar la tabla, donde cada nadadora (fila), va a tener asociado un cluster. 
+
+```{r}
+free800WomensNormalizado$cluster<-cluster800libres$cluster
+
+```
+
+A continuación, vuelvo al formato long, para ello: 
+
+```{r}
+prueba800long <- free800WomensNormalizado %>%
+  pivot_longer(cols = c("50", "100", "150", "200", "250", "300", "350", 
+                         "400", "450", "500", "550", "600", "650", 
+                         "700", "750", "800"), 
+               names_to = "splitdistance", 
+               values_to = "splitswimtime")
+
+
+
+```
+
+Gráfica: 
+
+```{r}
+ggplot(prueba800long, aes(x = as.numeric(splitdistance), 
+                          y = splitswimtime, 
+                          group = lastname, 
+                          color = factor(cluster))) +
+  geom_line(alpha = 0.6) +  # Agrega líneas para cada nadadora
+  geom_point() +             # Agrega puntos en cada parcial
+  labs(x = "Parcial (m)", 
+       y = "Tiempo de Nado (segundos)", 
+       color = "Cluster") +
+  theme_minimal() +
+  ggtitle("Tiempos de Nado por Parciales Agrupados por Cluster")
+```
+
+Parece que este gráfico no es lo suficientemente claro, voy a evaluar nadadoras por cluster de manera separada: 
+
+```{r}
+# Filtrar datos por cluster y graficar
+for (i in unique(prueba800long$cluster)) {
+  p <- ggplot(prueba800long[prueba800long$cluster == i, ], 
+               aes(x = as.numeric(splitdistance), 
+                   y = splitswimtime, 
+                   group = lastname, 
+                   color = factor(cluster))) +
+    geom_line(alpha = 0.6) + 
+    geom_point() +
+    labs(x = "Parcial (m)", 
+         y = "Tiempo de Nado (segundos)", 
+         color = "Cluster") +
+    theme_minimal() +
+    ggtitle(paste("Tiempos de Nado del Cluster", i))
+
+  print(p)  # Imprime la gráfica
+}
+```
+
+Para analizar mejor las estrategias, intentamos no fijarnos en el primer y último largo, ya que corresponden para todas las nadadoras, a largos en los que van más rápido. Tras ver las tres gráficas, se ve que, las nadadoras pertenecientes al cluster 1, son nadadoras que empiezan relativamente rápido pero que con el paso de los metros, empiezan a subir de tiempos cada parcial. 
+
+Las nadadoras del cluster 2, se aprecia que sus parciales tienen una forma de U invertida, empiezan rápido, sobre la mitad de la prueba, es donde más lento van, y luego vuelven a acelerar. 
+
+Las nadadoras del último cluster, observamos que son nadadoras muy constantes en cuanto a los parciales. 
+
 
 ##Cluster 100 mariposa femenino [Javier]
 
