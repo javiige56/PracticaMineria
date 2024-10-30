@@ -2604,6 +2604,68 @@ A continuación, vamos a echarle un vistazo a la tabla:
 head(free800WomensPre, 10)
 ```
 
+Ahora, voy a normalizar los datos dividiendo cada pacial por el tiempo total, que dará una especie de "porcentaje" de cuánto tardan en cada parcial: 
+
+
+```{r}
+free800WomensNormalizado <- free800WomensPre %>%
+  mutate(across(c(`50`, `100`, `150`, `200`, `250`, `300`, `350`, `400`, `450`, 
+                  `500`, `550`, `600`, `650`, `700`, `750`, `800`), 
+                ~ . / swimtime))
+
+free800WomensNormalizado$swimtime=NULL
+rownames(free800WomensNormalizado) <- free800WomensNormalizado$lastname
+```
+
+
+Bien, ahora, voy a tratar de hacer un cluster:
+
+En primer lugar vamos a calcular la distancia Euclídea entre las observaciones de la base de datos.
+```{r}
+distance <- get_dist(free800WomensNormalizado[,-1])
+
+fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
+
+Esto empieza a ilustrar qué estados tienen grandes disimilitudes (rojo) frente a los que parecen ser bastante similares (verde azulado).
+
+Veamos ahora, mediante el método de las siluetas, el número óptimo de clusters: 
+
+```{r}
+
+```
+
+A continuación, hacemos el cluster: 
+
+```{r}
+cluster800libres <- kmeans(free800WomensNormalizado[,-1], centers = 3, nstart = 25)
+```
+
+```{r}
+set.seed(123)  # Para reproducibilidad
+kmeans_model <- kmeans(datos_normalizados[, c("50", "100", "150", "200", "250", 
+                                              "300", "350", "400", "450", "500", 
+                                              "550", "600", "650", "700", "750", 
+                                              "800")], centers = 3)
+
+# Añade los grupos a los datos
+datos_normalizados$grupo <- as.factor(kmeans_model$cluster)
+
+# Transformar los datos a formato largo para ggplot
+datos_largos <- datos_normalizados %>%
+  pivot_longer(cols = c("50", "100", "150", "200", "250", "300", "350", "400", 
+                        "450", "500", "550", "600", "650", "700", "750", "800"), 
+               names_to = "parcial", values_to = "tiempo_normalizado")
+
+# Graficar
+ggplot(datos_largos, aes(x = as.numeric(parcial), y = tiempo_normalizado, 
+                         group = nombre, color = grupo)) +
+  geom_line(alpha = 0.6) +
+  labs(x = "Parcial (m)", y = "Tiempo Normalizado", color = "Grupo") +
+  theme_minimal() +
+  ggtitle("Estrategias de Carrera Agrupadas por Clustering")
+```
+
 ##Cluster 100 mariposa femenino [Javier]
 
 Vamos a escalar los datos de *prueba[,-1]* (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga media 0 y desviación estándar 1.
