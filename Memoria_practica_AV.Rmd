@@ -38,7 +38,7 @@ library(FSA)
 # Introducción(Javier).
 
 En este proyecto, se analizarán los resultados del **mundial de natación de 2015** con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos.
-Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable
+Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable. 
 
 En primer lugar, vemos con qué datos vamos a tratar.
 El conjunto de datos consiste en los resultados del Campeonato Mundial de Natación Kazán del año 2015, con los correspondientes datos de cada nadador y prueba.
@@ -86,7 +86,7 @@ dim(datos2015)
 
 Las dimensiones de la tabla son 11423 filas y 22 variables o columnas.
 
-Veámos la primera ocurrencia de nuestra tabla:
+Veamos la primera ocurrencia de nuestra tabla:
 
 ```{r}
 head(datos2015,1)
@@ -96,9 +96,9 @@ Observamos Noel Borshi, nadadora albanesa nacida un 13 de febrero de 1996, que t
 Noel Borshi nadó la prueba 1 en la serie 1 y carril 4.
 Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65 segundos y pasó por el primer parcial (50m) en 29.63 segundos.
 
-# Análisis exploratorio de datos(Javi).
+# Análisis exploratorio de datos.
 
-## Resumen de los datos(JAVI).
+## Resumen de los datos(Javi).
 
 A continuación, vamos a ver un resumen de los datos:
 
@@ -125,8 +125,7 @@ summary(datos2015)
 
 Viendo este resumen de los datos podemos comenzar a entender algunas de las variables.
 
-Observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos.
-Se trata del país de procedencia de cada nadador.
+Observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos. Se trata del país de procedencia de cada nadador.
 
 Vemos que hay 5 ***tipos de nado***: braza, mariposa, crol, espalda y estilos individual.
 
@@ -162,7 +161,7 @@ Luego ahora, tenemos 21 variables en vez de 22.
 Si volvemos a mirar nuestro resumen, observamos que hay valores faltantes.
 Vamos a tratar de identificarlos, intentar entender el por qué de esos datos faltantes, y razonar cuándo será conveniente eliminarlos o no de nuestro estudio.
 
-Para ello, vamos a obtener primeramente un resumen de cómo se distribuyen los datos faltantes:
+Para ello, vamos a obtener primeramente un resumen de cuántos datos faltantes hay:
 
 ```{r}
 print(sum(is.na(datos2015)))
@@ -183,7 +182,7 @@ Es decir, un 0.63 % por ciento.
 Un valor muy bajo.
 
 En principio y sin estudiar nada más, podríamos considerar eliminar las filas que contengan datos faltantes ya que toman un valor muy pequeño con respecto al total.
-Aún así, vamos a ver dónde se suelen tomar más valores nulos y intentar explicar el por qué.
+Aún así, vamos a ver dónde se suelen tomar más valores nulos e intentar explicar el por qué.
 Hacemos una tabla con los valores nulos de cada variable en porcentaje:
 
 ```{r}
@@ -202,15 +201,33 @@ Visualicemos los datos donde faltan todas las variables dichas anteriormente:
 
 ```{r}
 todosNA<-datosNA[is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(datosNA$swimtime) & is.na(datosNA$cumswimtime) & is.na(datosNA$splitswimtime), ]
+
+dim(todosNA)
 ```
 
-Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados...
-Es decir, nadadores que posiblemente se dieron de baja en la prueba.
+Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados... Es decir, nadadores que posiblemente se dieron de baja en la prueba.
+
+```{r}
+summary(todosNA)
+```
+
+```{r}
+todosNA[todosNA$round=="FIN",]
+```
+
 La mayoría de nadadores causaron baja en la ronda preliminar, pero hay uno, el nadador chino Sun Yang, que causó baja en la final del 1500m libres masculino.
+
 Haciendo una pequeña búsqueda en los resultados de la World Aquatics de los mundiales de 2015, observamos que Sun Yang produjo DNS (Did not Start).
-También, buscando a César Cielo en el 50 libres de las preliminares, observamos que causó baja DNS.
+
+```{r}
+todosNA[todosNA$firstname=="CESAR",]
+```
+
+También, buscando a César Cielo en el 50 libres de las preliminares, observamos que causó baja DNS. Para poneros en contexto, Cesar Cielo es actualmente el poseedor del récord mundial del 50 libres, luego también resultaba raro que causase baja. 
+
 Luego todo parece indicar que estos nadadores fueron baja en esa prueba y por ello no sale ningún dato en esas variables.
-Los eliminamos:
+Vamos a optar por eliminarlos.
+
 
 ```{r}
 #Primero de la tabla datosNA: 
@@ -231,6 +248,7 @@ datosNA
 ```
 
 Nos quedan solamente 14 filas en los que hay datos nulos.
+
 Si seguimos con nuestra limpieza:
 
 ### Valores nulos donde faltan los puntos:
@@ -249,7 +267,7 @@ Nuestro nadador de la primera fila, Ben Treffers, fue descalificado.
 Buscamos también a Vladimir Morozov, y también fue descalificado.
 Luego, son participantes que nadaron pero quedaron descalificados.
 Por tanto, sus datos nos servirán para hacer estudios sobre participación, pero no para cualquier estudio que involucre los resultados.
-Luego estos, no los eliminamos del dataframe inicial datos2015
+Luego estos, no los eliminamos del dataframe inicial.
 
 ```{r}
 datosNA <- datosNA %>%
@@ -296,7 +314,7 @@ Además, borramos la variable birthdate:
 datos2015$birthdate=NULL
 ```
 
-#Tablas [Inés]
+## Tablas [Inés]
 
 Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba.
 Luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor (en el caso de las carreras de 1500m).
@@ -306,7 +324,8 @@ Mientras que en los nadadores de 50 metros sólo una vez.
 
 A continuación, procedemos a presentar las tablas que vamos a utilizar dependiendo lo que queramos estudiar:
 
-##Tabla nadadoresParticipantes Utilizaremos esta tabla para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc.
+### Tabla nadadoresParticipantes.
+Utilizaremos esta tabla para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc.
 Es decir, análisis sobre datos que no requieren el conocimiento de la progresión en sus splits.
 Para ello, nos bastará con tener la primera fila de cada participante.
 
@@ -326,7 +345,9 @@ nadadoresParticipantesCopia<-nadadoresParticipantes
 summary(nadadoresParticipantes)
 ```
 
-##Tabla nadadoresPruebas Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
+### Tabla nadadoresPruebas. 
+
+Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
 
 Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
 
@@ -356,7 +377,7 @@ nadadoresPruebasCopia<-nadadoresPruebas
 
 Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
 
-# Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
+## Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
 
 Usaremos la tabla nadadoresParticipantes.
 Ahora, comenzamos nuestro estudio:
@@ -536,7 +557,7 @@ manual <- data.frame(
 
 # Agregamos la variable continente 
 nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
-#vuelve a fallar
+
 
 
 nadadoresParticipantes <- nadadoresParticipantes %>%
@@ -638,7 +659,7 @@ puntos_por_pais <- nadadoresPruebas %>%
   summarise(total_puntos = sum(points, na.rm = TRUE))  
 
 # Ver el resultado
-print(puntos_por_pais)
+puntos_por_pais
 
 ```
 
@@ -1022,7 +1043,7 @@ El valor de F es alto (56.98), sugiere que la variación entre los grupos es muc
 Esto refuerza la idea de que las medias de los tiempos de reacción son significativamente diferentes entre las carreras de diferente distancia.
 
 ```{r, echo=FALSE}
-rm(anova_tiempoReaccion_distancia, nadadorasComparacionReactionTime, nadadoresComparacionReactionTime)
+rm(anova_tiempoReaccion_distancia, nadadorasComparacionReactionTime, nadadoresComparacionReactionTime, mediaTiempoReaccion)
 
 #restauro nadadoresPruebas para el siguiente estudio: 
 nadadoresPruebas<-nadadoresPruebasCopia
@@ -1074,7 +1095,7 @@ summary(anova_tiempoReaccion_Calles)
 ```
 
 El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada.
-Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir.
+Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir. 
 
 ### Daytime(Ines)
 
@@ -1168,7 +1189,7 @@ summary(pruebasVespertinas$round)
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
 
 ```{r, echo=FALSE}
-rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos_hhmm, convertir_a_hhmm,pruebasMatinales, pruebasVespertinas)
+rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos_hhmm, convertir_a_hhmm,pruebasMatinales, pruebasVespertinas, colores)
 
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
@@ -1242,7 +1263,7 @@ Parece que todo está funcionando como esperábamos, tanto en el análisis conju
 Esto confirma que los resultados son consistentes y los datos están bien estructurados para las pruebas.
 
 ```{r, echo=FALSE}
-rm(distancia_stroke, tabla_femenino, tabla_masculino, nadadoresFemeninas, nadadoresMasculinos)
+rm(distancia_stroke, tabla_femenino, tabla_masculino, nadadoresFemeninas, nadadoresMasculinos, anova_tiempoReaccion_Calles)
 
 ```
 
@@ -1320,7 +1341,7 @@ Este es un dato que es evidente con nuestras observaciones anteriores, ya que vi
 Por tanto, hay más de la mitad de los participantes en el segundo grupo.
 Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
 
-```{r}
+```{r, warning=FALSE}
 # Gráfico de líneas para mostrar la tendencia
 resumen_pruebas
 ggplot(resumen_pruebas, aes(x = distance, y = num_participantes, color = grupo_edad, group = grupo_edad)) +
@@ -1780,7 +1801,7 @@ ggplot(nadadoresPruebas, aes(x = grupo_edad, y = points, fill = grupo_edad)) +
 
 ```
 
-```{r}
+```{r, echo=FALSE}
 #vuelvo de nuevo a la original
 
 rm(anova_puntos_genero, dunn_test, kruskal_result, media_puntos, modelo, promedio_puntos, resumen_puntos)
@@ -1789,7 +1810,7 @@ nadadoresPruebas<-nadadoresPruebasCopia
 
 ### Modelo de regresión lineal: reactiontime vs swimtime(Salma)
 
-```{r}
+```{r, echo=FALSE}
 # Esto no funciona porque las dos variables continuas tienen distinto tamaño
 # Hay que gestionar los NAs previamente
 # Además, como solo se está trabajando con dos variables continuas, no tiene sentido hacer pairs
@@ -1909,7 +1930,7 @@ Por otro lado la pendiente es -1562.315, lo que nos muestra que por cada valor q
 ```{r, echo=FALSE}
 
 #Este código al final del estudio para no sobrecargar el entorno (Enviroment)
-rm(anova_puntos_genero, datos, lm, media_puntos, modelo, nadadores_menores, p, resumen_puntos, coeficientes, t, x, X, y, Y, nadadoresPruebas50, nadadoresPruebas50crol)
+rm( datos, lm, coeficientes, t, x, X, y, Y, nadadoresPruebas50, nadadoresPruebas50crol, p)
 
 nadadoresPruebas<- nadadoresPruebasCopia
 
@@ -2009,7 +2030,7 @@ rm(nadadoras800free)
 
 Realizaremos ahora el análisis de componentes principales del 800m libres femenino:
 
-## PCA. 200 mariposa masculino preliminares (Salma)
+## Análisis de componentes principales. 200 mariposa masculino preliminares (Salma)
 
 La idea de realizar el siguiente PCA es porque disponemos de gran cantidad de variables, algunas de las cuales están correlacionadas entre sí, lo que complica su análisis.
 En estas situaciones es conveniente aplicar el método de componentes principales, que permita reducir el número de variables sin pérdida sustancial de información, y consiguiendo que estas nuevas variables sean incorreladas evitando así que haya información redundante.
@@ -2025,7 +2046,7 @@ prueba200MariposaMasc <- prueba200MariposaMasc %>%
 
 Creamos una tabla en la que nos quedamos con el nombre, apellidos y parciales
 
-```{r}
+```{r, warning=FALSE}
 pruebita <- prueba200MariposaMasc %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
@@ -2061,7 +2082,7 @@ corrplot::corrplot(R, method = "number",
 Para la obtención de los componentes principales utilizamos la función princomp.
 Para evitar la influencia de la diferencia en magnitud de las varianzas se puede emplear los datos originales y el argumento cor = TRUE o los datos originales estandarizados y el argumento cor = FALSE.Utilizaremos el primer caso,ya que conseguimos que la suma de las varianzas de las variables originales y la de los componentes coincida con el número de variables de la matriz de datos original.
 
-```{r}
+```{r, warning=FALSE}
 componentess=prcomp(pruebita[,-1], cor = TRUE)
 summary(componentess)
 ```
@@ -2264,6 +2285,12 @@ resumen200
 El punto 5 se corresponde con Castillo, que efectivamente aparece con tiempo de reacción alto, el punto 26 es Alkula, que aparece el segundo con tiempo de reacción más alto.
 En las edades también vemos que AL-Khulaifi es muy joven, como ya nos esperábamos.
 
+```{r, echo=FALSE}
+
+rm(componentess, Cor_CompVar, Cor_CompVar_retenidos, Cor_CompVar_retenidos_mayores, prueba200MariposaMasc, prueba200MariposaMasc2, R, resumen200, auto)
+```
+
+
 ## Análisis de componentes principales del 800 libres femenino. Ronda preliminar [Alonso]
 
 Lo primero que debemos hacer es cargar los datos:
@@ -2277,7 +2304,7 @@ prueba800libresPreliminar <- prueba800libresPreliminar %>%
 
 Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedemos con el nombre, apellido y parciales.
 
-```{r}
+```{r, warning=FALSE}
 pruebawide <- prueba800libresPreliminar %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
               values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
@@ -2329,8 +2356,7 @@ text(pca800libres$x[,1:2],rownames(pruebawide), cex = 0.4)
 
 ```
 
-Luego, podríamos decir que, el grupo de Ledecky, Carlin...
-fueron las más rapidas de las preliminares.
+Luego, podríamos decir que, el grupo de Ledecky, Carlin... fueron las más rapidas de las preliminares.
 Chentson, Holowchak y Rannvaardottir las más lentas.
 
 También, podríamos decir que, nadadoras como Jo, corresponden a un tiempo de reacción muy bajo junto con una edad baja.
@@ -2347,10 +2373,15 @@ Luego, si nos fijamos en las nadadoras del gráfico anterior, podremos asegurar 
 Hassler es una nadadora con más edad pero de las más rapidas pero con mal tiempo de reacción.
 
 ```{r}
-biplot(pca800libres)
+fviz_pca_biplot(pca800libres, repel = TRUE)
 ```
 
-## PCA 100m mariposa femenino [JAVIER]
+```{r, echo=FALSE}
+rm(pca800libres, prueba800libresPreliminar, pruebawide)
+```
+
+
+## Análisis de componentes principales del 100m mariposa femenino. [JAVIER]
 
 En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
 A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime de la tabla prueba100MariposaFem.
@@ -2394,7 +2425,9 @@ pca_100mariposafemenino <- prcomp(prueba[,-1], scale=T)
 pca_100mariposafemenino
 
 ```
-Observamos que la primera y segunda componente son las que tienen mayor valor de standard deviations, luego serán las más relevantes a efectos de la visualización. Veamos la importancia relativa de cada componente
+
+Observamos que la primera y segunda componente son las que tienen mayor valor de standard deviations, luego serán las más relevantes a efectos de la visualización.
+Veamos la importancia relativa de cada componente
 
 ```{r}
 plot(pca_100mariposafemenino)
@@ -2402,11 +2435,13 @@ summary(pca_100mariposafemenino)
 ```
 
 El resultado del análisis de componentes principales (PCA) muestra tres componentes principales (PC1, PC2, PC3).
-Veamos cada aspecto de la salida: Los datos de la fila de desivación estándar (Standard deviation), cuanto mayores sean, mas variabilidad de los datos se captura. En este caso, la componente principal PC1 es la que tiene mayor desviación estándar, lo que sugiere que capta la mayor parte de la varianza.
+Veamos cada aspecto de la salida: Los datos de la fila de desivación estándar (Standard deviation), cuanto mayores sean, mas variabilidad de los datos se captura.
+En este caso, la componente principal PC1 es la que tiene mayor desviación estándar, lo que sugiere que capta la mayor parte de la varianza.
 
 En segundo lugar, la proporción de la varianza (proportion of variance) indica qué porcentaje de la varianza total de los datos está capturado por cada componente.
 Aquí, PC1 captura el 74.23% de la varianza, mientras que PC2 captura el 23.28%, y PC3 solo el 2.493%.
-Esto significa que PC1 es el componente más relevante para representar la estructura de los datos, mientras que PC3 aporta muy poco. (como habiámos adelantado anteriormente)
+Esto significa que PC1 es el componente más relevante para representar la estructura de los datos, mientras que PC3 aporta muy poco.
+(como habiámos adelantado anteriormente)
 
 Por último, para la variable de proporción acumulada (cumulative proportion) indica la varianza total capturada al considera las componentes en conjunto.
 PC1 junto con PC2 explican el 97,51% de la variabilidad de los datos (bastante alto).
@@ -2424,8 +2459,9 @@ biplot(pca_100mariposafemenino)
 ```
 
 
-
-
+```{r, echo=FALSE}
+rm(pca_100mariposafemenino, prueba100MariposaFem)
+```
 
 ## Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
 
@@ -2529,7 +2565,44 @@ Además, se localizan en la posición central, lo que parece indicar que sus tie
 Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee Sheng, observamos que efectivamente están en los extremos izquierdos del eje x.
 Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece indicar que obtuvieron tiempos más largos en sus splits finales, posiblemente debido a una falta de resistencia y mayor fatiga en estos tiempos, que es un factor crucial para el desarrollo de este tipo de pruebas.
 
+
+
+```{r, echo=FALSE}
+rm(datos1500Masc, pca_1500masculino, resumen1500)
+```
+
 # Clusters
+
+##Cluster sobre el 800m libres femenino. Análisis de estrategias de las nadadoras. [Alonso]
+
+Voy a crear a continuación una tabla en la cual, tenga el nombre de las nadadoras del 800 libres femenino. Además, quiero los parciales al paso por cada 50 y el tiempo final. 
+
+Vamos a intentar, normalizar de cierta manera los parciales respecto del tiempo final, para intentar ver estrategias de carrera en las nadadoras.
+Obsérvese que, normalizamos los datos porque pueden existir dos nadadoras cuya estrategia de carrera sea la misma, pero que se encuentren muy alejadas en el cluster debido a que sus tiempos son lo suficientemente distintos.
+Es por ello que normalizaremos los datos.
+
+Empecemos creando las tablas de manera análoga a como lo hicimos en el PCA: 
+
+```{r, warning=FALSE}
+prueba800libresPreliminar<- datos2015[datos2015$distance==800 & datos2015$gender=="F" & datos2015$stroke=="FREE" & datos2015$round=="PRE", ]
+
+prueba800libresPreliminar <- prueba800libresPreliminar %>%
+    dplyr::select(lastname,swimtime, splitdistance, splitswimtime)
+
+free800WomensPre <- prueba800libresPreliminar %>%
+  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
+              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+#omito los valores nulos: 
+free800WomensPre<- na.omit(free800WomensPre)
+
+rownames(free800WomensPre) <- free800WomensPre$lastname
+```
+
+A continuación, vamos a echarle un vistazo a la tabla: 
+
+```{r}
+head(free800WomensPre, 10)
+```
 
 ##Cluster 100 mariposa femenino [Javier]
 
@@ -2549,11 +2622,9 @@ distancias <- get_dist(cluster100mariposafem)
 fviz_dist(distancias, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
 ```
 
-Aquí: 
-- low = "#00AFBB" (azul claro) representa las distancias pequeñas entre observaciones.
+Aquí: - low = "#00AFBB" (azul claro) representa las distancias pequeñas entre observaciones.
 - mid = "white" representa las distancias medias.
 - high = "#FC4E07" (rojo) representa las distancias grandes.
-
 
 Aplicamos el algoritmo de las k-medias con k=2 con la función k-means, ejecutando el algoritmo 25 veces, por ejemplo
 
@@ -2561,7 +2632,9 @@ Aplicamos el algoritmo de las k-medias con k=2 con la función k-means, ejecutan
 k100Mariposafemenino <- kmeans(cluster100mariposafem, centers = 2, nstart = 25)
 k100Mariposafemenino
 ```
-La técnica aplicada genera 2 agrupaciones de 48 y 21 observaciones cada una. Además se especifica a qué conglomerado pertenece cada asignación (por ejemplo, Borshi pertenece al la agrupación 2, Nobrega a la 2, Mckeon a la 1...)
+
+La técnica aplicada genera 2 agrupaciones de 48 y 21 observaciones cada una.
+Además se especifica a qué conglomerado pertenece cada asignación (por ejemplo, Borshi pertenece al la agrupación 2, Nobrega a la 2, Mckeon a la 1...)
 
 Ahora, visualicemos los resultados con fviz_cluster
 
@@ -2569,7 +2642,11 @@ Ahora, visualicemos los resultados con fviz_cluster
 fviz_cluster(k100Mariposafemenino, data =cluster100mariposafem)
 ```
 
-Observamos gráficamente las dos agrupaciones mencionadas. 
+Observamos gráficamente las dos agrupaciones mencionadas.
+
+```{r}
+rm(cluster100mariposafem, k100Mariposafemenino, prueba, prueba100MariposaFem, distancias)
+```
 
 
 ## Cluster 200 mariposa masculina
@@ -2587,7 +2664,7 @@ fviz_dist(distancias, gradient = list(low = "#00AFBB", mid = "white", high = "#F
 
 ```{r}
 k200 <- kmeans(clusterprueba200, centers = 2, nstart = 25)
-str(k2)
+str(k200)
 ```
 
 ```{r}
@@ -2687,7 +2764,7 @@ fviz_cluster(k5_200, data = clusterprueba200)
 
 Vemos que coinciden.
 
-# Cluster para la prueba de 1500 masculina
+## Cluster para la prueba de 1500 masculina
 
 ```{r}
 # escalado de todas las variables
@@ -2769,9 +2846,9 @@ fviz_gap_stat(gap_stat)
 Utilizando estos dos últimos métodos, nos dan el resultado de que el número óptimo de clústers son dos en "silueta" y uno en "Gap".
 Puesto que cada método nos determina un número distinto de k, utilizaremos la división en grupos según el objetivo a tratar, como hemos comentado recientemente.
 
-#Cluster jerarquico prueba de 1500 metros masculina
+##Cluster jerarquico prueba de 1500 metros masculina
 
-## Cluster aglomerativo. AGNES.
+### Cluster aglomerativo. AGNES.
 
 Queremos hacer un cluster jerárquico de nuestra prueba.
 Para ello, calculamos el valor del coeficiente aglomerativo
@@ -2817,8 +2894,7 @@ Interpretando el dendrograma, vemos como los primeros pasos de agrupamiento son 
 Por tanto, no tiene sentido cortar en esas etapas iniciales.
 El gráfico parece sugerir la aglomeración en 3 grupos.
 
-##Cluster divisivo.
-DIANA.
+##Cluster divisivo. DIANA.
 
 Calculamos ahora el coeficiente de división.
 
@@ -2889,8 +2965,9 @@ tanglegram(dend1, dend2)
 
 Como podemos observar, no nos dan dendrogramas isomorfos puesto que los dos métodos manejan de manera diferente las distancias entre grupos durante el proceso de fusión.
 
-##Cluster sobre el 800m libres femenino.
+```{r}
+rm(clusterprueba1500, clusterprueba200, datos1500Masc, dend1, dend2, hc1, hc2, hc200, hc4, hc5, hc5_200, k2, k200, k3, k4, k5_200, pca_1500masculino, prueba1500, prueba200MariposaMasc, pruebita, d, d200, distance, distancias, ac, sub_grp, res.dist, m)
+```
 
-Vamos a intentar, normalizar de cierta manera los parciales respecto del tiempo final, para intentar ver estrategias de carrera en las nadadoras.
-Obsérvese que, normalizamos los datos porque pueden existir dos nadadoras cuya estrategia de carrera sea la misma, pero que se encuentren muy alejadas en el cluster debido a que sus tiempos son lo suficientemente distinto.
-Es por ello que normalizaremos los datos.
+
+
