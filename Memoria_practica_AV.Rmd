@@ -84,9 +84,9 @@ Una vez nuestro programa los ha leído, vamos a averiguar el tamaño de los dato
 dim(datos2015)
 ```
 
-Las dimensiones de la tabla son 11423 filas y 22 variables o columnas.
+Las dimensiones del dataframe son 11423 filas y 22 variables o columnas.
 
-Veamos la primera ocurrencia de nuestra tabla:
+Veamos la primera ocurrencia:
 
 ```{r}
 head(datos2015,1)
@@ -169,7 +169,7 @@ print(sum(is.na(datos2015)))
 
 Observamos que hay 309 valores faltantes.
 
-Vamos a crear una tabla donde se nos muestren dónde se encuentran los valores faltantes:
+Vamos a crear una dataframe donde se nos muestren dónde se encuentran los valores faltantes:
 
 ```{r}
 datosNA <- datos2015[rowSums(is.na(datos2015)) > 0, ]
@@ -177,13 +177,13 @@ dim(datosNA)
 
 ```
 
-Observamos que, de 11429 observaciones de mi tabla original, en 73 de ellas, existe algún valor nulo.
+Observamos que, de 11429 observaciones de mi dataframe original, en 73 de ellas, existe algún valor nulo.
 Es decir, un 0.63 % por ciento.
 Un valor muy bajo.
 
 En principio y sin estudiar nada más, podríamos considerar eliminar las filas que contengan datos faltantes ya que toman un valor muy pequeño con respecto al total.
 Aún así, vamos a ver dónde se suelen tomar más valores nulos e intentar explicar el por qué.
-Hacemos una tabla con los valores nulos de cada variable en porcentaje:
+Hacemos una dataframe adicional con los valores nulos de cada variable en porcentaje:
 
 ```{r}
 percent_na <- colSums(is.na(datosNA)) / nrow(datosNA) * 100
@@ -230,11 +230,11 @@ Vamos a optar por eliminarlos.
 
 
 ```{r}
-#Primero de la tabla datosNA: 
+#Primero datosNA: 
 datosNA <- datosNA %>%
   filter(!(is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(datosNA$swimtime) & is.na(datosNA$cumswimtime) & is.na(datosNA$splitswimtime)))
 
-#Ahora, los eliminamos de la tabla datos2015: 
+#Ahora, los eliminamos de datos2015: 
 datos2015<-datos2015 %>%
   filter(!(is.na(datos2015$points) & is.na(datos2015$reactiontime) & is.na(datos2015$swimtime) & is.na(datos2015$cumswimtime) & is.na(datos2015$splitswimtime)))
 
@@ -291,7 +291,7 @@ print(sum(is.na(datos2015)))
 Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados.
 
 ```{r, echo=FALSE}
-#Elimino las tablas creadas para no sobrecargar. Ya que no las vamos a volver a usar.
+#Elimino las cosas creadas para no sobrecargar. Ya que no las vamos a volver a usar.
 rm(datosNA, naReactionTime, todosNA, percent_na)
 ```
 
@@ -314,29 +314,29 @@ Además, borramos la variable birthdate:
 datos2015$birthdate=NULL
 ```
 
-## Tablas [Inés]
+## Dataframes. [Inés]
 
-Si visualizamos la tabla datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba.
-Luego, para algunos estudios, usar esta tabla va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor (en el caso de las carreras de 1500m).
+Si visualizamos el dataframe datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba.
+Luego, para algunos estudios, usar este dataframe va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor (en el caso de las carreras de 1500m).
 Además, no estaríamos haciendo un análisis correcto, puesto que los resultados estarían claramente sesgados hacia los de las distancias más largas.
 Por ejemplo, en el caso del tiempo de reacción, los tiempos de los nadadores de 1500 metros se contabilizarían 15 veces.
 Mientras que en los nadadores de 50 metros sólo una vez.
 
-A continuación, procedemos a presentar las tablas que vamos a utilizar dependiendo lo que queramos estudiar:
+A continuación, procedemos a presentar los dataframes que vamos a utilizar dependiendo lo que queramos estudiar:
 
-### Tabla nadadoresParticipantes.
-Utilizaremos esta tabla para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc.
+### Dataframe nadadoresParticipantes.
+Utilizaremos este dataframe para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc.
 Es decir, análisis sobre datos que no requieren el conocimiento de la progresión en sus splits.
 Para ello, nos bastará con tener la primera fila de cada participante.
 
-Creamos, por tanto, una nueva tabla, llamada *nadadoresParticipantes*, la cual constará de todos los participantes sin repetir.
-Nos basaremos en la variable athleteid para llegar a esta tabla, la cual es única para cada participante.
+Creamos, por tanto, un nuevo dataframe, llamado *nadadoresParticipantes*, el cual constará de todos los participantes sin repetir.
+Nos basaremos en la unicidad de la variable athleteid para crearla. 
 
 ```{r}
 nadadoresParticipantes <- datos2015 %>%
   distinct(athleteid, .keep_all = TRUE)
 
-#guardamos una copia de seguridad por si se modifica la tabla más adelante. 
+#guardamos una copia de seguridad por si se modifica el dataframe más adelante. 
 
 nadadoresParticipantesCopia<-nadadoresParticipantes
 ```
@@ -345,11 +345,11 @@ nadadoresParticipantesCopia<-nadadoresParticipantes
 summary(nadadoresParticipantes)
 ```
 
-### Tabla nadadoresPruebas. 
+### Dataframe nadadoresPruebas. 
 
-Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar una tabla que refleje a cada nadador y sus pruebas nadadas por filas.
+Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar un dataframe que refleje a cada nadador y sus pruebas nadadas por filas.
 
-Para poder realizar la tabla, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
+Para poder realizar el dataframe, primero hay que saber si cada prueba, dentro de cada tipo de prueba (preliminar, final, semifinal), tiene un id distinto.
 
 Lo evaluamos seleccionando algún nadador que haya nadado en varias rondas:
 
@@ -364,7 +364,7 @@ Bien, vemos que el australiano nadó tanto las preliminares, como las semifinale
 rm(ejemplo)
 ```
 
-Creamos la siguiente tabla:
+Creamos el siguiente dataframe:
 
 ```{r}
 nadadoresPruebas <- datos2015 %>%
@@ -380,7 +380,7 @@ Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
 
 ## Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
 
-Usaremos la tabla nadadoresParticipantes.
+Usaremos el dataframe nadadoresParticipantes.
 Ahora, comenzamos nuestro estudio:
 
 ### Edad [Alonso]
@@ -430,6 +430,58 @@ shapiro.test(nadadoresParticipantes$edad)
 
 Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos.
 
+Vamos a realizar 3 evaluaciones para ver si podemos suponer que nuestros datos son normales: 
+
+
+#### Probabilidad de que un nadador tenga más de 29 años: 
+
+Para calcular la probabilidad de que un nadador tenga más de 29 años, cuento todos los nadadores que tienen más de 30, y divido sobre el número total de participantes. 
+
+
+```{r}
+valor1<- sum(nadadoresParticipantes$edad >=29)/1099
+```
+
+
+#### Calcular media y varianza y calcular la probabilidad Normal. 
+
+```{r}
+media<-mean(nadadoresParticipantes$edad)
+desviacion<-sd(nadadoresParticipantes$edad)
+
+valor2<-1 - pnorm(29, media, sd=desviacion)
+```
+
+
+#### Simular datos de una normal sabiendo media y varianza. 
+
+Ahora, simulo datos: 
+
+```{r}
+datos_simulados <- rnorm(1100, mean = media, sd = desviacion)
+## Calculo la probabilidad de 29 o más: 
+
+conteo_mayores_que_29 <- sum(datos_simulados >= 29)
+
+valor3<- conteo_mayores_que_29/1100
+```
+
+
+A continuación, comparo los tres valores obtenidos: 
+
+```{r}
+valor1
+valor2
+valor3
+```
+
+
+
+```{r}
+rm(conteo_mayores_que_29, datos_simulados, desviacion, media, valor1, valor2, valor3)
+```
+
+Observo que hay una variación de 0.014 entre las probabilidades, al ser una probabilidad tan baja, podríamos asumir normalidad en nuestros datos. 
 ### Análisis de géneros participantes [Salma].
 
 Veamos el número exacto de mujeres y hombres en la competición:
@@ -676,7 +728,7 @@ De la misma manera que nos ocurría antes, este gráfico es poco interpretativo.
 Lo vemos por continentes:
 
 ```{r, warning=FALSE}
-# Utilizamos la tabla nadadoresPruebas
+# Utilizamos la dataframe nadadoresPruebas
 # Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
 nadadoresPruebas$iso2 <- countrycode(nadadoresPruebas$name, "country.name", "iso2c")
 
@@ -1163,7 +1215,7 @@ limite_superior1 <- as.POSIXct("13:00", format = "%H:%M")
 #intervalo para las vespertinas
 limite_inferior <- as.POSIXct("17:00", format = "%H:%M")
 limite_superior <- as.POSIXct("20:00", format = "%H:%M")
-#Creamos las tablas
+#Creamos los dataframes.
 pruebasMatinales<-subset(nadadoresPruebas, nadadoresPruebas$tiempo_hhmm >= limite_inferior1 & nadadoresPruebas$tiempo_hhmm <= limite_superior1)
 
 pruebasVespertinas<-subset(nadadoresPruebas, nadadoresPruebas$tiempo_hhmm >= limite_inferior & nadadoresPruebas$tiempo_hhmm <= limite_superior)
@@ -1440,7 +1492,7 @@ Veamos ahora cuántas nadaron las semifinales:
 free50SemisWomens<-nadadoresPruebas[nadadoresPruebas$round=="SEM" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
 ```
 
-Antes de ordenarlas, veamos cuántas filas tengo en mi nueva tabla:
+Antes de ordenarlas, veamos cuántas filas tengo en mi nuevo data frame:
 
 ```{r}
 dim(free50SemisWomens)
@@ -1464,14 +1516,14 @@ free50SemisWomens
 ```
 
 Luego, podemos observar claramente que, las 16 primeras de las preliminares, consiguieron clasificarse a las semifinales.
-Hagamos el mismo trabajo con la tabla *free50SemisWomens* para ver cuántas nadadoras se clasificaron en la final:
+Hagamos el mismo trabajo con el dataframe *free50SemisWomens* para ver cuántas nadadoras se clasificaron en la final:
 
 ```{r}
 free50SemisWomens<-free50SemisWomens[order(free50SemisWomens$swimtime), ]
 
 ```
 
-Al igual que antes, confeccionamos la tabla de la final:
+Al igual que antes, confeccionamos el dataframe de la final:
 
 ```{r}
 free50FinalWomens<-nadadoresPruebas[nadadoresPruebas$round=="FIN" & nadadoresPruebas$distance==50 & nadadoresPruebas$stroke=="FREE" & nadadoresPruebas$gender=="F", ]
@@ -1555,14 +1607,14 @@ head(fly100PREWomen,20)
 
 ```
 
-Si busco a Osman y Kelly en la anterior tabla, observo que se encuentran en el puesto 16 y 17 respectivamente y que, hicieron el mismo tiempo.
+Si busco a Osman y Kelly en el anterior dataframe, observo que se encuentran en el puesto 16 y 17 respectivamente y que, hicieron el mismo tiempo.
 Luego tiene sentido razonar que, las rondas SOP son rondas de desempate para ver quién pasa a la siguiente ronda.
 
 ### Rondas SOS [Alonso]
 
 Viendo el razonamiento de las rondas SOP, intuimos que las rondas SOS deben ser rondas de desempate entre nadadores de las semifinales.
 De todas maneras, vamos a verlo.
-Para ello, si nos fijamos en una de las tablas anteriores, en la prueba de 200 metros había 4 nadadores que nadan la ronda SOS.
+Para ello, si nos fijamos en una de los dataframes anteriores, en la prueba de 200 metros había 4 nadadores que nadan la ronda SOS.
 Vamos a visualizarlo:
 
 ```{r}
@@ -1991,7 +2043,7 @@ Carlin mete un cambio de ritmo muy drástico al paso de los 650m de 31s altos a 
 
 #### Visualización de la carrera.(alonso)
 
-Ahora, vamos a definir una tabla en la que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial:
+Ahora, vamos a definir un dataframe en el que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial:
 
 ```{r}
 nadadoras800free <- nadadoras800free %>%
@@ -2044,7 +2096,7 @@ prueba200MariposaMasc <- prueba200MariposaMasc %>%
     dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad)
 ```
 
-Creamos una tabla en la que nos quedamos con el nombre, apellidos y parciales
+Creamos un dataframe en la que nos quedamos con el nombre, apellidos y parciales
 
 ```{r, warning=FALSE}
 pruebita <- prueba200MariposaMasc %>%
@@ -2203,7 +2255,7 @@ prueba800libresPreliminar <- prueba800libresPreliminar %>%
     dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad)
 ```
 
-Bien, ahora, debemos encontrar la manera de crear una tabla en la que nos quedemos con el nombre, apellido y parciales.
+Bien, ahora, debemos encontrar la manera de crear un dataframe en la que nos quedemos con el nombre, apellido y parciales.
 
 ```{r, warning=FALSE}
 pruebawide <- prueba800libresPreliminar %>%
@@ -2216,7 +2268,7 @@ rownames(pruebawide) <- pruebawide$lastname
 
 ```
 
-Ahora que ya tenemos nuestra tabla hecha, vamos a hacer el PCA:
+Ahora que ya tenemos nuestro dataframe hecho, vamos a hacer el PCA:
 
 ```{r}
 pca800libres<-prcomp(pruebawide[,-1], scale=T)
@@ -2286,8 +2338,8 @@ rm(pca800libres, prueba800libresPreliminar, pruebawide)
 
 ## Análisis de componentes principales del 100m mariposa femenino. [JAVIER]
 
-En primer lugar, vamos a crear una nueva tabla llamada prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
-A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime de la tabla prueba100MariposaFem.
+En primer lugar, vamos a crear un nuevo dataframe llamado prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
+A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime del dataframe prueba100MariposaFem.
 
 ```{r}
 # Filtro de pruebas de 100m mariposa femenino
@@ -2298,7 +2350,7 @@ prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactio
 head(prueba100MariposaFem, 10)
 ```
 
-A continuación, vamos a organizar los datos de la tabla *prueba100MariposaFem*.
+A continuación, vamos a organizar los datos del dataframe *prueba100MariposaFem*.
 de modo que cada nadador tiene una fila única con columnas para cada distancia.
 
 ```{r}
@@ -2478,13 +2530,13 @@ rm(datos1500Masc, pca_1500masculino, resumen1500)
 
 ## Cluster sobre el 800m libres femenino. Análisis de estrategias de las nadadoras. [Alonso]
 
-Voy a crear a continuación una tabla en la cual, tenga el nombre de las nadadoras del 800 libres femenino. Además, quiero los parciales al paso por cada 50 y el tiempo final. 
+Voy a crear a continuación un dataframe en el cual, contenga el nombre de las nadadoras del 800 libres femenino. Además, quiero los parciales al paso por cada 50 y el tiempo final. 
 
 Vamos a intentar, normalizar de cierta manera los parciales respecto del tiempo final, para intentar ver estrategias de carrera en las nadadoras.
 Obsérvese que, normalizamos los datos porque pueden existir dos nadadoras cuya estrategia de carrera sea la misma, pero que se encuentren muy alejadas en el cluster debido a que sus tiempos son lo suficientemente distintos.
 Es por ello que normalizaremos los datos.
 
-Empecemos creando las tablas de manera análoga a como lo hicimos en el PCA: 
+Empecemos creando los dataframes de manera análoga a como lo hicimos en el PCA: 
 
 ```{r, warning=FALSE}
 prueba800libresPreliminar<- datos2015[datos2015$distance==800 & datos2015$gender=="F" & datos2015$stroke=="FREE" & datos2015$round=="PRE", ]
@@ -2503,7 +2555,7 @@ free800WomensPre <- as.data.frame(free800WomensPre)
 rownames(free800WomensPre) <- free800WomensPre$lastname
 ```
 
-A continuación, vamos a echarle un vistazo a la tabla: 
+A continuación, vamos a echar un vistazo a lo creado:  
 
 ```{r}
 head(free800WomensPre, 10)
@@ -2555,7 +2607,7 @@ cluster800libres
 fviz_cluster(cluster800libres, data = free800WomensNormalizado[,-1])
 ```
 
-Bien, ahora para poder sacar las conclusiones debidas, voy a querer graficar la tabla, donde cada nadadora (fila), va a tener asociado un cluster. 
+Bien, ahora para poder sacar las conclusiones debidas, voy a querer graficar el dataframe, donde cada nadadora (fila), va a tener asociado un cluster. 
 
 ```{r}
 free800WomensNormalizado$cluster<-cluster800libres$cluster
@@ -2625,7 +2677,7 @@ Las nadadoras del último cluster, observamos que son nadadoras muy constantes e
 Graficar los centroides del kmeans para ver más claro cada tipo de estrategia. Además, intentar sacar conclusiones sobre los cluster, ¿cuál es el óptimo, es decir, en cuál están las mejores nadadoras?. 
 
 
-Cambiar cada "tabla" por un dataframe. Mirar las gráficas e intentar ponerlas todas en colores para personas con daltonismo. 
+Mirar las gráficas e intentar ponerlas todas en colores para personas con daltonismo. 
 
 Poner en análisis de nacionalidades las paletas de los colores de los ¿juegos olímpicos? (son el mundial)
 
