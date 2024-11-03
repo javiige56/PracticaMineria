@@ -33,6 +33,7 @@ library(RColorBrewer)
 library(knitr)
 library(FSA)
 library(tidyverse)
+library(viridis) # Para una paleta amigable para daltónicos
 ```
 
 # Introducción(Javier).
@@ -414,8 +415,8 @@ De acuerdo con esta nueva variable, vemos cómo se distribuyen las edades.
 
 ```{r}
 ggplot(nadadoresParticipantes, aes(x = edad)) +
-geom_density() +
-ggtitle("Distribución. Edades.")
+  geom_density(fill = "#0072B2", color = "#0072B2") + # Azul accesible para daltónicos
+  ggtitle("Distribución. Edades.")
 ```
 
 La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años.
@@ -1192,9 +1193,9 @@ nadadoresPruebas$tiempo_hhmm <- as.POSIXct(nadadoresPruebas$tiempo_hhmm, format 
 ggplot(nadadoresPruebas, aes(x = tiempo_hhmm)) +
   geom_histogram(binwidth = 3600, color = "black", fill = "blue") +  # binwidth en segundos (3600 segundos = 1 hora)
   scale_x_datetime(date_labels = "%H:%M", breaks = "1 hour") +  # Etiquetas de tiempo
-  labs(title = "Frecuencia de Tiempos",
+  labs(
        x = "Tiempo (hh:mm)",
-       y = "Frecuencia") +
+       y = "Frecuencia de nadadores") +
   theme_minimal()
 
 ```
@@ -2030,7 +2031,8 @@ Vamos a observar, para cada nadador, los parciales realizados para ver si podemo
 ggplot(nadadoras800free, aes(x=nadadoras800free$splitdistance, y=nadadoras800free$splitswimtime, group = lastname, colour =lastname )) + 
   geom_line()  + 
   geom_point( size=2, shape=21, fill="white") + 
-  theme_minimal()
+  theme_minimal()+
+  labs(x="Parciales", y="Tiempos por parcial.")
 ```
 
 Observamos que todas nadan muy rápido tanto el primer parcial como el último.
@@ -2326,7 +2328,7 @@ Luego, si nos fijamos en las nadadoras del gráfico anterior, podremos asegurar 
 Hassler es una nadadora con más edad pero de las más rapidas pero con mal tiempo de reacción.
 
 ```{r}
-biplot(pca800libres)
+#biplot(pca800libres)
 
 fviz_pca_biplot(pca800libres, repel = TRUE)
 ```
@@ -2671,6 +2673,35 @@ Para analizar mejor las estrategias, intentamos no fijarnos en el primer y últi
 Las nadadoras del cluster 2, se aprecia que sus parciales tienen una forma de U invertida, empiezan rápido, sobre la mitad de la prueba, es donde más lento van, y luego vuelven a acelerar. 
 
 Las nadadoras del último cluster, observamos que son nadadoras muy constantes en cuanto a los parciales. 
+
+Vamos a evaluar estas 3 últimas gráficas graficando los centroides de cada cluster: 
+
+```{r}
+centroides <- as.data.frame(cluster800libres$centers)
+centroides$cluster<- factor(rownames(centroides)) 
+#Los vuelvo long: 
+centroideslong <- centroides %>%
+  pivot_longer(cols = c("50", "100", "150", "200", "250", "300", "350", 
+                         "400", "450", "500", "550", "600", "650", 
+                         "700", "750", "800"), 
+               names_to = "splitdistance", 
+               values_to = "splitswimtime")
+
+
+# Gráfico
+ggplot(centroideslong, aes(x = as.numeric(splitdistance), y = splitswimtime, color = cluster, group = cluster)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_viridis_d() +  # Colores amigables para daltónicos
+  labs(x = "Split Distance (m)", y = "Split Swim Time (s)", color = "Centroide") +
+  theme_minimal()
+
+```
+
+### Mejor cluster. 
+A continuación, vamos a evaluar cuál cluster tiene las mejores nadadoras, es decir, las nadadoras que pasaron a la final: 
+
+
 
 
 ### IDEAS DE LOS PROFES
