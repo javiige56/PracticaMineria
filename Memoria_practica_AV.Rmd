@@ -2544,7 +2544,7 @@ Empecemos creando los dataframes de manera análoga a como lo hicimos en el PCA:
 prueba800libresPreliminar<- datos2015[datos2015$distance==800 & datos2015$gender=="F" & datos2015$stroke=="FREE" & datos2015$round=="PRE", ]
 
 prueba800libresPreliminar <- prueba800libresPreliminar %>%
-    dplyr::select(lastname,swimtime, splitdistance, splitswimtime)
+    dplyr::select(lastname, splitdistance, splitswimtime,swimtime)
 
 free800WomensPre <- prueba800libresPreliminar %>%
   pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
@@ -2572,7 +2572,7 @@ free800WomensNormalizado <- free800WomensPre %>%
                   `500`, `550`, `600`, `650`, `700`, `750`, `800`), 
                 ~ . / swimtime))
 
-free800WomensNormalizado$swimtime=NULL
+#free800WomensNormalizado$swimtime=NULL
 free800WomensNormalizado <- as.data.frame(free800WomensNormalizado)
 rownames(free800WomensNormalizado) <- free800WomensNormalizado$lastname
 
@@ -2584,7 +2584,7 @@ Bien, ahora, voy a tratar de hacer un cluster:
 
 En primer lugar vamos a calcular la distancia Euclídea entre las observaciones de la base de datos.
 ```{r}
-distance <- get_dist(free800WomensNormalizado[,-1])
+distance <- get_dist(free800WomensNormalizado[,-c(1,2)])
 
 fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
 ```
@@ -2594,19 +2594,19 @@ Esto empieza a ilustrar qué estados tienen grandes disimilitudes (rojo) frente 
 Veamos ahora, mediante el método de las siluetas, el número óptimo de clusters: 
 
 ```{r}
-fviz_nbclust(free800WomensNormalizado[,-1], kmeans, method = "silhouette")
+fviz_nbclust(free800WomensNormalizado[,-c(1,2)], kmeans, method = "silhouette")
 ```
 
 A continuación, hacemos el cluster: 
 
 ```{r}
-cluster800libres <- kmeans(free800WomensNormalizado[,-1], centers = 3, nstart = 25)
+cluster800libres <- kmeans(free800WomensNormalizado[,-c(1,2)], centers = 3, nstart = 25)
 cluster800libres
 ```
 
 
 ```{r}
-fviz_cluster(cluster800libres, data = free800WomensNormalizado[,-1])
+fviz_cluster(cluster800libres, data = free800WomensNormalizado[,-c(1,2)])
 ```
 
 Bien, ahora para poder sacar las conclusiones debidas, voy a querer graficar el dataframe, donde cada nadadora (fila), va a tener asociado un cluster. 
@@ -2701,7 +2701,24 @@ ggplot(centroideslong, aes(x = as.numeric(splitdistance), y = splitswimtime, col
 ### Mejor cluster. 
 A continuación, vamos a evaluar cuál cluster tiene las mejores nadadoras, es decir, las nadadoras que pasaron a la final: 
 
+Vamos a ordenar el data frame *free800WomensNormalizado*: 
 
+```{r}
+free800WomensNormalizado <- free800WomensNormalizado[order(free800WomensNormalizado$swimtime), ]
+
+finalistas<-head(free800WomensNormalizado, 8)
+
+conteo <- table(finalistas$cluster)
+conteo
+```
+
+Observamos que, hay nadadoras tanto del 3er cluster como del 1ro (5 y 3). Ahora, vamos a calcular la media de tiempos de cada cluster para ver "cuál" es el más rapido en media. 
+
+```{r}
+media_swimtime_por_cluster <- aggregate(free800WomensNormalizado$swimtime ~ free800WomensNormalizado$cluster, data = free800WomensNormalizado, FUN = mean, na.rm = TRUE)
+
+media_swimtime_por_cluster
+```
 
 
 ### IDEAS DE LOS PROFES
