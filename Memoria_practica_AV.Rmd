@@ -3100,8 +3100,63 @@ tanglegram(dend1, dend2)
 
 Como podemos observar, no nos dan dendrogramas isomorfos puesto que los dos métodos manejan de manera diferente las distancias entre grupos durante el proceso de fusión.
 
-```{r}
+```{r, warning=FALSE}
 rm(clusterprueba1500, clusterprueba200, datos1500Masc, dend1, dend2, hc1, hc2, hc200, hc4, hc5, hc5_200, k2, k200, k3, k4, k5_200, pca_1500masculino, prueba1500, prueba200MariposaMasc, pruebita, d, d200, distance, distancias, ac, sub_grp, res.dist, m)
+```
+
+
+```{r, warning=FALSE}
+rm(centroides, centroideslong, cluster800libres, componentess, finalistas, free800WomensNormalizado, free800WomensPre, gap_stat, media_swimtime_por_cluster, auto, conteo, p, prueba200MariposaMasc2, prueba800libresPreliminar, prueba800long, R, i, Cor_CompVar, Cor_CompVar_retenidos)
+```
+
+
+
+
+# Medidas de rendimiento.
+
+A partir de este momento, vamos a estudiar acerca de un target. En este caso, nuestro target, ver si los finalistas van a mejorar su tiempo respecto a la ronda anteriormente nadada. Por lo que, vamos a quedarnos con el conjunto de nadadores que están clasificados a la final de cada prueba, y su tiempo en la ronda anterior. Para ello, voy a ir dividiendo los datos por cada distancia. Elegiré los nadadores que nadaron la final y la semifinal. Pero filtrando los semifinalistas 
+
+
+```{r}
+#Me quedo con los finalistas de las pruebas de 50, 100 y 200:
+finalistas1<-datos2015[datos2015$round=="FIN" & datos2015$distance %in% c(50,100,200),]
+
+condicionFiltro<-unique(finalistas1[,c("athleteid", "distance", "stroke")])
+
+#Me quedo con los semifinalistas de las pruebas de 50, 100 y 200: 
+semifinalistas1<-datos2015[datos2015$round=="SEM" & datos2015$distance %in% c(50,100,200),]
+
+#Ahora, los filtro para que cumplan esa condición de Filtro.
+semifinalistasFiltrados <- merge(semifinalistas1, condicionFiltro, by = c("athleteid", "distance", "stroke"))
+
+#Ahora, hago la unión.
+
+dataframe1 <- rbind(finalistas1, semifinalistasFiltrados)
+
+
+#Ahora, hago el mismo proceso para las pruebas de 400, 800 y 1500 pero con las finales y preliminares: 
+
+finalistas2<-datos2015[datos2015$round=="FIN" & datos2015$distance %in% c(400,800,1500),]
+condicionFiltro<-unique(finalistas2[,c("athleteid", "distance", "stroke")])
+
+semifinalistas2<-datos2015[datos2015$round=="PRE" & datos2015$distance %in% c(400,800,1500),]
+
+#Ahora, los filtro para que cumplan esa condición de Filtro.
+semifinalistasFiltrados2 <- merge(semifinalistas2, condicionFiltro, by = c("athleteid", "distance", "stroke"))
+
+#Ahora, hago la unión.
+
+dataframe2 <- rbind(finalistas2, semifinalistasFiltrados2)
+
+
+#Ahora, hago la unión de mis datos: 
+
+datos2015Target<-rbind(dataframe1, dataframe2)
+
+
+#Los voy a ordenar por prueba y nombre. 
+
+datos2015Target<-datos2015Target[order(datos2015Target$stroke, datos2015Target$athleteid, datos2015Target$distance), ]
 ```
 
 
