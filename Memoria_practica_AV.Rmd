@@ -3157,7 +3157,60 @@ datos2015Target<-rbind(dataframe1, dataframe2)
 #Los voy a ordenar por prueba y nombre. 
 
 datos2015Target<-datos2015Target[order(datos2015Target$stroke, datos2015Target$athleteid, datos2015Target$distance), ]
+
+
 ```
 
 
+```{r}
+rm(condicionFiltro, dataframe1, dataframe2, finalistas1, finalistas2, semifinalistas1, semifinalistas2, semifinalistasFiltrados, semifinalistasFiltrados2)
+```
+
+## Partición de los datos. 
+
+La repartición de nuestros datos, será sobre las finales. En total, tengo 8 nadadores por cada final, 2 sexos. En las pruebas de 50 y 100 tengo 4 estilos, lo que suma 128 nadadores. También, tengo en las pruebas de 200, 8 nadadores, 2 sexos y 5 estilos, lo que suma 80. En el 400 tengo 8 nadadores, 2 sexos y 2 estilos, lo que suma 32 nadadores. En el 800 y 1500 tengo 8 nadadores por cada sexo, lo que hace un total de 32 nadadores.
+
+La suma total es de 272 nadadores, aunque debemos tener en cuenta que hubo una baja en la final del 1500 masculino, luego será de 271 nadadores. 
+
+
+Vamos a ver si estas cuentas son ciertas de la siguiente manera: 
+
+```{r}
+nadadoresFinalistas<-nadadoresPruebas[nadadoresPruebas$round=="FIN", ]
+rownames(nadadoresFinalistas) <- 1:nrow(nadadoresFinalistas)
+
+```
+
+```{r}
+dim(nadadoresFinalistas)
+```
+
+Luego, observamos que sí, estamos en lo cierto. Ahora, voy a hacer la repartición de mis datos sobre este dataframe: 
+
+
+```{r}
+n=nrow(nadadoresFinalistas)
+set.seed(1312)
+indices_validation= sample(1:n, n*0.1)
+indices_entrenamiento= c(1:n)[-indices_validation]
+
+#he dividido los datos, ahora, cojo los de entreno y divido otra vez. 
+n_entrenamiento=length(indices_entrenamiento)
+set.seed(2910)
+indices_train=sample(indices_entrenamiento, 0.8*n_entrenamiento)
+indices_test=c(1:n)[-c(indices_validation, indices_train)]
+
+
+nadadoresFinalistas_train=nadadoresFinalistas[indices_train,]
+nadadoresFinalistas_test= nadadoresFinalistas[indices_test, ]
+nadadoresFinalistas_validation=nadadoresFinalistas[indices_validation, ]
+
+```
+
+
+A continuación, deberíamos "volvar" esta particion en datos2015Target, que es el verdadero dataframe donde voy a trabajar, ya que contiene datos sobre todos los parciales de cada prueba, para ello: 
+
+```{r}
+#aquí me quedo.
+```
 
