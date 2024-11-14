@@ -3114,6 +3114,44 @@ rm(centroides, centroideslong, cluster800libres, componentess, finalistas, free8
 
 # Medidas de rendimiento.
 
+
+```{r carga de los datos}
+#Voy a cargar aquí los datos para no tener que ejecutar todos los chunks anteriores:
+
+datos2015<-read.csv("datos/2015_FINA.csv", header=TRUE, sep = ',')
+
+datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke, relaycount)
+
+datos2015$relaycount <- NULL
+
+datos2015<-datos2015 %>%
+  filter(!(is.na(datos2015$points) & is.na(datos2015$reactiontime) & is.na(datos2015$swimtime) & is.na(datos2015$cumswimtime) & is.na(datos2015$splitswimtime)))
+
+
+datos2015$birthdate <- as.Date(datos2015$birthdate)
+#Calculamos la edad
+fechaKazan<- as.Date("2015-07-24")
+datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
+
+nadadoresParticipantes <- datos2015 %>%
+  distinct(athleteid, .keep_all = TRUE)
+
+#guardamos una copia de seguridad por si se modifica el dataframe más adelante. 
+
+nadadoresParticipantesCopia<-nadadoresParticipantes
+
+
+nadadoresPruebas <- datos2015 %>%
+  distinct(eventid, athleteid, .keep_all = TRUE)
+
+
+#Copia de seguridad: 
+nadadoresPruebasCopia<-nadadoresPruebas
+
+
+```
+
+
 A partir de este momento, vamos a estudiar acerca de un target. En este caso, nuestro target, ver si los finalistas van a mejorar su tiempo respecto a la ronda anteriormente nadada. Por lo que, vamos a quedarnos con el conjunto de nadadores que están clasificados a la final de cada prueba, y su tiempo en la ronda anterior. Para ello, voy a ir dividiendo los datos por cada distancia. Elegiré los nadadores que nadaron la final y la semifinal. Pero filtrando los semifinalistas 
 
 
@@ -3207,8 +3245,7 @@ nadadoresFinalistas_validation=nadadoresFinalistas[indices_validation, ]
 
 ```
 
-
-A continuación, deberíamos "volvar" esta particion en datos2015Target, que es el verdadero dataframe donde voy a trabajar, ya que contiene datos sobre todos los parciales de cada prueba, para ello: 
+Ahora, tenemos los nadadores sobre los qiue vamos a trabajar, 271 (aunque puede haber un mismo nadador que nade varias finales). Ahora, debemos crear de alguna forma los dataframes que queremos usar: 
 
 ```{r}
 #aquí me quedo.
