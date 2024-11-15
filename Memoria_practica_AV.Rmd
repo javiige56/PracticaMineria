@@ -3197,12 +3197,58 @@ datos2015Target<-rbind(dataframe1, dataframe2)
 datos2015Target<-datos2015Target[order(datos2015Target$stroke, datos2015Target$athleteid, datos2015Target$distance), ]
 
 
+rownames(datos2015Target)<-NULL
+
 ```
 
 
 ```{r}
 rm(condicionFiltro, dataframe1, dataframe2, finalistas1, finalistas2, semifinalistas1, semifinalistas2, semifinalistasFiltrados, semifinalistasFiltrados2)
 ```
+
+
+Vamos a calcular la media, desviación típica, mínimo y máximo de cada parcial: 
+
+```{r}
+#hacemos un long to wide. ¿Por cada prueba?
+
+datos2015Target$split<-NULL
+datos2015Target$cumswimtime<-NULL
+
+datos2015TargetLong <- datos2015Target %>%
+  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
+              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
+
+#Una vez hecho, vamos a calcular la media, desviación típica, mínimo y máximo de cada parcial.
+
+
+datos2015TargetLong$mediaParciales<- rowMeans(datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "450", "500", "550", "600", "650", "700", "750", "800", "850", "900", "950", "1000", "1050", "1100", "1150", "1200", "1250", "1300", "1350", "1400", "1450", "1500")], na.rm=TRUE)
+
+datos2015TargetLong$minimoParciales<- apply(datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "450", "500", "550", "600", "650", "700", "750", "800", "850", "900", "950", "1000", "1050", "1100", "1150", "1200", "1250", "1300", "1350", "1400", "1450", "1500")], 1, min, na.rm=TRUE)
+
+datos2015TargetLong$maximoParciales<- apply(datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "450", "500", "550", "600", "650", "700", "750", "800", "850", "900", "950", "1000", "1050", "1100", "1150", "1200", "1250", "1300", "1350", "1400", "1450", "1500")], 1, max, na.rm=TRUE)
+
+
+datos2015TargetLong$sdParcial<- apply(datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "450", "500", "550", "600", "650", "700", "750", "800", "850", "900", "950", "1000", "1050", "1100", "1150", "1200", "1250", "1300", "1350", "1400", "1450", "1500")], 1, sd, na.rm=TRUE)
+
+datos2015TargetLong$medianaParciales<- apply(datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "450", "500", "550", "600", "650", "700", "750", "800", "850", "900", "950", "1000", "1050", "1100", "1150", "1200", "1250", "1300", "1350", "1400", "1450", "1500")], 1, median, na.rm=TRUE)
+
+datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "450", "500", "550", "600", "650", "700", "750", "800", "850", "900", "950", "1000", "1050", "1100", "1150", "1200", "1250", "1300", "1350", "1400", "1450", "1500")]<-NULL
+
+
+View(datos2015TargetLong)
+
+
+
+
+
+
+
+```
+
+
+
+
 
 ## Partición de los datos. 
 
