@@ -3133,6 +3133,8 @@ datos2015$birthdate <- as.Date(datos2015$birthdate)
 fechaKazan<- as.Date("2015-07-24")
 datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
 
+datos2015$birthdate<-NULL
+
 nadadoresParticipantes <- datos2015 %>%
   distinct(athleteid, .keep_all = TRUE)
 
@@ -3210,7 +3212,7 @@ rm(condicionFiltro, dataframe1, dataframe2, finalistas1, finalistas2, semifinali
 Vamos a calcular la media, desviación típica, mínimo y máximo de cada parcial: 
 
 ```{r}
-#hacemos un long to wide. ¿Por cada prueba?
+#hacemos un long to wide.
 
 datos2015Target$split<-NULL
 datos2015Target$cumswimtime<-NULL
@@ -3238,16 +3240,96 @@ datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "
 
 View(datos2015TargetLong)
 
+rm(datos2015Target)
+```
 
 
+Ahora, busco que, para cada nadador que nada la final en una prueba de una distancia determinada, en sus columnas aparezcan las variables de las finales y las semifinales a la vez. Para ello: 
+Voy a dividir el dataframe datos2015TargetLong en 2, uno con los finalistas y otro con los semifinalistas.
 
+```{r}
+dataframe1<-datos2015TargetLong[datos2015TargetLong$round=="FIN", ]
+dataframe2<-datos2015TargetLong[datos2015TargetLong$round == "PRE" | datos2015TargetLong$round== "SEM", ]
+
+#Voy a cambiar los nombres de las variables para que, al hacer el merge, se puedan ver las variables de manera intuitiva.
+
+dataframe1 <- dataframe1 %>%
+  rename(
+    eventidF= eventid,
+    heatF= heat,
+    laneF= lane,
+    pointF= points,
+    reactiontimeF= reactiontime,
+    swimtimeF = swimtime,
+    daytimeF= daytime,
+    mediaParcialesF= mediaParciales,
+    minimoParcialesF= minimoParciales,
+    maximoParcialesF= maximoParciales,
+    sdParcialF= sdParcial,
+    medianaParcialesF= medianaParciales
+  )
+
+dataframe2<- dataframe2%>%
+  rename(
+    eventidP= eventid,
+    heatP= heat,
+    laneP= lane,
+    pointP= points,
+    reactiontimeP= reactiontime,
+    swimtimeP = swimtime,
+    daytimeP= daytime,
+    mediaParcialesP= mediaParciales,
+    minimoParcialesP= minimoParciales,
+    maximoParcialesP= maximoParciales,
+    sdParcialP= sdParcial,
+    medianaParcialesP= medianaParciales
+  )
+#Ahora, quiero hacer un join por athleteid, distance, stroke: 
+
+datos2015Target <- merge(dataframe1, dataframe2, by = c("athleteid", "distance", "stroke"), all = FALSE)
+
+# Eliminar una o varias columnas
+datos2015Target <- datos2015Target %>% select(-round.x, -lastname.y, -firstname.y, -gender.y, -name.y, -code.y, -round.y, -edad.y)
+
+#Renombro aquellas que tienen el .x o .y:
+
+datos2015Target<- datos2015Target%>%
+  rename(
+    lastname= lastname.x,
+    firstname= firstname.x,
+    gender= gender.x,
+    name= name.x,
+    code= code.x,
+    edad= edad.x
+  )
 
 
 
 ```
 
 
+```{r}
+rm(dataframe1, dataframe2, datos2015TargetLong )
+```
 
+
+Bien, me falta ahora, añadir el target: 
+
+```{r}
+
+# Crear la nueva variable target según la condición
+datos2015Target$target <- ifelse(datos2015Target$swimtimeF - datos2015Target$swimtimeP < 0, 1, 0)
+
+```
+
+
+Si visualizo al primer nadador: 
+
+```{r}
+head(datos2015Target,1)
+```
+
+Observo que Joseph Schooling, nadó la final más rapido que la final, por lo que tienen de target un 1. 
 
 
 ## Partición de los datos. 
@@ -3269,11 +3351,11 @@ rownames(nadadoresFinalistas) <- 1:nrow(nadadoresFinalistas)
 dim(nadadoresFinalistas)
 ```
 
-Luego, observamos que sí, estamos en lo cierto. Ahora, voy a hacer la repartición de mis datos sobre este dataframe: 
+Luego, observamos que sí, estamos en lo cierto. Ahora, voy a hacer la repartición de mis datos sobre el dataframe creado anteriormente: 
 
 
 ```{r}
-n=nrow(nadadoresFinalistas)
+n=nrow(datos2015Target)
 set.seed(1312)
 indices_validation= sample(1:n, n*0.1)
 indices_entrenamiento= c(1:n)[-indices_validation]
@@ -3283,17 +3365,12 @@ n_entrenamiento=length(indices_entrenamiento)
 set.seed(2910)
 indices_train=sample(indices_entrenamiento, 0.8*n_entrenamiento)
 indices_test=c(1:n)[-c(indices_validation, indices_train)]
+#reinicio las filas por si acaso:
+rownames(datos2015Target) <- NULL
+#hago la repartición:
+datos2015Target_train=datos2015Target[indices_train,]
+datos2015Target_test= datos2015Target[indices_test, ]
+datos2015Target_validation=datos2015Target[indices_validation, ]
 
-
-nadadoresFinalistas_train=nadadoresFinalistas[indices_train,]
-nadadoresFinalistas_test= nadadoresFinalistas[indices_test, ]
-nadadoresFinalistas_validation=nadadoresFinalistas[indices_validation, ]
-
-```
-
-Ahora, tenemos los nadadores sobre los qiue vamos a trabajar, 271 (aunque puede haber un mismo nadador que nade varias finales). Ahora, debemos crear de alguna forma los dataframes que queremos usar: 
-
-```{r}
-#aquí me quedo.
 ```
 
