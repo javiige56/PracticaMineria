@@ -36,12 +36,12 @@ library(tidyverse)
 library(viridis) # Para una paleta amigable para daltónicos
 ```
 
-# Introducción(Javier).
+# Introducción.
 
 En este proyecto, se analizarán los resultados del **mundial de natación de 2015** con el objetivo de identificar patrones en el desempeño de los nadadores por país y eventos.
-Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable. 
+Se realizará un análisis exploratorio de datos y se utilizarán técnicas de reducción de dimensionalidad, aprendizaje no supervisado, aprendizaje supervisado, medidas de rendimiento, comparación de modelos y técnicas de Aprendizaje Máquina Explicable.
 
-En primer lugar, vemos con qué datos vamos a tratar.
+En primer lugar, veamos con qué datos vamos a tratar.
 El conjunto de datos consiste en los resultados del Campeonato Mundial de Natación Kazán del año 2015, con los correspondientes datos de cada nadador y prueba.
 Los datos han sido extraídos de [Omega](http://www.omegatiming.com/File/Download?id=00010F0200FFFFFFFFFFFFFFFFFFFF08), la plataforma oficial de tiempos de la World Aquatics.
 El conjunto de datos contiene información sobre los nadadores (fecha de nacimiento, país, id), y sobre la prueba nadada (tiempo de reacción, parciales, tiempo total, estilo, serie).
@@ -71,7 +71,7 @@ Las variables o atributos que conforman el conjunto de datos son:
 -   stroke: Estilo de nado en el que se realizó la prueba.
 -   splitswimtime: Tiempo del parcial (50m)
 
-# Entender los datos (Javi).
+# Entender los datos.
 
 Primeramente, vamos a leer los datos:
 
@@ -99,7 +99,7 @@ Nadó el 100m Mariposa en la ronda preliminar con un tiempo final de 63.65 segun
 
 # Análisis exploratorio de datos.
 
-## Resumen de los datos(Javi).
+## Resumen de los datos.
 
 A continuación, vamos a ver un resumen de los datos:
 
@@ -126,11 +126,13 @@ summary(datos2015)
 
 Viendo este resumen de los datos podemos comenzar a entender algunas de las variables.
 
-Observamos que las variables name y code toman absolutamente los mismos valores, luego seguramente podamos reducir en una variable el conjunto de datos. Se trata del país de procedencia de cada nadador.
+Observamos que las variables name y code toman absolutamente los mismos valores.
+Se trata del país de procedencia de cada nadador.
 
 Vemos que hay 5 ***tipos de nado***: braza, mariposa, crol, espalda y estilos individual.
 
-No hemos guardado la distancia como una variable categórica, pero más adelante veremos que hay 6 distancias (50, 100, 200, 400, 800, 1500) Hay 5 tipos de ronda distintos.
+No hemos guardado la distancia como una variable categórica, pero más adelante veremos que hay 6 distancias (50, 100, 200, 400, 800, 1500).
+Hay 5 tipos de ronda distintos.
 
 El menor tiempo de reacción fue de 0.42 y el mayor de 0.97.
 
@@ -138,7 +140,7 @@ Viendo los datos, observamos que cada nadador tiene en una prueba concreta, tant
 
 A continuación, vamos a ir realizando estudios para tratar de comprender más a fondo algunas variables.
 
-## Variable Relaycount. ¿Nos sirve de algo?(Javi)
+## Variable Relaycount.
 
 Si observamos el resumen de la variable relaycount:
 
@@ -157,7 +159,7 @@ datos2015$relaycount <- NULL
 
 Luego ahora, tenemos 21 variables en vez de 22.
 
-## Valores NA. Datos faltantes. [Expone Alonso todo.]
+## Valores NA. Datos faltantes.
 
 Si volvemos a mirar nuestro resumen, observamos que hay valores faltantes.
 Vamos a tratar de identificarlos, intentar entender el por qué de esos datos faltantes, y razonar cuándo será conveniente eliminarlos o no de nuestro estudio.
@@ -180,7 +182,7 @@ dim(datosNA)
 
 Observamos que, de 11429 observaciones de mi dataframe original, en 73 de ellas, existe algún valor nulo.
 Es decir, un 0.63 % por ciento.
-Un valor muy bajo.
+Lo cual es un valor muy bajo.
 
 En principio y sin estudiar nada más, podríamos considerar eliminar las filas que contengan datos faltantes ya que toman un valor muy pequeño con respecto al total.
 Aún así, vamos a ver dónde se suelen tomar más valores nulos e intentar explicar el por qué.
@@ -206,7 +208,8 @@ todosNA<-datosNA[is.na(datosNA$points) & is.na(datosNA$reactiontime) & is.na(dat
 dim(todosNA)
 ```
 
-Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados... Es decir, nadadores que posiblemente se dieron de baja en la prueba.
+Bien, en 59 de las 73 observaciones, faltan, tanto el tiempo de reacción, los puntos finales, el tiempo final, los parciales acumulados...
+Es decir, nadadores que posiblemente se dieron de baja en la prueba.
 
 ```{r}
 summary(todosNA)
@@ -224,11 +227,11 @@ Haciendo una pequeña búsqueda en los resultados de la World Aquatics de los mu
 todosNA[todosNA$firstname=="CESAR",]
 ```
 
-También, buscando a César Cielo en el 50 libres de las preliminares, observamos que causó baja DNS. Para poneros en contexto, Cesar Cielo es actualmente el poseedor del récord mundial del 50 libres, luego también resultaba raro que causase baja. 
+También, buscando a César Cielo en el 50 libres de las preliminares, observamos que causó baja DNS.
+Para ponernos en contexto, Cesar Cielo es a dia de hoy, el poseedor del récord mundial del 50 libres, luego también resultaba raro que causase baja.
 
 Luego todo parece indicar que estos nadadores fueron baja en esa prueba y por ello no sale ningún dato en esas variables.
 Vamos a optar por eliminarlos.
-
 
 ```{r}
 #Primero datosNA: 
@@ -296,7 +299,7 @@ Luego, de 309 iniciales, vamos a tratar ahora con 14 datos nulos ya controlados.
 rm(datosNA, naReactionTime, todosNA, percent_na)
 ```
 
-## Variable birthdate. Creacion de nueva variable edad.(Ines)
+## Variable birthdate. Creacion de nueva variable edad
 
 A continuación, vamos a crear una variable llamada *edad*, ya que será más representativo que trabajar con la variable birthdate.
 La variable tendrá el valor numérico de la edad de cada participante en el momento del mundial.
@@ -315,7 +318,7 @@ Además, borramos la variable birthdate:
 datos2015$birthdate=NULL
 ```
 
-## Dataframes. [Inés]
+## Dataframes.
 
 Si visualizamos el dataframe datos2015, observamos por cada prueba de cada nadador, salen n filas que equivalen a los n parciales (de 50m ) en los que constaba la prueba.
 Luego, para algunos estudios, usar este dataframe va a suponer duplicar, triplicar e incluso multiplicar por 15 un mismo valor (en el caso de las carreras de 1500m).
@@ -326,12 +329,13 @@ Mientras que en los nadadores de 50 metros sólo una vez.
 A continuación, procedemos a presentar los dataframes que vamos a utilizar dependiendo lo que queramos estudiar:
 
 ### Dataframe nadadoresParticipantes.
+
 Utilizaremos este dataframe para realizar análisis sobre el número de nadadores, proporción entre hombres y mujeres, la edad de los participantes, etc.
 Es decir, análisis sobre datos que no requieren el conocimiento de la progresión en sus splits.
 Para ello, nos bastará con tener la primera fila de cada participante.
 
 Creamos, por tanto, un nuevo dataframe, llamado *nadadoresParticipantes*, el cual constará de todos los participantes sin repetir.
-Nos basaremos en la unicidad de la variable athleteid para crearla. 
+Nos basaremos en la unicidad de la variable athleteid para crearla.
 
 ```{r}
 nadadoresParticipantes <- datos2015 %>%
@@ -344,9 +348,10 @@ nadadoresParticipantesCopia<-nadadoresParticipantes
 
 ```{r}
 summary(nadadoresParticipantes)
+
 ```
 
-### Dataframe nadadoresPruebas. 
+### Dataframe nadadoresPruebas.
 
 Para poder elaborar un estudio de algunas variables como *events*, *reactiontime*, *lane*, *heats* y *daytime*,entre otras cosas, vamos a necesitar un dataframe que refleje a cada nadador y sus pruebas nadadas por filas.
 
@@ -379,12 +384,13 @@ nadadoresPruebasCopia<-nadadoresPruebas
 
 Los datos creados, reflejan nadadores y pruebas nadadas por cada uno.
 
-## Estudio sobre el número de nadadores, su género, país y edad. [Alonso]
+## Estudio sobre el número de nadadores, su género, país y edad.
 
 Usaremos el dataframe nadadoresParticipantes.
+
 Ahora, comenzamos nuestro estudio:
 
-### Edad [Alonso]
+### Edad.
 
 Veamos primeramente un resumen de la edad:
 
@@ -429,22 +435,18 @@ Podríamos preguntarnos si la edad sigue una distribución normal en estos datos
 shapiro.test(nadadoresParticipantes$edad)
 ```
 
-Rechazamos la hipótesis nula, es decir, la edad NO sigue una distribución normal en estos datos.
+El test de shapiro, a priori, nos indica que deberíamos rechazar la hipótesis nula y suponer que no es una normal, aún así, vamos a evaluar de una manera práctica, si podemos suponer su normalidad.
+Vamos a realizar 3 evaluaciones para ver si podemos suponer que nuestros datos son normales:
 
-Vamos a realizar 3 evaluaciones para ver si podemos suponer que nuestros datos son normales: 
+#### Probabilidad de que un nadador tenga más de 29 años:
 
-
-#### Probabilidad de que un nadador tenga más de 29 años: 
-
-Para calcular la probabilidad de que un nadador tenga más de 29 años, cuento todos los nadadores que tienen más de 30, y divido sobre el número total de participantes. 
-
+Para calcular la probabilidad de que un nadador tenga más de 29 años, cuento todos los nadadores que tienen más de 30, y divido sobre el número total de participantes.
 
 ```{r}
 valor1<- sum(nadadoresParticipantes$edad >=29)/1099
 ```
 
-
-#### Calcular media y varianza y calcular la probabilidad Normal. 
+#### Calcular media y varianza y calcular la probabilidad Normal.
 
 ```{r}
 media<-mean(nadadoresParticipantes$edad)
@@ -453,10 +455,9 @@ desviacion<-sd(nadadoresParticipantes$edad)
 valor2<-1 - pnorm(29, media, sd=desviacion)
 ```
 
+#### Simular datos de una normal sabiendo media y varianza.
 
-#### Simular datos de una normal sabiendo media y varianza. 
-
-Ahora, simulo datos: 
+Ahora, simulo datos:
 
 ```{r}
 datos_simulados <- rnorm(1100, mean = media, sd = desviacion)
@@ -467,8 +468,7 @@ conteo_mayores_que_29 <- sum(datos_simulados >= 29)
 valor3<- conteo_mayores_que_29/1100
 ```
 
-
-A continuación, comparo los tres valores obtenidos: 
+A continuación, comparo los tres valores obtenidos:
 
 ```{r}
 valor1
@@ -476,14 +476,15 @@ valor2
 valor3
 ```
 
-
+Y veo que es una diferencia de 0.017 entre el mayor y el menor valor, luego, vamos a suponer la normalidad de nuestros datos.
 
 ```{r}
 rm(conteo_mayores_que_29, datos_simulados, desviacion, media, valor1, valor2, valor3)
 ```
 
-Observo que hay una variación de 0.014 entre las probabilidades, al ser una probabilidad tan baja, podríamos asumir normalidad en nuestros datos. 
-### Análisis de géneros participantes [Salma].
+Observo que hay una variación de 0.014 entre las probabilidades, al ser una probabilidad tan baja, podríamos asumir normalidad en nuestros datos.
+
+### Análisis de géneros participantes
 
 Veamos el número exacto de mujeres y hombres en la competición:
 
@@ -495,10 +496,19 @@ Luego, hay 608 hombres y 491 mujeres que participaron en los mundiales de Kazán
 
 Veamos ahora cómo se distribuyen los hombres y las mujeres y sus respectivas edades:
 
-```{r}
-ggplot(nadadoresParticipantes, aes(x = edad, colour = gender)) +
-# Añadir la capa de la densidad de probabilidad.
-    geom_density()
+```{r, warning=FALSE}
+ggplot(nadadoresParticipantes, aes(x = edad, colour = gender, linetype = gender)) +
+    geom_density(size = 1.2) +  # Aumentar el grosor de las líneas
+    scale_color_viridis_d(option = "D", begin = 0.2, end = 0.8) +  # Colores accesibles para daltonismo
+    scale_linetype_manual(values = c("solid", "dashed")) +  # Líneas sólidas y punteadas
+    theme_minimal() +  # Tema limpio y claro
+    labs(
+        title = "Densidades de Edad por Género",
+        x = "Edad",
+        y = "Densidad",
+        colour = "Género",
+        linetype = "Género"
+    )
 ```
 
 Según observamos, la distribución está ligeramente desplazada a la derecha para los hombres, esto indica que los hombres tienden a ser mayores en promedio que las mujeres.
@@ -506,8 +516,9 @@ Esta diferencia en la distribución de edades entre los géneros nos conduce a r
 
 #### Hipótesis:
 
-Hipótesis nula: Las medias de los dos grupos son iguales.
-Hipótesis alternativas: Las medias de los dos grupos son diferentes.
+-   H0: Las medias de los dos grupos son iguales.
+
+-   H1: Las medias de los dos grupos son distintas.
 
 ```{r}
 t.test(edad~gender,data=nadadoresParticipantes)
@@ -568,23 +579,27 @@ Dicho en otras palabras, *2 de cada 10 mujeres son menores de 18 años, mientras
 porcentajes <- c(10.88, 21.66)  # 10% para hombres y 20% para mujeres
 generos <- c("Hombres", "Mujeres")
 
-# Crear un dataframe con los porcentajes
-datos_porcentajes <- data.frame(Genero = generos, Porcentaje = porcentajes)
-
-# Crear el gráfico de barras
-ggplot(datos_porcentajes, aes(x = Genero, y = Porcentaje, fill = Genero)) +
-  geom_bar(stat = "identity") +
-  geom_text(aes(label = paste0(Porcentaje, "%")), vjust = -0.5) +  # Agregar los porcentajes sobre las barras
-  labs(title = "Porcentaje de Nadadores Menores de 18 Años por Género",
-       x = "Género",
-       y = "Porcentaje") +
-  scale_fill_manual(values = c("violet", "red")) +  # Colores para los géneros
+# Crear el gráfico con colores accesibles
+ggplot(datos_porcentajes, aes(x = generos, y = porcentajes, fill = generos)) +
+  geom_bar(stat = "identity", width = 0.6) +  # Barras con ancho ajustado
+  geom_text(aes(label = paste0(porcentajes, "%")), vjust = -0.5, size = 5) +  # Mostrar los porcentajes
+  labs(
+    title = "Porcentaje de Nadadores Menores de 18 Años por Género",
+    x = "Género",
+    y = "Porcentaje"
+  ) +
+  scale_fill_viridis_d(option = "C", begin = 0.2, end = 0.8) +  # Colores accesibles
   theme_minimal() +
-  ylim(0, max(porcentajes) + 10)  # Ajustar el límite del eje Y
-
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16),  # Centrar el título
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none"  # Ocultar la leyenda
+  ) +
+  ylim(0, 100)  # Ajustar el límite del eje Y
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 
 #elimino las cosas creadas para no interferir luego. 
 
@@ -592,7 +607,7 @@ rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
 
 ```
 
-### Análisis de nacionalidades [Salma].
+### Análisis de nacionalidades.
 
 Vamos a ver la cantidad de nadadores por país.
 
@@ -919,15 +934,22 @@ nadadoresPruebas<-nadadoresPruebasCopia
 
 ## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
 
-### Reactiontime. Hombres vs Mujeres(Ines)
+### Reactiontime. Hombres vs Mujeres.
 
 Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores.
 Para ello, no tenemos en cuenta las dos filas con datos nulos.
 
 ```{r}
 ggplot(na.omit(nadadoresPruebas), aes(x = reactiontime)) +
-geom_density() +
-ggtitle("Distribución. reactiontime")
+  geom_density(color = viridis(1, option = "C"), fill = viridis(1, option = "C", alpha = 0.5), size = 1.2) +
+  ggtitle("Distribución de Reaction Time") +
+  labs(x = "Tiempo de Reacción", y = "Densidad") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Centrar y resaltar el título
+    axis.title = element_text(size = 14),  # Aumentar tamaño de etiquetas de los ejes
+    axis.text = element_text(size = 12)  # Aumentar el tamaño de los valores de los ejes
+  )
 
 ```
 
@@ -939,14 +961,32 @@ shapiro.test(na.omit(nadadoresPruebas$reactiontime))
 ```
 
 Al tener un p-valor tan bajo, no parece que siga una distribución normal.
+(HACER AQUÍ LO MISMO QUE CON LA EDAD).
 
 Comparamos las funciones de densidad de mujeres y hombres en general:
 
 ```{r message=FALSE, warning=FALSE}
 nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$reactiontime))
-ggplot(nadadoresPruebas, aes(x=reactiontime, colour=gender))+
-geom_density()+
-  ggtitle("Distribución. Hombres vs Mujeres")
+ggplot(nadadoresPruebas, aes(x = reactiontime, colour = gender, linetype = gender)) +
+  geom_density(size = 1.2) +
+  scale_color_viridis_d(option = "C", begin = 0.3, end = 0.7) +  # Colores accesibles
+  scale_linetype_manual(values = c("solid", "dashed")) +  # Líneas sólidas y punteadas
+  labs(
+    title = "Distribución del Tiempo de Reacción por Género",
+    x = "Tiempo de Reacción",
+    y = "Densidad",
+    colour = "Género",
+    linetype = "Género"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Centrar el título
+    axis.title = element_text(size = 14),  # Tamaño de las etiquetas de los ejes
+    axis.text = element_text(size = 12),  # Tamaño de los valores de los ejes
+    legend.position = "top",  # Ubicar la leyenda en la parte superior
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
+  )
 ```
 
 De esta gráfica nos podemos plantear realizar un contraste de hipótesis, en el cual analizaremos sobre la posible diferencia significativa del tiempo de reacción en ambos géneros.
@@ -970,15 +1010,10 @@ mediaTiempoReaccion
 ```
 
 Obtenemos que las mujeres tardan un 3.5% más de tiempo que los hombres.
-Debemos seguir analizando esta variable con otras para poder concluir cualquier resultado.
+Es decir que, si mantenemos en igualdad todas las demás variables, si un hombre tarda 22 segundos en un 50, una mujer tardará 3.5% más de tiempo, es decir, 22.77 segundos.
+Una diferencia significativamente grande si hablamos de una prueba tan corta.
 
-En este punto, podríamos preguntarnos si las mujeres/hombres que tienen un tiempo de reacción más bajo le corresponderán puestos mas altos, y viceversa.
-Es decir, si existe una correlación negativa entre ambas variables.
-
-No podemos precipitarnos a decir que la diferencia es muy pequeña ya que habría que hacer un análisis adicional para medir la magnitud la diferencia (como el de Cohen).
-Esto nos diría cómo es de grande la diferencia en términos de desviaciones estándar.
-
-### Reactiontime. Distancias largas vs distancias cortas(Ines).
+### Reactiontime. Distancias largas vs distancias cortas.
 
 Vamos a comparar ahora las funciones de densidad de las chicas en la prueba de 800m libres y 50m libres:
 
@@ -992,27 +1027,39 @@ nadadorasComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==5
 ```{r}
 
 ggplot(nadadorasComparacionReactionTime, aes(x = factor(distance), y = reactiontime, fill = factor(distance))) +
-  geom_boxplot() +
-  labs(title = "Boxplot de Reaction Time: 50m vs 800m",
-       x = "Distancia (m)",
-       y = "Tiempo de Reacción") +
-  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  
-  theme_minimal()
-
+  geom_boxplot(alpha = 0.7, size = 1.2, outlier.shape = 16, outlier.size = 4) +  # Mejorar visibilidad de los outliers
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.8) +  # Usar colores accesibles de viridis
+  labs(
+    title = "Boxplot de Tiempo de Reacción: 50m vs 800m",
+    x = "Distancia (m)",
+    y = "Tiempo de Reacción"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Centrar y resaltar el título
+    axis.title = element_text(size = 14),  # Etiquetas de los ejes más grandes
+    axis.text = element_text(size = 12),  # Etiquetas del eje
+    legend.position = "none"  # Ocultar leyenda ya que está implícita en las etiquetas
+  )
 ```
 
 El gráfico muestra los boxplots del tiempo de reacción para la prueba de 50 metros y otra para 800 metros.
 
 ```{r}
-# Crear el gráfico de densidad con colores por distancia
 ggplot(nadadorasComparacionReactionTime, aes(x = reactiontime, fill = factor(distance), group = distance)) +
-  geom_density(alpha = 0.6) +  #curvas semi-transparentes
-  scale_fill_manual(values = c("50" = "#0084ff", "800" = "#fa3c4c")) +  
-  ggtitle("Distribución del Tiempo de Reacción: 800m libre vs 50m libre") +
+  geom_density(alpha = 0.6, size = 1.2) +  # Curvas semi-transparentes con líneas más gruesas
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.8) +  # Colores accesibles con viridis
+  ggtitle("Distribución del Tiempo de Reacción: 800m vs 50m Libre") +
   labs(fill = "Distancia (m)") +  
   theme_minimal() +  
   xlab("Tiempo de Reacción (s)") +  
-  ylab("Densidad")
+  ylab("Densidad") +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Centrar y resaltar el título
+    axis.title = element_text(size = 14),  # Etiquetas de los ejes más grandes
+    axis.text = element_text(size = 12),  # Etiquetas del eje
+    legend.position = "top"  # Colocar la leyenda en la parte superior
+  )
 ```
 
 Las curvas se encuentran en un rango de aproximadamente 0.5 a 1 segundos, que representa los tiempos de reacción.
@@ -1148,7 +1195,7 @@ summary(anova_tiempoReaccion_Calles)
 ```
 
 El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada.
-Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir. 
+Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir.
 
 ### Daytime(Ines)
 
@@ -2245,7 +2292,6 @@ Por el contrario, otras variables relacionadas con las distancias (como las vari
 Esto sugiere que estos componentes capturan la mayor parte de la variabilidad del rendimiento en natación en estas distancias.
 Este PCA, dadas las conclusiones que hemos obtenido, y las variables que hay, simplemente se utilizará para entender la manera de proceder
 
-
 ## Análisis de componentes principales del 800 libres femenino. Ronda preliminar [Alonso]
 
 Lo primero que debemos hacer es cargar los datos:
@@ -2311,7 +2357,8 @@ text(pca800libres$x[,1:2],rownames(pruebawide), cex = 0.4)
 
 ```
 
-Luego, podríamos decir que, el grupo de Ledecky, Carlin... fueron las más rapidas de las preliminares.
+Luego, podríamos decir que, el grupo de Ledecky, Carlin...
+fueron las más rapidas de las preliminares.
 Chentson, Holowchak y Rannvaardottir las más lentas.
 
 También, podríamos decir que, nadadoras como Jo, corresponden a un tiempo de reacción muy bajo junto con una edad baja.
@@ -2336,7 +2383,6 @@ fviz_pca_biplot(pca800libres, repel = TRUE)
 ```{r, echo=FALSE}
 rm(pca800libres, prueba800libresPreliminar, pruebawide)
 ```
-
 
 ## Análisis de componentes principales del 100m mariposa femenino. [JAVIER]
 
@@ -2414,7 +2460,6 @@ plot(pca_100mariposafemenino$x[,1:2])
 text(pca_100mariposafemenino$x[,1:2], rownames(prueba[,-1]))
 biplot(pca_100mariposafemenino) 
 ```
-
 
 ```{r, echo=FALSE}
 rm(pca_100mariposafemenino, prueba100MariposaFem)
@@ -2522,8 +2567,6 @@ Además, se localizan en la posición central, lo que parece indicar que sus tie
 Si visualizamos los últimos nadadores, que son Arias Dourdet, Butler y Sim Wee Sheng, observamos que efectivamente están en los extremos izquierdos del eje x.
 Además, Arias Dourdet y Butler están desplazados hacia el eje y, lo que parece indicar que obtuvieron tiempos más largos en sus splits finales, posiblemente debido a una falta de resistencia y mayor fatiga en estos tiempos, que es un factor crucial para el desarrollo de este tipo de pruebas.
 
-
-
 ```{r, echo=FALSE}
 rm(datos1500Masc, pca_1500masculino, resumen1500)
 ```
@@ -2532,13 +2575,14 @@ rm(datos1500Masc, pca_1500masculino, resumen1500)
 
 ## Cluster sobre el 800m libres femenino. Análisis de estrategias de las nadadoras. [Alonso]
 
-Voy a crear a continuación un dataframe en el cual, contenga el nombre de las nadadoras del 800 libres femenino. Además, quiero los parciales al paso por cada 50 y el tiempo final. 
+Voy a crear a continuación un dataframe en el cual, contenga el nombre de las nadadoras del 800 libres femenino.
+Además, quiero los parciales al paso por cada 50 y el tiempo final.
 
 Vamos a intentar, normalizar de cierta manera los parciales respecto del tiempo final, para intentar ver estrategias de carrera en las nadadoras.
 Obsérvese que, normalizamos los datos porque pueden existir dos nadadoras cuya estrategia de carrera sea la misma, pero que se encuentren muy alejadas en el cluster debido a que sus tiempos son lo suficientemente distintos.
 Es por ello que normalizaremos los datos.
 
-Empecemos creando los dataframes de manera análoga a como lo hicimos en el PCA: 
+Empecemos creando los dataframes de manera análoga a como lo hicimos en el PCA:
 
 ```{r, warning=FALSE}
 prueba800libresPreliminar<- datos2015[datos2015$distance==800 & datos2015$gender=="F" & datos2015$stroke=="FREE" & datos2015$round=="PRE", ]
@@ -2557,14 +2601,13 @@ free800WomensPre <- as.data.frame(free800WomensPre)
 rownames(free800WomensPre) <- free800WomensPre$lastname
 ```
 
-A continuación, vamos a echar un vistazo a lo creado:  
+A continuación, vamos a echar un vistazo a lo creado:
 
 ```{r}
 head(free800WomensPre, 10)
 ```
 
-Ahora, voy a normalizar los datos dividiendo cada pacial por el tiempo total, que dará una especie de "porcentaje" de cuánto tardan en cada parcial: 
-
+Ahora, voy a normalizar los datos dividiendo cada pacial por el tiempo total, que dará una especie de "porcentaje" de cuánto tardan en cada parcial:
 
 ```{r}
 free800WomensNormalizado <- free800WomensPre %>%
@@ -2579,10 +2622,10 @@ rownames(free800WomensNormalizado) <- free800WomensNormalizado$lastname
 
 ```
 
-
 Bien, ahora, voy a tratar de hacer un cluster:
 
 En primer lugar vamos a calcular la distancia Euclídea entre las observaciones de la base de datos.
+
 ```{r}
 distance <- get_dist(free800WomensNormalizado[,-c(1,2)])
 
@@ -2591,32 +2634,31 @@ fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4
 
 Esto empieza a ilustrar qué estados tienen grandes disimilitudes (rojo) frente a los que parecen ser bastante similares (verde azulado).
 
-Veamos ahora, mediante el método de las siluetas, el número óptimo de clusters: 
+Veamos ahora, mediante el método de las siluetas, el número óptimo de clusters:
 
 ```{r}
 fviz_nbclust(free800WomensNormalizado[,-c(1,2)], kmeans, method = "silhouette")
 ```
 
-A continuación, hacemos el cluster: 
+A continuación, hacemos el cluster:
 
 ```{r}
 cluster800libres <- kmeans(free800WomensNormalizado[,-c(1,2)], centers = 3, nstart = 25)
 cluster800libres
 ```
 
-
 ```{r}
 fviz_cluster(cluster800libres, data = free800WomensNormalizado[,-c(1,2)])
 ```
 
-Bien, ahora para poder sacar las conclusiones debidas, voy a querer graficar el dataframe, donde cada nadadora (fila), va a tener asociado un cluster. 
+Bien, ahora para poder sacar las conclusiones debidas, voy a querer graficar el dataframe, donde cada nadadora (fila), va a tener asociado un cluster.
 
 ```{r}
 free800WomensNormalizado$cluster<-cluster800libres$cluster
 
 ```
 
-A continuación, vuelvo al formato long, para ello: 
+A continuación, vuelvo al formato long, para ello:
 
 ```{r}
 prueba800long <- free800WomensNormalizado %>%
@@ -2630,7 +2672,7 @@ prueba800long <- free800WomensNormalizado %>%
 
 ```
 
-Gráfica: 
+Gráfica:
 
 ```{r}
 ggplot(prueba800long, aes(x = as.numeric(splitdistance), 
@@ -2646,7 +2688,7 @@ ggplot(prueba800long, aes(x = as.numeric(splitdistance),
   ggtitle("Tiempos de Nado por Parciales Agrupados por Cluster")
 ```
 
-Parece que este gráfico no es lo suficientemente claro, voy a evaluar nadadoras por cluster de manera separada: 
+Parece que este gráfico no es lo suficientemente claro, voy a evaluar nadadoras por cluster de manera separada:
 
 ```{r}
 # Filtrar datos por cluster y graficar
@@ -2668,13 +2710,14 @@ for (i in unique(prueba800long$cluster)) {
 }
 ```
 
-Para analizar mejor las estrategias, intentamos no fijarnos en el primer y último largo, ya que corresponden para todas las nadadoras, a largos en los que van más rápido. Tras ver las tres gráficas, se ve que, las nadadoras pertenecientes al cluster 1, son nadadoras que empiezan relativamente rápido pero que con el paso de los metros, empiezan a subir de tiempos cada parcial. 
+Para analizar mejor las estrategias, intentamos no fijarnos en el primer y último largo, ya que corresponden para todas las nadadoras, a largos en los que van más rápido.
+Tras ver las tres gráficas, se ve que, las nadadoras pertenecientes al cluster 1, son nadadoras que empiezan relativamente rápido pero que con el paso de los metros, empiezan a subir de tiempos cada parcial.
 
-Las nadadoras del cluster 2, se aprecia que sus parciales tienen una forma de U invertida, empiezan rápido, sobre la mitad de la prueba, es donde más lento van, y luego vuelven a acelerar. 
+Las nadadoras del cluster 2, se aprecia que sus parciales tienen una forma de U invertida, empiezan rápido, sobre la mitad de la prueba, es donde más lento van, y luego vuelven a acelerar.
 
-Las nadadoras del último cluster, observamos que son nadadoras muy constantes en cuanto a los parciales. 
+Las nadadoras del último cluster, observamos que son nadadoras muy constantes en cuanto a los parciales.
 
-Vamos a evaluar estas 3 últimas gráficas graficando los centroides de cada cluster: 
+Vamos a evaluar estas 3 últimas gráficas graficando los centroides de cada cluster:
 
 ```{r}
 centroides <- as.data.frame(cluster800libres$centers)
@@ -2698,10 +2741,11 @@ ggplot(centroideslong, aes(x = as.numeric(splitdistance), y = splitswimtime, col
 
 ```
 
-### Mejor cluster. 
-A continuación, vamos a evaluar cuál cluster tiene las mejores nadadoras, es decir, las nadadoras que pasaron a la final: 
+### Mejor cluster.
 
-Vamos a ordenar el data frame *free800WomensNormalizado*: 
+A continuación, vamos a evaluar cuál cluster tiene las mejores nadadoras, es decir, las nadadoras que pasaron a la final:
+
+Vamos a ordenar el data frame *free800WomensNormalizado*:
 
 ```{r}
 free800WomensNormalizado <- free800WomensNormalizado[order(free800WomensNormalizado$swimtime), ]
@@ -2712,7 +2756,8 @@ conteo <- table(finalistas$cluster)
 conteo
 ```
 
-Observamos que, hay nadadoras tanto del 3er cluster como del 1ro (5 y 3). Ahora, vamos a calcular la media de tiempos de cada cluster para ver "cuál" es el más rapido en media. 
+Observamos que, hay nadadoras tanto del 3er cluster como del 1ro (5 y 3).
+Ahora, vamos a calcular la media de tiempos de cada cluster para ver "cuál" es el más rapido en media.
 
 ```{r}
 media_swimtime_por_cluster <- aggregate(free800WomensNormalizado$swimtime ~ free800WomensNormalizado$cluster, data = free800WomensNormalizado, FUN = mean, na.rm = TRUE)
@@ -2720,24 +2765,21 @@ media_swimtime_por_cluster <- aggregate(free800WomensNormalizado$swimtime ~ free
 media_swimtime_por_cluster
 ```
 
-
 ### IDEAS DE LOS PROFES
-Graficar los centroides del kmeans para ver más claro cada tipo de estrategia. Además, intentar sacar conclusiones sobre los cluster, ¿cuál es el óptimo, es decir, en cuál están las mejores nadadoras?. 
 
+Graficar los centroides del kmeans para ver más claro cada tipo de estrategia.
+Además, intentar sacar conclusiones sobre los cluster, ¿cuál es el óptimo, es decir, en cuál están las mejores nadadoras?.
 
-Mirar las gráficas e intentar ponerlas todas en colores para personas con daltonismo. 
+Mirar las gráficas e intentar ponerlas todas en colores para personas con daltonismo.
 
-Poner en análisis de nacionalidades las paletas de los colores de los ¿juegos olímpicos? (son el mundial)
+Poner en análisis de nacionalidades las paletas de los colores de los ¿juegos olímpicos?
+(son el mundial)
 
+Sobre los test shapiro, cambiar e intentar hacer 3 cosas para ver si son normales:
 
-Sobre los test shapiro, cambiar e intentar hacer 3 cosas para ver si son normales: 
-
-1. Probabilidad de que en mis datos, el reaction time sea mayor que 0.8?
-2. Calcular la media y la desviación típica y calcular la probabilidad como una Normal. 
-3. Calcular la media y la desviación típica y calcular la probabilidad simulando los datos. 
-
-
-
+1.  Probabilidad de que en mis datos, el reaction time sea mayor que 0.8?
+2.  Calcular la media y la desviación típica y calcular la probabilidad como una Normal.
+3.  Calcular la media y la desviación típica y calcular la probabilidad simulando los datos.
 
 ##Cluster 100 mariposa femenino [Javier]
 
@@ -2782,7 +2824,6 @@ Observamos gráficamente las dos agrupaciones mencionadas.
 ```{r}
 rm(cluster100mariposafem, k100Mariposafemenino, prueba, prueba100MariposaFem, distancias)
 ```
-
 
 ## Cluster 200 mariposa masculina
 
@@ -3029,7 +3070,8 @@ Interpretando el dendrograma, vemos como los primeros pasos de agrupamiento son 
 Por tanto, no tiene sentido cortar en esas etapas iniciales.
 El gráfico parece sugerir la aglomeración en 3 grupos.
 
-##Cluster divisivo. DIANA.
+##Cluster divisivo.
+DIANA.
 
 Calculamos ahora el coeficiente de división.
 
@@ -3104,16 +3146,11 @@ Como podemos observar, no nos dan dendrogramas isomorfos puesto que los dos mét
 rm(clusterprueba1500, clusterprueba200, datos1500Masc, dend1, dend2, hc1, hc2, hc200, hc4, hc5, hc5_200, k2, k200, k3, k4, k5_200, pca_1500masculino, prueba1500, prueba200MariposaMasc, pruebita, d, d200, distance, distancias, ac, sub_grp, res.dist, m)
 ```
 
-
 ```{r, warning=FALSE}
 rm(centroides, centroideslong, cluster800libres, componentess, finalistas, free800WomensNormalizado, free800WomensPre, gap_stat, media_swimtime_por_cluster, auto, conteo, p, prueba200MariposaMasc2, prueba800libresPreliminar, prueba800long, R, i, Cor_CompVar, Cor_CompVar_retenidos)
 ```
 
-
-
-
 # Medidas de rendimiento.
-
 
 ```{r carga de los datos}
 #Voy a cargar aquí los datos para no tener que ejecutar todos los chunks anteriores:
@@ -3153,9 +3190,12 @@ nadadoresPruebasCopia<-nadadoresPruebas
 
 ```
 
-
-A partir de este momento, vamos a estudiar acerca de un target. En este caso, nuestro target, ver si los finalistas van a mejorar su tiempo respecto a la ronda anteriormente nadada. Por lo que, vamos a quedarnos con el conjunto de nadadores que están clasificados a la final de cada prueba, y su tiempo en la ronda anterior. Para ello, voy a ir dividiendo los datos por cada distancia. Elegiré los nadadores que nadaron la final y la semifinal. Pero filtrando los semifinalistas 
-
+A partir de este momento, vamos a estudiar acerca de un target.
+En este caso, nuestro target, ver si los finalistas van a mejorar su tiempo respecto a la ronda anteriormente nadada.
+Por lo que, vamos a quedarnos con el conjunto de nadadores que están clasificados a la final de cada prueba, y su tiempo en la ronda anterior.
+Para ello, voy a ir dividiendo los datos por cada distancia.
+Elegiré los nadadores que nadaron la final y la semifinal.
+Pero filtrando los semifinalistas
 
 ```{r}
 #Me quedo con los finalistas de las pruebas de 50, 100 y 200:
@@ -3203,13 +3243,11 @@ rownames(datos2015Target)<-NULL
 
 ```
 
-
 ```{r}
 rm(condicionFiltro, dataframe1, dataframe2, finalistas1, finalistas2, semifinalistas1, semifinalistas2, semifinalistasFiltrados, semifinalistasFiltrados2)
 ```
 
-
-Vamos a calcular la media, desviación típica, mínimo y máximo de cada parcial: 
+Vamos a calcular la media, desviación típica, mínimo y máximo de cada parcial:
 
 ```{r}
 #hacemos un long to wide.
@@ -3243,9 +3281,8 @@ View(datos2015TargetLong)
 rm(datos2015Target)
 ```
 
-
-Ahora, busco que, para cada nadador que nada la final en una prueba de una distancia determinada, en sus columnas aparezcan las variables de las finales y las semifinales a la vez. Para ello: 
-Voy a dividir el dataframe datos2015TargetLong en 2, uno con los finalistas y otro con los semifinalistas.
+Ahora, busco que, para cada nadador que nada la final en una prueba de una distancia determinada, en sus columnas aparezcan las variables de las finales y las semifinales a la vez.
+Para ello: Voy a dividir el dataframe datos2015TargetLong en 2, uno con los finalistas y otro con los semifinalistas.
 
 ```{r}
 dataframe1<-datos2015TargetLong[datos2015TargetLong$round=="FIN", ]
@@ -3307,13 +3344,11 @@ datos2015Target<- datos2015Target%>%
 
 ```
 
-
 ```{r}
 rm(dataframe1, dataframe2, datos2015TargetLong )
 ```
 
-
-Bien, me falta ahora, añadir el target: 
+Bien, me falta ahora, añadir el target:
 
 ```{r}
 
@@ -3322,24 +3357,26 @@ datos2015Target$target <- ifelse(datos2015Target$swimtimeF - datos2015Target$swi
 
 ```
 
-
-Si visualizo al primer nadador: 
+Si visualizo al primer nadador:
 
 ```{r}
 head(datos2015Target,1)
 ```
 
-Observo que Joseph Schooling, nadó la final más rapido que la final, por lo que tienen de target un 1. 
+Observo que Joseph Schooling, nadó la final más rapido que la final, por lo que tienen de target un 1.
 
+## Partición de los datos.
 
-## Partición de los datos. 
+La repartición de nuestros datos, será sobre las finales.
+En total, tengo 8 nadadores por cada final, 2 sexos.
+En las pruebas de 50 y 100 tengo 4 estilos, lo que suma 128 nadadores.
+También, tengo en las pruebas de 200, 8 nadadores, 2 sexos y 5 estilos, lo que suma 80.
+En el 400 tengo 8 nadadores, 2 sexos y 2 estilos, lo que suma 32 nadadores.
+En el 800 y 1500 tengo 8 nadadores por cada sexo, lo que hace un total de 32 nadadores.
 
-La repartición de nuestros datos, será sobre las finales. En total, tengo 8 nadadores por cada final, 2 sexos. En las pruebas de 50 y 100 tengo 4 estilos, lo que suma 128 nadadores. También, tengo en las pruebas de 200, 8 nadadores, 2 sexos y 5 estilos, lo que suma 80. En el 400 tengo 8 nadadores, 2 sexos y 2 estilos, lo que suma 32 nadadores. En el 800 y 1500 tengo 8 nadadores por cada sexo, lo que hace un total de 32 nadadores.
+La suma total es de 272 nadadores, aunque debemos tener en cuenta que hubo una baja en la final del 1500 masculino, luego será de 271 nadadores.
 
-La suma total es de 272 nadadores, aunque debemos tener en cuenta que hubo una baja en la final del 1500 masculino, luego será de 271 nadadores. 
-
-
-Vamos a ver si estas cuentas son ciertas de la siguiente manera: 
+Vamos a ver si estas cuentas son ciertas de la siguiente manera:
 
 ```{r}
 nadadoresFinalistas<-nadadoresPruebas[nadadoresPruebas$round=="FIN", ]
@@ -3351,8 +3388,8 @@ rownames(nadadoresFinalistas) <- 1:nrow(nadadoresFinalistas)
 dim(nadadoresFinalistas)
 ```
 
-Luego, observamos que sí, estamos en lo cierto. Ahora, voy a hacer la repartición de mis datos sobre el dataframe creado anteriormente: 
-
+Luego, observamos que sí, estamos en lo cierto.
+Ahora, voy a hacer la repartición de mis datos sobre el dataframe creado anteriormente:
 
 ```{r}
 n=nrow(datos2015Target)
@@ -3373,4 +3410,3 @@ datos2015Target_test= datos2015Target[indices_test, ]
 datos2015Target_validation=datos2015Target[indices_validation, ]
 
 ```
-
