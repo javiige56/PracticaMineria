@@ -579,8 +579,11 @@ Dicho en otras palabras, *2 de cada 10 mujeres son menores de 18 años, mientras
 porcentajes <- c(10.88, 21.66)  # 10% para hombres y 20% para mujeres
 generos <- c("Hombres", "Mujeres")
 
+porcentajes<- as.data.frame(porcentajes)
+#generos<- as.data.frame(generos)
+
 # Crear el gráfico con colores accesibles
-ggplot(datos_porcentajes, aes(x = generos, y = porcentajes, fill = generos)) +
+ggplot(porcentajes, aes(x = generos, y = porcentajes, fill = generos)) +
   geom_bar(stat = "identity", width = 0.6) +  # Barras con ancho ajustado
   geom_text(aes(label = paste0(porcentajes, "%")), vjust = -0.5, size = 5) +  # Mostrar los porcentajes
   labs(
