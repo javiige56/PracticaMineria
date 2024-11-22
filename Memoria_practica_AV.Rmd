@@ -579,8 +579,11 @@ Dicho en otras palabras, *2 de cada 10 mujeres son menores de 18 años, mientras
 porcentajes <- c(10.88, 21.66)  # 10% para hombres y 20% para mujeres
 generos <- c("Hombres", "Mujeres")
 
+porcentajes<- as.data.frame(porcentajes)
+#generos<- as.data.frame(generos)
+
 # Crear el gráfico con colores accesibles
-ggplot(datos_porcentajes, aes(x = generos, y = porcentajes, fill = generos)) +
+ggplot(porcentajes, aes(x = generos, y = porcentajes, fill = generos)) +
   geom_bar(stat = "identity", width = 0.6) +  # Barras con ancho ajustado
   geom_text(aes(label = paste0(porcentajes, "%")), vjust = -0.5, size = 5) +  # Mostrar los porcentajes
   labs(
@@ -961,6 +964,7 @@ shapiro.test(na.omit(nadadoresPruebas$reactiontime))
 ```
 
 Al tener un p-valor tan bajo, no parece que siga una distribución normal.
+
 (HACER AQUÍ LO MISMO QUE CON LA EDAD).
 
 Comparamos las funciones de densidad de mujeres y hombres en general:
@@ -1150,43 +1154,46 @@ nadadoresPruebas<-nadadoresPruebasCopia
 
 ```
 
-### Calles usadas(Ines).
+### Calles usadas.
 
 Veamos cómo se distribuyen las calles usadas:
 
 ```{r, warning=FALSE}
-ggplot(nadadoresPruebas, aes(nadadoresPruebas$lane)) + geom_bar(fill = "orange") +
-theme_bw()
+ggplot(nadadoresPruebas, aes(x = nadadoresPruebas$lane, fill = factor(lane))) + 
+  geom_bar() +
+  scale_fill_viridis_d(option = "D") + # Paleta Okabe-Ito
+  theme_bw() +
+  labs(fill = "Lane") # Etiqueta para la leyenda
 
 ```
 
 Se observa que las calles menos usadas son tanto la 0 como la 9.
-Esto es un dato que puede resultar curioso al visualizar los datos.
+Esto es un dato que puede resultar curioso al visualizar los datos, pero tiene una clara explicación.
 
-Informándonos acerca de ello, las calles 0 y 9 sólo se usan en la ronda preliminar, en las semifinales y finales se usan de la 1 a la 8, luego tiene sentido que sean las menos frecuentadas por los nadadores.
-Podríamos intentar visualizar si hay alguna relación entre alguna variable de nuestro dataframe y la calle usada, aunque podemos adelantar que, en cada serie, los nadadores se van colocando de más rapido a más lento de la siguiente forma: 4-5-3-6-2-7-1-8.
-Luego hay que tener esto en cuenta para no sacar conclusiones equivodadas.
+Las calles 0 y 9 sólo son usadas en las rondas preliminares.
+Además, las series de cada prueba se confeccionan rellenando de mejor a peor tiempo con el siguiente orden: 4-5-3-6-2-7-1-8-0-9.
+Luego, es obvio que si en una prueba tengo 18 nadadores, una serie ocupará todas las calles, pero otra ocupará sólo 8, luego las calles 0 y 9 quedarán libres.
 
 ¿Habrá alguna relación entre la calle usada y el tiempo de reacción?
 
 ```{r, warning=FALSE}
-#Creo una paleta con 10 colores: 
-colores <- c("#E41A1C", "#377EB8", "#4DAF4A", "#FF7F00", 
-             "#A65628", "#F781BF", "#999999", "#D95F02", 
-             "#7570B3", "#66A61E")
-
-
-ggplot(nadadoresPruebas, aes(x = reactiontime, fill = lane)) +
-  geom_histogram(binwidth = 0.01, alpha = 0.7, position = "identity") +
-  facet_wrap(~ lane) +  # Crear facetas por calle
+ggplot(nadadoresPruebas, aes(x = reactiontime, color = factor(lane), fill = factor(lane))) +
+  geom_density(alpha = 0.6) + # Densidades con transparencia
+  facet_wrap(~ lane) +        # Facetas por lane
   theme_bw() +
-  labs(title = "Distribución de Tiempos de Reacción por Calle",
-       x = "Tiempo de Reacción",
-       y = "Frecuencia") +
-  scale_fill_manual(values = colores)
+  labs(
+    title = "Distribución de Densidades de Tiempos de Reacción por Calle",
+    x = "Tiempo de Reacción",
+    y = "Densidad",
+    color = "Lane", 
+    fill = "Lane"
+  ) +
+  scale_fill_viridis_d(option = "D") +  # Paleta daltónica para relleno
+  scale_color_viridis_d(option = "D")  # Paleta daltónica para bordes
 ```
 
 Como podemos ver, no parece haber diferencias significativas según el tipo de calle en los tiempos de reacción.
+
 De nuevo, podemos realizar un test anova sobre la diferencia de medias.
 
 ```{r}
@@ -1195,18 +1202,13 @@ summary(anova_tiempoReaccion_Calles)
 ```
 
 El p-valor de nuestro análisis es menor de 0.005, por lo que podríamos sugerir que sí tiene cierta influencia según el número de calle empleada.
-Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir.
+Sin embargo, existen muchas variables en nuestro conjunto de datos que podrían influir, por lo que no tiene sentido seguir con este estudio.
 
-### Daytime(Ines)
+### Daytime.
 
-Nos genera curiosidad, por su formato, cómo se distribuye daytime, luego veamos:
-
-```{r}
-ggplot(nadadoresPruebas, aes(daytime)) + geom_bar(width=0.7, colour="red", fill="skyblue") + ggtitle("Daytime en los que se producen las pruebas")
-```
-
-Vemos que, aunque podríamos sacar alguna conclusión ya, el valor de la variable daytime debería tener el formato hora/minutos.
-Por ello, lo realizamos:
+Si observamos los valores que toma la variable Daytime, observamos que toma valores numéricos de 3 y 4 cifras.
+Parece corresponder a la hora y minutos en la que cada nadador nadó la prueba.
+Luego vamos a cambiar su formato para intentar sacar conclusiones acerca de esta variable:
 
 ```{r}
 # Función para convertir
@@ -1226,8 +1228,8 @@ head(tiempos_hhmm)
 
 ```
 
-Ahora representamos estos tiempos en una gráfica.
-De esta manera, el lector puede visualizarlo sin tener que imaginar su conversión, como en el gráfico de antes.
+Bien, ya hemos convertido esos números de 3 y 4 cifras a un formato hora/minutos.
+Ahora, lo representamos en una gráfica:
 
 ```{r}
 # Crear la columna 'tiempo_hhmm'
@@ -1236,20 +1238,24 @@ nadadoresPruebas$tiempo_hhmm <- sapply(nadadoresPruebas$daytime, convertir_a_hhm
 # Convertir la nueva columna 'tiempo_hhmm' a formato POSIXct
 nadadoresPruebas$tiempo_hhmm <- as.POSIXct(nadadoresPruebas$tiempo_hhmm, format = "%H:%M")
 
-# Ahora puedes hacer el histograma
+# Creo la gráfica.
 ggplot(nadadoresPruebas, aes(x = tiempo_hhmm)) +
-  geom_histogram(binwidth = 3600, color = "black", fill = "blue") +  # binwidth en segundos (3600 segundos = 1 hora)
-  scale_x_datetime(date_labels = "%H:%M", breaks = "1 hour") +  # Etiquetas de tiempo
+  geom_histogram(
+    binwidth = 3600, 
+    color = "black", 
+    fill = viridis(1, option = "D")  # Paleta daltónica
+  ) +
+  scale_x_datetime(date_labels = "%H:%M", breaks = "1 hour") +  # Etiquetas cada hora
   labs(
-       x = "Tiempo (hh:mm)",
-       y = "Frecuencia de nadadores") +
+    x = "Tiempo (hh:mm)",
+    y = "Frecuencia de nadadores"
+  ) +
   theme_minimal()
-
 ```
 
 Luego, podemos observar de manera clara que, cada día de competición constaba de 2 sesiones, una matinal y otra vespertina, y que las franjas horarias van, por la mañana de 9:30 a 12:30, y por la tarde de 17:30 a 19:30.
 
-#### Pruebas matinales y vespertinas. [Alonso]
+#### Pruebas matinales y vespertinas.
 
 Observamos que el número de nadadores que nadan por la mañana es mucho mayor al de por la tarde.
 
@@ -1294,11 +1300,13 @@ rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
-## Estudio sobre la variable distancia y su asociación con los tipos de nado. (SALMA)
+## Estudio sobre la variable distancia y su asociación con los tipos de nado.
 
-Una variable que aún no hemos tratado de comprender es el tipo de nado, es decir, la variable 'stroke'.
-Una pregunta que nos puede surgir es, ¿dependiendo de la distancia se nada con un estilo u otro?
-Veamos sobre 'nadadoresPruebas' el estilo de nado en el que se usar en distintas distancias.
+A continuación, nos preguntamos, ¿existen pruebas por cada estilo y cada distancia?
+Es decir, al haber 5 estilos y 6 distancias, ¿hay 30 pruebas distintas?
+Vamos a responder a la pregunta analizando el dataframe nadadoresPruebas:
+
+Para analizar la relación entre las distancias y los estilos de nado en este conjunto de datos, examinaremos cómo se distribuyen los distintos estilos (BACK, BREAST, FLY, FREE, MEDLEY) en función de la distancia recorrida en metros (50, 100, 200, 400, 800, 1500).
 
 ```{r}
 distancia_stroke <- table(nadadoresPruebas$distance, nadadoresPruebas$stroke)
@@ -1306,37 +1314,40 @@ print(distancia_stroke)
 
 ```
 
-Para analizar la relación entre las distancias y los estilos de nado en este conjunto de datos, examinaremos cómo se distribuyen los distintos estilos (BACK, BREAST, FLY, FREE, MEDLEY) en función de la distancia recorrida en metros (50, 100, 200, 400, 800, 1500).
-
 A partir de la tabla proporcionada, se observa lo siguiente:
 
--En distancias cortas (50 m y 100 m) los estilos BACK, BREAST, FLY, y FREE tienen una alta frecuencia.
-MEDLEY no está presente en estas distancias, lo que sugiere que este estilo no se usa en distancias cortas.
-El término "medley" se refiere a una prueba en la que el nadador (o el equipo en el caso de un relevo) utiliza una combinación de los cuatro estilos principales de nado en un solo evento, en un orden específico.
-Cada estilo debe nadarse en una sección de la carrera.
--En distancias intermedias (200 m), los estilos BACK, BREAST, FLY, y FREE siguen estando presentes.
-Sin embargo, hay un número significativo de pruebas en el estilo MEDLEY (136), sugiriendo que este estilo comienza a ser popular en esta distancia.
--En largas distancias (400 m, 800 m, y 1500 m), tenemos por una parte que para las distancias que comienzan a ser largas (400 m), el estilo FREE es el más utilizado, seguido de MEDLEY, con 92 pruebas.Cabe destacar, que los estilos BACK, BREAST, y FLY no se encuentran en esta distancia.
-Por otro lado, en los 800 m y 1500 m, sólo el estilo FREE tiene registros, lo cual es característico, ya que estas distancias se suelen nadar en estilo libre para reducir la fatiga, donde se busca mantener la velocidad y resistencia sin variaciones de estilo que pueden desgastar al nadador.
+-   Las pruebas nadadas en 50m y 100m son los 4 estilos.
+    (BACK, BREAST, FLY, FREE).
+    No se nada MEDLEY ya que, al ser un mundial en piscina de 50m, no podemos cumplir que se nade como mínimo un largo a cada estilo, ya que en estas pruebas sólo se nada 1 o 2 largos en total.
 
-Podemos verlo con porcentajes:
+-   En las pruebas contempladas para 200m, entran los 5 estilos.
+    (BACK, BREAST, FLY, FREE).
 
-```{r}
-# proporciones
-prop.table(distancia_stroke, margin = 1)  #proporciones por distancia
+-   En la distancia de 400m, sólo hay 2 pruebas.
+    400m Medley y 400m Free.
 
-```
+-   En 800 y 1500m, sólo hay 1 prueba respectivamente, cuyo estilo (stroke) es libre (FREE)
+
+Estas conclusiones se ven muy claras en el siguiente gráfico: 
 
 ```{r}
 ggplot(nadadoresPruebas, aes(x = factor(distance), y = stroke)) +
-  geom_count() +
-  labs(x = "Distancia", y = "Estilo de Nado", size = "Frecuencia") +
+  geom_count(aes(color = ..n.., size = ..n..)) +  # Color y tamaño según la frecuencia
+  scale_color_viridis_c(option = "D") +          # Paleta continua para daltónicos
+  labs(
+    x = "Distancia",
+    y = "Estilo de Nado",
+    size = "Frecuencia",
+    color = "Frecuencia"
+  ) +
   ggtitle("Frecuencia de Estilos de Nado según la Distancia") +
   theme_minimal()
-
 ```
 
-Podemos replantearnos ahora si esto se mantiene indistintamente del género del nadador.Es decir,¿Hay las mismas pruebas para mujeres y hombres?
+Además, podemos observar que contra más larga es la prueba, menos frecuencia tiene, es decir, menos nadadores participan. Esto tiene sentido ya que, si participasen los mismos nadadores en una prueba de 50 metros que en una de 1500, entonces las sesiones durarían todo el día o incluso habría que extender los días que comprenden el mundial. 
+
+
+Ahora nos preguntamos, ¿hay las mismas pruebas para mujeres y hombres?
 
 Primero, crearemos subconjuntos de datos para cada género.
 
@@ -1348,26 +1359,46 @@ nadadoresMasculinos <- subset(nadadoresPruebas, gender == "M")
 
 ```{r}
 #género femenino
-tabla_femenino <- table(nadadoresFemeninas$distance, nadadoresFemeninas$stroke)
-print("Tabla de estilo de nado por distancia (Femenino):")
-print(tabla_femenino)
+nadadorasPruebas<- nadadoresPruebas[nadadoresPruebas$gender=="F", ]
 
-# género masculino
-tabla_masculino <- table(nadadoresMasculinos$distance, nadadoresMasculinos$stroke)
-print("Tabla de estilo de nado por distancia (Masculino):")
-print(tabla_masculino)
+ggplot(nadadorasPruebas, aes(x = factor(distance), y = stroke)) +
+  geom_count(aes(color = ..n.., size = ..n..)) +  # Color y tamaño según la frecuencia
+  scale_color_viridis_c(option = "D") +          # Paleta continua para daltónicos
+  labs(
+    x = "Distancia",
+    y = "Estilo de Nado",
+    size = "Frecuencia",
+    color = "Frecuencia"
+  ) +
+  ggtitle("Frecuencia de Estilos de Nado según la Distancia para Mujeres") +
+  theme_minimal()
+
+nadadoresPruebasM<- nadadoresPruebas[nadadoresPruebas$gender=="M", ]
+
+ggplot(nadadoresPruebasM, aes(x = factor(distance), y = stroke)) +
+  geom_count(aes(color = ..n.., size = ..n..)) +  # Color y tamaño según la frecuencia
+  scale_color_viridis_c(option = "D") +          # Paleta continua para daltónicos
+  labs(
+    x = "Distancia",
+    y = "Estilo de Nado",
+    size = "Frecuencia",
+    color = "Frecuencia"
+  ) +
+  ggtitle("Frecuencia de Estilos de Nado según la Distancia para Hombres") +
+  theme_minimal()
 
 ```
 
 Parece que todo está funcionando como esperábamos, tanto en el análisis conjunto como en los análisis individuales.
-Esto confirma que los resultados son consistentes y los datos están bien estructurados para las pruebas.
+Esto confirma que los resultados son consistentes y los datos están bien estructurados para las pruebas. 
+
 
 ```{r, echo=FALSE}
 rm(distancia_stroke, tabla_femenino, tabla_masculino, nadadoresFemeninas, nadadoresMasculinos, anova_tiempoReaccion_Calles)
 
 ```
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan.(Salma)
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan..
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
