@@ -3307,7 +3307,6 @@ datos2015TargetLong$medianaParciales<- apply(datos2015TargetLong[, c("50", "100"
 datos2015TargetLong[, c("50", "100", "150", "200", "250", "300", "350", "400", "450", "500", "550", "600", "650", "700", "750", "800", "850", "900", "950", "1000", "1050", "1100", "1150", "1200", "1250", "1300", "1350", "1400", "1450", "1500")]<-NULL
 
 
-View(datos2015TargetLong)
 
 rm(datos2015Target)
 ```
@@ -3441,3 +3440,7 @@ datos2015Target_test= datos2015Target[indices_test, ]
 datos2015Target_validation=datos2015Target[indices_validation, ]
 
 ```
+
+
+
+
