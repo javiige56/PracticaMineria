@@ -3442,5 +3442,64 @@ datos2015Target_validation=datos2015Target[indices_validation, ]
 ```
 
 
+# Comprobaciones previas. 
+
+Antes de comenzar nuestro estudio, (esto se puede meter en el EDA), vamos a evaluar el total de nadadores que sí bajan de tiempo y el total que NO lo hacen. Lo hacemos: 
+
+```{r}
+datos2015Target_train$target <- as.factor(datos2015Target_train$target)
+summary(datos2015Target_train$target)
+
+112/(112+83)
+```
+Luego, un 0.57% baja de marca. Luego, tiene sentido intentar buscar mediante medidas de rendimiento, esas predicciones sobre nuevas observaciones. Vamos a evaluar todos los modelos de rendimiento vistos en teoría, y elegiremos el (los) que nos aporten un mayor rendimiento en las medidas (DECIDIRLAS).
+
+# K-means suponiendo que tenemos el reactionTime de la final. 
+
+El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del ML. Este método se basa en la noción de similitud (o distancia) entre observaciones.
+
+En un problema de clasificación, el algoritmo devolverá la clase que predomina entre los 
+vecinos, es decir, la moda de la variable objetivo.
+
+Para elegir el número k, seleccionamos aquel valor que minimice la tasa de errores, al mismo tiempo que preserva la capacidad del algoritmo para realizar predicciones precisas en datos no vistos previamente.
+
+Primeramente, vamos a probar metiendo variables que razonablemente podrían determinar los mejores vecinos. Para ello, meto: 
+- Athelteid: si una nadadora ha bajado en todas sus pruebas anteriores, pinta que puede ser determinante.
+- eventidF: es el id de evento de la final. Si meto esta variable, ya no me hace falta ni el sexo, ni el estilo ni la distancia porque dependen de esta variable. 
+- reactionTimeF: Supondremos que vamos a predecir si los nadadores bajan justo en el momento en el que saltan. 
+- edad: También puede ser importante. 
+- eventidP: al igual que el de la final, nos va a "acercar" nadadoras que naden la misma prueba. 
+- pointP: los puntos de las preliminares.
+- reactionTimeP: el tiempo de reacción de la prueba previa. 
+- swimtimeP: el tiempo final de la prueba previa.
+- daytimeP: la hora de la preliminar.
+- mediaParcialesP:
+- minimoParcialesP: 
+- maximoParcialesP:
+- medianaParcialesP:
+
+```{r}
+library(MASS)
+library(caret)
+ 
+df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+# Primeramente pruebo sin escalar. A ver qué sale: 
+
+prob1 = knn3(df[,-14], as.factor(df$target), k=5, prob=TRUE)
 
 
+# Obtener las predicciones de clase
+predicciones <- predict(prob1, newdata = df[,-14], type = "class")
+table(Predicted = predicciones, Actual = df$target)
+
+# Ahora las obtenemos para los datos de test para ver si se pierde o se gana: 
+df_test <-  datos2015Target_test %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+# Realizar predicciones en el conjunto de test
+predicciones_test <- predict(prob1, newdata = df_test[,-14], type = "class")
+table(Predicted=predicciones_test, Actual=df_test$target)
+
+
+
+```
+
+Este modelo parece que falla mucho. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número proximo de vecinos. Podemos buscar cómo ver cómo se ha ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
