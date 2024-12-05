@@ -3454,7 +3454,7 @@ summary(datos2015Target_train$target)
 ```
 Luego, un 0.57% baja de marca. Luego, tiene sentido intentar buscar mediante medidas de rendimiento, esas predicciones sobre nuevas observaciones. Vamos a evaluar todos los modelos de rendimiento vistos en teoría, y elegiremos el (los) que nos aporten un mayor rendimiento en las medidas (DECIDIRLAS).
 
-# K-means suponiendo que tenemos el reactionTime de la final. 
+# Knn suponiendo que tenemos el reactionTime de la final. 
 
 El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del ML. Este método se basa en la noción de similitud (o distancia) entre observaciones.
 
@@ -3483,6 +3483,7 @@ library(MASS)
 library(caret)
  
 df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+
 # Primeramente pruebo sin escalar. A ver qué sale: 
 
 prob1 = knn3(df[,-14], as.factor(df$target), k=5, prob=TRUE)
@@ -3503,3 +3504,137 @@ table(Predicted=predicciones_test, Actual=df_test$target)
 ```
 
 Este modelo parece que falla mucho. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número proximo de vecinos. Podemos buscar cómo ver cómo se ha ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
+
+
+
+Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, es fundamental realizar un escalado antes de aplicar KNN para garantizar que todas las variables contribuyan equitativamente.
+
+```{r}
+preProcValues <- preProcess(df[,-14], method = c("center", "scale"))
+df_scaled <- predict(preProcValues, df[,-14])
+
+
+#incluimos la columna target
+df_scaled <- cbind(df_scaled, target = df$target)
+df_scaled
+```
+
+```{r}
+# Crear un rango de valores de k
+tuneGrid <- expand.grid(k = seq(1, 20, by = 1))  
+
+# Configuración para validación cruzada
+control <- trainControl(method = "cv", number = 10)  
+# Entrenar el modelo KNN con validación cruzada
+set.seed(123)
+knnFit <- train(target ~ ., 
+                data = df_scaled, 
+                method = "knn", 
+                trControl = control, 
+                tuneGrid = tuneGrid, 
+                preProcess = c("center", "scale")) 
+# Mejor valor de k
+best_k <- knnFit$bestTune$k
+print(paste("El mejor valor de k es:", best_k))
+
+# Visualizar los resultados de cada k
+plot(knnFit)
+
+```
+Guarda el valor de k que obtuvo el mejor rendimiento durante la validación cruzada(3).
+
+```{r}
+set.seed(1466)
+#Entrenar el modelo KNN con el mejor k encontrado, que es 3
+knn_best <- knn3(df_scaled[,-14], as.factor(df_scaled$target), k = 3, prob = TRUE)
+
+# Predicciones para el conjunto de entrenamiento
+predicciones_train_best <- predict(knn_best, newdata = df_scaled[,-14], type = "class")
+
+# Tabla de confusión
+table(Predicted = predicciones_train_best, Actual = df_scaled$target)
+
+
+# Ahora las obtenemos para los datos de test para ver si se pierde o se gana: 
+# Escalar el conjunto de prueba
+df_test_scaled <- predict(preProcValues, df_test %>% select(-target))  # Escalar todas menos el target
+
+# Predicciones para el conjunto de prueba escalado
+predicciones_test_best <- predict(knn_best, newdata = df_test_scaled[,-14], type = "class")
+
+# Tabla de confusión
+table(Predicted = predicciones_test_best, Actual = df_test$target)
+
+
+```
+El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión alta (79.7%) y un equilibrio razonable entre sensibilidad y especificidad. Esto indica que el modelo está capturando patrones en los datos de entrenamiento.
+
+Luego,tiene mejor precisión general en el conjunto de entrenamiento (79.7% frente a 72.5% antes). Clasifica mejor la clase 1 tanto en entrenamiento como en prueba.
+
+Debido a una sospecha pruebo el siguiente modelo sin escalar pero con **k=3**.
+
+```{r}
+set.seed(125)
+#Entrenar el modelo KNN con el mejor k encontrado
+knn_best2 <- knn3(df[,-14], as.factor(df$target), k = 3, prob = TRUE)
+
+# Predicciones para el conjunto de entrenamiento
+predicciones_train_best2 <- predict(knn_best2, newdata = df[,-14], type = "class")
+
+# Tabla de confusión
+table(Predicted = predicciones_train_best2, Actual = df$target)
+
+
+# Predicciones para el conjunto de prueba escalado
+predicciones_test_best2 <- predict(knn_best2, newdata = df_test[,-14], type = "class")
+
+# Tabla de confusión
+table(Predicted = predicciones_test_best2, Actual = df_test$target)
+
+
+```
+El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una precisión razonable (79.4%) y un balance entre sensibilidad y especificidad.
+
+El modelo generaliza mejor en este caso (precisión del 73.3%), lo que sugiere una mejora significativa respecto a versiones previas.
+La sensibilidad para la clase 0 es aceptable (62.5%), aunque podría mejorarse.
+
+
+
+# Árboles de decisión
+
+Los árboles de decisión son un modelo de aprendizaje supervisado ampliamente utilizado por su capacidad de manejar datos categóricos y numéricos, ser interpretables y funcionar bien sin necesidad de escalar. En este análisis, implementamos un árbol de decisión para predecir la variable objetivo target.
+
+```{r}
+# Cargar librerías
+library(rpart)
+library(caret)
+#install.packages("rpart.plot")
+library(rpart.plot)
+
+df_arbol <- df %>% select(-athleteid)
+df_test_arbol <- df_test %>% select(-athleteid)
+
+# Entrenar el árbol de decisión
+arbol <- rpart(target ~ ., data = df_arbol, method = "class", control = rpart.control(cp = 0.01))
+
+# Visualizar el árbol
+rpart.plot(arbol, type = 3, extra = 104, under = TRUE, cex = 0.8)
+
+```
+La variable swimtimePes el predictor más importante.Si swimtimeP < 106, se clasifica en ramas basadas en otros factores como medianaParcialesP y pointP. Si swimtimeP >= 106, se usan variables adicionales como medianaParcialesP para la clasificación.
+
+Cada hoja indica una predicción (0 o 1), con precisión y porcentaje de datos representados.
+
+```{r}
+# Predicciones en el conjunto de entrenamiento
+pred_train <- predict(arbol, newdata = df_arbol, type = "class")
+confusionMatrix(pred_train, as.factor(df$target))
+
+# Predicciones en el conjunto de prueba
+pred_test <- predict(arbol, newdata = df_test_arbol, type = "class")
+confusionMatrix(pred_test, as.factor(df_test$target))
+
+```
+El modelo tiene un buen desempeño en el conjunto de entrenamiento, lo que indica que aprende los patrones en los datos.
+
+El modelo tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajuste.
