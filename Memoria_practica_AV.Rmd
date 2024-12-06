@@ -3287,11 +3287,18 @@ library(caret)
 #install.packages("rpart.plot")
 library(rpart.plot)
 
+#el atletheid no nos intereresa
 df_arbol <- df %>% select(-athleteid)
 df_test_arbol <- df_test %>% select(-athleteid)
 
+# Ajustamos las opciones del árbol con control
+control_tree <- rpart.control(minsplit = 4,
+                         minbucket = 2,
+                         maxdepth = 3,
+                         cp = 0)
+
 # Entrenar el árbol de decisión
-arbol <- rpart(target ~ ., data = df_arbol, method = "class", control = rpart.control(cp = 0.01))
+arbol <- rpart(target ~ ., data = df_arbol, method = "class", control = control_tree)
 
 # Visualizar el árbol
 rpart.plot(arbol, type = 3, extra = 104, under = TRUE, cex = 0.8)
@@ -3314,3 +3321,139 @@ confusionMatrix(pred_test, as.factor(df_test$target))
 El modelo tiene un buen desempeño en el conjunto de entrenamiento, lo que indica que aprende los patrones en los datos.
 
 El modelo tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajuste.
+
+
+## posible mejora
+
+Puedes usar validación cruzada para encontrar el mejor valor de cp que maximice la generalización del árbol.
+
+```{r}
+
+set.seed(123)
+control <- trainControl(method = "cv", number = 10)  # 10-fold 
+arbol_cv <- train(target ~ ., 
+                  data = df_arbol, 
+                  method = "rpart", 
+                  trControl = control, 
+                  tuneLength = 10)  
+
+print(arbol_cv$bestTune)
+
+```
+
+De hecho poniendo este cp, deberia mejorar un poco
+
+## posible mejora 2
+
+Si el árbol tiene muchas variables predictoras, algunas podrían no ser útiles y estar introduciendo ruido. 
+
+```{r}
+importancia <- varImp(arbol_cv, scale = TRUE)
+print(importancia)
+
+```
+Puedes simplificar el modelo eliminando variables con baja importancia (por ejemplo, reactiontimeF y eventidP), lo que podría reducir el ruido y mejorar la generalización.
+
+```{r}
+arbol_reducido <- rpart(target ~ ., data = df_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP), method = "class", control = control_tree)
+rpart.plot(arbol_reducido, type = 3, extra = 104, under = TRUE, cex = 0.8)
+
+# Evaluar el rendimiento
+df_test_arbol_reducido=df_test_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP)
+pred_test_reducido <- predict(arbol_reducido, newdata = df_test_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP), type = "class")
+confusionMatrix(pred_test_reducido, as.factor(df_test_arbol_reducido$target))
+
+```
+
+
+
+
+
+
+# Random Forest
+
+```{r}
+#install.packages("randomForest")
+library(randomForest)
+
+# Entrenar el modelo Random Forest
+rf <- randomForest(
+  target ~ ., 
+  data = df, 
+  importance = TRUE, 
+  proximity = TRUE,
+  ntree = 150, 
+  mtry = 6
+)
+
+
+# Graficar el error
+plot(rf)
+legend("right", colnames(rf$err.rate), lty = 1:5, col = 1:6)
+
+# Importancia de las variables
+var_importance <- importance(rf)
+print(var_importance)
+varImpPlot(rf)
+
+# Predicción en el conjunto de entrenamiento
+pred_rf_train <- predict(rf, df, type = "prob")[, 2]  
+clase_pred_rf_train <- ifelse(pred_rf_train > 0.5, 1, 0)    # Umbral 0.5
+cf_rf_train <- confusionMatrix(as.factor(clase_pred_rf_train), df$target, positive = "1")
+print(cf_rf_train)
+
+# Predicción en el conjunto de prueba
+pred_rf_test <- predict(rf, df_test, type = "prob")[, 2] 
+clase_pred_rf_test <- ifelse(pred_rf_test > 0.5, 1, 0)   
+
+cf_rf_test <- confusionMatrix(as.factor(clase_pred_rf_test), df_test_arbol$target, positive = "1")
+print(cf_rf_test)
+
+
+```
+
+swimtimeP es la variable más importante.
+
+# Curva ROC (Pruebo por ahora como van los modelos, actualizar)
+
+Genero las probabilidades para el conjunto de prueba
+.
+```{r}
+# Probabilidades del árbol de decisión
+pred_probs_arbol <- predict(arbol, newdata = df_test_arbol, type = "prob")[, 2]  # Probabilidad de clase 1
+
+# Probabilidades del modelo KNN
+pred_probs_knn <- predict(knn_best, newdata = df_test_scaled, type = "prob")[, 2]
+
+
+library(pROC)
+
+
+# ROC para cada modelo
+
+roc_arbol <- roc(df_test_arbol$target, pred_probs_arbol)
+roc_knn <- roc(df_test$target, pred_probs_knn)
+roc_randomforest <- roc(df_test$target, pred_rf_test)
+
+#AUC de cada modelo
+auc_arbol <- auc(roc_arbol)
+auc_knn <- auc(roc_knn)
+
+# Gráfico comparativo de curvas ROC
+plot(roc_arbol, col = "blue", lwd = 2, main = "Comparación de Curvas ROC")
+lines(roc_knn, col = "red", lwd = 2)
+lines(roc_randomforest, col = "green", lwd = 2)
+# Añadir una leyenda
+legend("bottomright", legend = c("Árbol de Decisión", "KNN","RandomForest"),
+       col = c("blue", "red", "green", "purple"), lwd = 2)
+
+
+```
+El AUC es 0.618, lo cual indica que el modelo tiene un rendimiento moderado, pero no particularmente bueno para distinguir entre las clases.
+
+El AUC es 0.582, lo cual sugiere que el modelo KNN tiene un rendimiento ligeramente inferior al del Árbol de Decisión.
+
+Las curvas muestran que ambos modelos tienen un desempeño similar, pero el Árbol de Decisión parece ser marginalmente mejor en ciertos puntos
+
+Ambos valores de AUC son menores a 0.7, lo cual indica que los modelos necesitan mejoras. Un AUC > 0.7 se considera aceptable, y > 0.8 es bueno.
+
