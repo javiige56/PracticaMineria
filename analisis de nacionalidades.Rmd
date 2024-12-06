@@ -1,0 +1,341 @@
+---
+title: "Analisis de nacionalidades. Arreglar"
+author: "mdat"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Análisis de nacionalidades.
+
+Vamos a ver la cantidad de nadadores por país. Para ello, primero voy a ver cuántos paises hay: 
+
+```{r}
+nlevels(nadadoresParticipantes$code)
+```
+
+Hay 185 países. Vamos a graficar los 15 países que aportaron más nadadores al mundial: 
+
+```{r eval=FALSE, warning=FALSE, include=FALSE}
+
+nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
+
+nombres<- unique(nadadoresParticipantes$name) #Para no repetir
+#print(nombres)
+manual <- data.frame(
+  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
+  iso2 = c("FI", "XK", "FM", "VI")  
+)
+
+# Agregamos la variable continente 
+nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
+
+
+
+nadadoresParticipantes <- nadadoresParticipantes %>%
+  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
+
+
+#nadadores por país
+resumen_paises <- nadadoresParticipantes %>%
+  group_by(name, iso2, continent) %>%
+  summarise(num_nadadores = n(), .groups = "drop") %>%
+  arrange(desc(num_nadadores))  # Ordenar por número de nadadores
+
+head(resumen_paises,6)
+
+#Creamos un gráfico con colores
+paleta <- c("Americas" = "#0084ff", "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", "Oceania" = "#fa3c4c", "Africa"= "#ff6347")
+
+oda_bar <- resumen_paises %>% 
+  ggplot(aes(x = reorder(name, num_nadadores), y = num_nadadores, fill = continent)) + 
+  geom_flag(y = -10, aes(image = iso2), size = 0.05) +  
+  geom_bar(stat = "identity") + 
+  labs(title = "Participación de Nadadores por País",
+       subtitle = "Datos de nadadores en competiciones",
+       x = "País",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # colores personalizados
+  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Aumentar el límite superior
+  coord_flip() +  # Para hacer el gráfico horizontal
+  theme_minimal()
+
+# Imprimir el gráfico
+print(oda_bar)
+```
+
+Vemos también este mismo gráfico, pero separando los países por continentes.
+
+```{r eval=FALSE, warning=FALSE, include=FALSE}
+paleta <- c("Americas" = "#0084ff", 
+            "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", 
+            "Oceania" = "#fa3c4c", "Africa"= "#ff6347")
+
+oda_bar1 <- resumen_paises %>% 
+  ggplot(aes(x = reorder(name, num_nadadores), 
+             y = num_nadadores, 
+             fill = continent)) + 
+  geom_flag(y = -10, aes(image = iso2), size = 0.05) +  
+  geom_bar(stat = "identity") + 
+  labs(title = "Participación de Nadadores por País",
+       subtitle = "Datos de nadadores en competiciones",
+       x = "País",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # Colores personalizados
+  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Ajustar el límite superior
+  coord_flip() +  # Gráfico horizontal
+  theme_minimal() +
+  facet_wrap(~ continent, scales = "free_y")  # Separar por continentes
+
+# Imprimir el gráfico
+print(oda_bar1)
+
+```
+
+Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países.
+Por ello, intentaremos analizar los resultados en función de proporciones relativas a continentes.
+
+```{r}
+paleta <- c("Americas" = "#0084ff", 
+            "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", 
+            "Oceania" = "#fa3c4c", "Africa"="#ff6347")
+
+# Crear el histograma de cantidad de nadadores por continente
+histograma_nadadores <- resumen_paises %>% 
+  ggplot(aes(x = continent, y = num_nadadores, fill = continent)) + 
+  geom_bar(stat = "identity") +  # Sumar cantidad de nadadores por continente
+  labs(title = "Cantidad de Nadadores por Continente",
+       x = "Continente",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # Colores personalizados por continente
+  theme_minimal()
+
+# Imprimir el histograma
+print(histograma_nadadores)
+
+```
+
+Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía.
+
+Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking.
+Es decir, si existe mayor proporción de ganadores en los países con más densidad de participantes.
+
+Para ello, analizaremos los puntos según las nacionalidades de los nadadores.
+
+```{r}
+puntos_por_pais <- nadadoresPruebas %>%
+  group_by(name) %>%  
+  summarise(total_puntos = sum(points, na.rm = TRUE))  
+
+# Ver el resultado
+head(puntos_por_pais,20)
+
+```
+
+```{r}
+#Graficar los puntos por país
+ggplot(puntos_por_pais, aes(x = reorder(name, total_puntos), y = total_puntos)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Total de Puntos por País", x = "País", y = "Total de Puntos") +
+  coord_flip() +  # Voltear el gráfico para una mejor visualización
+  theme_minimal()
+
+```
+
+De la misma manera que nos ocurría antes, este gráfico es poco interpretativo.
+Lo vemos por continentes:
+
+```{r, warning=FALSE}
+# Utilizamos la dataframe nadadoresPruebas
+# Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
+nadadoresPruebas$iso2 <- countrycode(nadadoresPruebas$name, "country.name", "iso2c")
+
+nombres<- unique(nadadoresPruebas$name) #Para no repetir
+
+#print(nombres)
+
+#Nombres problemáticos
+manual <- data.frame(
+  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
+  iso2 = c("FI", "XK", "FM", "VI")  
+)
+
+# Agregamos la variable continente 
+nadadoresPruebas$continent <- countrycode(nadadoresPruebas$iso2, "iso2c", "continent")
+
+#solo es XK(KOSOVO, que está en Europa)
+#manualmente el continente para Kosovo (XK)
+nadadoresPruebas <- nadadoresPruebas %>%
+  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
+
+
+puntos_por_continente <- nadadoresPruebas %>%
+  group_by(continent) %>%  #agrupar por continente
+  summarise(total_puntos = sum(points, na.rm = TRUE))  #Sumar puntos por continente
+
+print(puntos_por_continente)
+```
+
+```{r}
+#Graficar los puntos por continente
+ggplot(puntos_por_continente, aes(x = reorder(continent, total_puntos), y = total_puntos, fill = continent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Total de Puntos por Continente", x = "Continente", y = "Total de Puntos") +
+  coord_flip() + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(na.omit(nadadoresPruebas), aes(x = points, colour = continent)) +
+# Añadir la capa de la densidad de probabilidad.
+    geom_density()
+
+ggplot(na.omit(nadadoresPruebas), aes(x=continent, y=points, color=continent)) +
+  geom_boxplot()
+```
+
+Como podemos observar, parece ser que los Europeos son mejores en el desempeño de las pruebas de natación.
+Además, presentan una distribución más centrada a la media y sus valores más altos están bastante alejados del resto de los del resto de participantes de otros continentes.
+Podríamos interpretar que América tiene la segunda distribución más centrada en comparación con el resto de continentes.
+La esperanza está cercana a Oceanía por debajo pero con menor dispersión.
+Oceanía también presenta una media bastante alta y cercana a la de Europa.
+sin embargo, se puede ver como su dispersión es bastante elevada por lo que presenta nadadores de diversa cualificación.
+La peor esperanza la tiene África, muy por debajo este valor del resto de los continentes.
+Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
+Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones.
+
+Anteriormente hemos hallado para cada contiente todos los puntos conseguidos por los nadadores de dicho continente.
+Lo que vamos a hacer a continuación es normalizar los puntos por continente, es decir, para cada continente tomamos todos los puntos de dicho continente y lo dividimos por todos participantes de ese continente y comparamos.
+
+```{r}
+# Agrupar por continente, sumar puntos y contar participantes
+resumenContinente <- nadadoresPruebas %>%
+  group_by(continent) %>%
+  summarise(
+    puntos_totales_continente = sum(points, na.rm = TRUE),
+    numero_Participantes_continente = n()  # Contar los participantes
+  ) %>%
+  mutate(
+    relacion_puntos_por_participante = puntos_totales_continente / numero_Participantes_continente
+  )
+
+# Imprimir el resultado
+print(resumenContinente %>% select(continent, relacion_puntos_por_participante))
+```
+
+Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), despúes Asia y por último Africa.
+
+Para terminar con esta sección, vamos a ver los 20 primeros en el ranking, y a hacer un gráfico que nos indique de que pais es cada uno de los 20.
+
+```{r}
+# Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
+datos_100m_top <- nadadoresPruebas[nadadoresPruebas$distance==100,] %>% # Filtra para la prueba de 100 metros
+  arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
+  dplyr::slice(1:20)                        # Selecciona las primeras 20 
+
+datos_100m_top
+```
+
+Vemos los 20 primeros y de que continente son:
+
+```{r}
+
+# Contar la cantidad de nadadores por continente
+conteo_por_continente <- datos_100m_top %>%
+  group_by(continent) %>%                                       # Agrupa por continente
+  summarise(cantidad_nadadores = n()) %>%                      # Cuenta los nadadores por continente
+  mutate(percent = (cantidad_nadadores / sum(cantidad_nadadores)) * 100)  # Calcula el porcentaje
+
+# Crear el gráfico de distribución porcentual
+grafico_distribucion_continente <- ggplot(conteo_por_continente, aes(x = continent, y = percent, fill = continent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Distribución Porcentual de Nadadores por Continente en los Top 20 - 100 Metros",
+       x = "Continente",
+       y = "Porcentaje de Nadadores") +
+  scale_fill_manual(values = paleta) +                          # Usa la paleta de colores personalizada
+  theme_minimal()
+
+# Imprimir el gráfico
+print(grafico_distribucion_continente)
+grafico_circular <- ggplot(conteo_por_continente, aes(x = "", y = percent, fill = continent)) +
+  geom_bar(stat = "identity", width = 1) +                      # Crea las barras
+  coord_polar("y") +                                            # Convierte el gráfico en circular
+  labs(title = "Distribución Porcentual de Nadadores por Continente en los Top 20 - 100 Metros",
+       fill = "Continente") +                                   # Etiqueta para la leyenda
+  scale_fill_manual(values = paleta) +                          # Usa la paleta de colores personalizada
+  theme_void()                                                  # Elimina el fondo y ejes
+
+# Imprimir el gráfico
+print(grafico_circular)
+```
+
+La alta cantidad de nadadores europeos en el podio de 100 metros(más específico que lo anterior, ya que esto nos mete directamente en los primeros 20) sugiere que hay un fuerte nivel de competencia y entrenamiento en las naciones de este continente.
+Esto podría estar relacionado con la inversión en programas de natación.
+Le sigue oceanía,ya que Oceanía, aunque es una región más pequeña en términos de población comparada con Europa, ha producido nadadores destacados que compiten a niveles muy altos.
+La presencia de nadadores de élite, especialmente de Australia, resalta la calidad del talento en la región.
+
+Los datos indican que África tiene solo un 15% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuanto a la inversión en infraestructura deportiva.
+La falta de instalaciones de calidad para la natación, como piscinas adecuadas, puede limitar el desarrollo de talentos.
+
+Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 4 en 100 metros(hemos elegido 100 metros al haber una gran cantidad de nadadores, lo que refleja bien lo que buscamos).
+Podríamos ver que a pesar de que en África no se llegue mucho al podio, cuando se llega es en los tres primeros puestos.
+¿Hemos concluido bien?
+Veámoslo.
+Esto es el podio de los 4 primeros en 100 metros
+
+```{r}
+# Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
+datos_100m_top_4 <- nadadoresPruebas[nadadoresPruebas$distance==100,] %>% # Filtra para la prueba de 100 metros
+  arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
+  dplyr::slice(1:4)                        # Selecciona las primeras 20 
+
+datos_100m_top_4
+```
+
+La presencia de Sudáfrica en el cuarto lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo.Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable.
+Esto podría implicar que los nadadores africanos son altamente competitivos cuando tienen la oportunidad de competir en el más alto nivel.
+Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de participantes, se obtiene una visión clara del rendimiento de los nadadores en este evento específico.
+Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
+
+```{r}
+# Crear un gráfico para visualizar el podio de los 3 primeros
+grafico_podio_100m <- ggplot(datos_100m_top_4, aes(x = reorder(lastname, points), y = points, fill = continent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Podio de los 4 Primeros en 100 Metros",
+       x = "Nadador",
+       y = "Puntos",
+       fill = "Continente") +
+  scale_fill_manual(values = paleta) +  # Usa la paleta de colores que ya definiste
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Mejorar legibilidad
+
+# Imprimir el gráfico
+print(grafico_podio_100m)
+
+grafico_podio_100mrepresentacion <- ggplot(datos_100m_top_4, aes(x = reorder(continent, points), y = points, fill = continent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Representación podium de África VS Europa  (en Puntos)",
+       x = "Nadador",
+       y = "Puntos",
+       fill = "Continente") +
+  scale_fill_manual(values = paleta) +  # Usa la paleta de colores que ya definiste
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Mejorar legibilidad
+
+# Imprimir el gráfico
+print(grafico_podio_100mrepresentacion)
+
+```
+
+```{r, echo=FALSE}
+
+rm(conteo_por_continente, datos_100m_top, datos_100m_top_4, grafico_circular, grafico_distribucion_continente, grafico_podio_100m, grafico_podio_100mrepresentacion, histograma_nadadores, manual, oda_bar, oda_bar1, puntos_por_continente, puntos_por_pais, resumen_paises, resumenContinente, nombres, paleta)
+nadadoresParticipantes<-nadadoresParticipantesCopia
+nadadoresPruebas<-nadadoresPruebasCopia
+```

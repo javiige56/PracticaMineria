@@ -610,330 +610,6 @@ rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
 
 ```
 
-### Análisis de nacionalidades.
-
-Vamos a ver la cantidad de nadadores por país.
-
-```{r, warning=FALSE}
-
-nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
-
-nombres<- unique(nadadoresParticipantes$name) #Para no repetir
-#print(nombres)
-manual <- data.frame(
-  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
-  iso2 = c("FI", "XK", "FM", "VI")  
-)
-
-# Agregamos la variable continente 
-nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
-
-
-
-nadadoresParticipantes <- nadadoresParticipantes %>%
-  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
-
-
-#nadadores por país
-resumen_paises <- nadadoresParticipantes %>%
-  group_by(name, iso2, continent) %>%
-  summarise(num_nadadores = n(), .groups = "drop") %>%
-  arrange(desc(num_nadadores))  # Ordenar por número de nadadores
-
-head(resumen_paises,6)
-
-#Creamos un gráfico con colores
-paleta <- c("Americas" = "#0084ff", "Asia" = "#44bec7", 
-            "Europe" = "#ffc300", "Oceania" = "#fa3c4c", "Africa"= "#ff6347")
-
-oda_bar <- resumen_paises %>% 
-  ggplot(aes(x = reorder(name, num_nadadores), y = num_nadadores, fill = continent)) + 
-  geom_flag(y = -10, aes(image = iso2), size = 0.05) +  
-  geom_bar(stat = "identity") + 
-  labs(title = "Participación de Nadadores por País",
-       subtitle = "Datos de nadadores en competiciones",
-       x = "País",
-       y = "Número de Nadadores") +
-  scale_fill_manual(values = paleta) +  # colores personalizados
-  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Aumentar el límite superior
-  coord_flip() +  # Para hacer el gráfico horizontal
-  theme_minimal()
-
-# Imprimir el gráfico
-print(oda_bar)
-```
-
-Vemos también este mismo gráfico, pero separando los países por continentes.
-
-```{r, warning=FALSE}
-paleta <- c("Americas" = "#0084ff", 
-            "Asia" = "#44bec7", 
-            "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c", "Africa"= "#ff6347")
-
-oda_bar1 <- resumen_paises %>% 
-  ggplot(aes(x = reorder(name, num_nadadores), 
-             y = num_nadadores, 
-             fill = continent)) + 
-  geom_flag(y = -10, aes(image = iso2), size = 0.05) +  
-  geom_bar(stat = "identity") + 
-  labs(title = "Participación de Nadadores por País",
-       subtitle = "Datos de nadadores en competiciones",
-       x = "País",
-       y = "Número de Nadadores") +
-  scale_fill_manual(values = paleta) +  # Colores personalizados
-  expand_limits(y = c(0, max(resumen_paises$num_nadadores) + 10)) +  # Ajustar el límite superior
-  coord_flip() +  # Gráfico horizontal
-  theme_minimal() +
-  facet_wrap(~ continent, scales = "free_y")  # Separar por continentes
-
-# Imprimir el gráfico
-print(oda_bar1)
-
-```
-
-Como vemos, estos gráficos son poco interpretables debido a la gran cantidad de países.
-Por ello, intentaremos analizar los resultados en función de proporciones relativas a continentes.
-
-```{r}
-paleta <- c("Americas" = "#0084ff", 
-            "Asia" = "#44bec7", 
-            "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c", "Africa"="#ff6347")
-
-# Crear el histograma de cantidad de nadadores por continente
-histograma_nadadores <- resumen_paises %>% 
-  ggplot(aes(x = continent, y = num_nadadores, fill = continent)) + 
-  geom_bar(stat = "identity") +  # Sumar cantidad de nadadores por continente
-  labs(title = "Cantidad de Nadadores por Continente",
-       x = "Continente",
-       y = "Número de Nadadores") +
-  scale_fill_manual(values = paleta) +  # Colores personalizados por continente
-  theme_minimal()
-
-# Imprimir el histograma
-print(histograma_nadadores)
-
-```
-
-Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía.
-
-Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking.
-Es decir, si existe mayor proporción de ganadores en los países con más densidad de participantes.
-
-Para ello, analizaremos los puntos según las nacionalidades de los nadadores.
-
-```{r}
-puntos_por_pais <- nadadoresPruebas %>%
-  group_by(name) %>%  
-  summarise(total_puntos = sum(points, na.rm = TRUE))  
-
-# Ver el resultado
-head(puntos_por_pais,20)
-
-```
-
-```{r}
-#Graficar los puntos por país
-ggplot(puntos_por_pais, aes(x = reorder(name, total_puntos), y = total_puntos)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  labs(title = "Total de Puntos por País", x = "País", y = "Total de Puntos") +
-  coord_flip() +  # Voltear el gráfico para una mejor visualización
-  theme_minimal()
-
-```
-
-De la misma manera que nos ocurría antes, este gráfico es poco interpretativo.
-Lo vemos por continentes:
-
-```{r, warning=FALSE}
-# Utilizamos la dataframe nadadoresPruebas
-# Agregar el código ISO de dos dígitos. No es posible con la variable CODE, hay que convertir.
-nadadoresPruebas$iso2 <- countrycode(nadadoresPruebas$name, "country.name", "iso2c")
-
-nombres<- unique(nadadoresPruebas$name) #Para no repetir
-
-#print(nombres)
-
-#Nombres problemáticos
-manual <- data.frame(
-  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
-  iso2 = c("FI", "XK", "FM", "VI")  
-)
-
-# Agregamos la variable continente 
-nadadoresPruebas$continent <- countrycode(nadadoresPruebas$iso2, "iso2c", "continent")
-
-#solo es XK(KOSOVO, que está en Europa)
-#manualmente el continente para Kosovo (XK)
-nadadoresPruebas <- nadadoresPruebas %>%
-  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
-
-
-puntos_por_continente <- nadadoresPruebas %>%
-  group_by(continent) %>%  #agrupar por continente
-  summarise(total_puntos = sum(points, na.rm = TRUE))  #Sumar puntos por continente
-
-print(puntos_por_continente)
-```
-
-```{r}
-#Graficar los puntos por continente
-ggplot(puntos_por_continente, aes(x = reorder(continent, total_puntos), y = total_puntos, fill = continent)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Total de Puntos por Continente", x = "Continente", y = "Total de Puntos") +
-  coord_flip() + 
-  theme_minimal()
-```
-
-```{r}
-ggplot(na.omit(nadadoresPruebas), aes(x = points, colour = continent)) +
-# Añadir la capa de la densidad de probabilidad.
-    geom_density()
-
-ggplot(na.omit(nadadoresPruebas), aes(x=continent, y=points, color=continent)) +
-  geom_boxplot()
-```
-
-Como podemos observar, parece ser que los Europeos son mejores en el desempeño de las pruebas de natación.
-Además, presentan una distribución más centrada a la media y sus valores más altos están bastante alejados del resto de los del resto de participantes de otros continentes.
-Podríamos interpretar que América tiene la segunda distribución más centrada en comparación con el resto de continentes.
-La esperanza está cercana a Oceanía por debajo pero con menor dispersión.
-Oceanía también presenta una media bastante alta y cercana a la de Europa.
-sin embargo, se puede ver como su dispersión es bastante elevada por lo que presenta nadadores de diversa cualificación.
-La peor esperanza la tiene África, muy por debajo este valor del resto de los continentes.
-Además presenta una gran dispersión, ya que abarca el rango desde valores cercanos al 0 hasta 1000, sin ser estos visualizados como outliers.
-Esta información nos podría ser de gran ayuda para dar un posible enfoque a la hora de establecer tendencias en los grupos y a qué se puede deber (clima, tipo de entrenamiento, condiciones sociales en diversos países) la cantidad de puntos en promedio y la variabilidad de estas observaciones.
-
-Anteriormente hemos hallado para cada contiente todos los puntos conseguidos por los nadadores de dicho continente.
-Lo que vamos a hacer a continuación es normalizar los puntos por continente, es decir, para cada continente tomamos todos los puntos de dicho continente y lo dividimos por todos participantes de ese continente y comparamos.
-
-```{r}
-# Agrupar por continente, sumar puntos y contar participantes
-resumenContinente <- nadadoresPruebas %>%
-  group_by(continent) %>%
-  summarise(
-    puntos_totales_continente = sum(points, na.rm = TRUE),
-    numero_Participantes_continente = n()  # Contar los participantes
-  ) %>%
-  mutate(
-    relacion_puntos_por_participante = puntos_totales_continente / numero_Participantes_continente
-  )
-
-# Imprimir el resultado
-print(resumenContinente %>% select(continent, relacion_puntos_por_participante))
-```
-
-Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), despúes Asia y por último Africa.
-
-Para terminar con esta sección, vamos a ver los 20 primeros en el ranking, y a hacer un gráfico que nos indique de que pais es cada uno de los 20.
-
-```{r}
-# Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
-datos_100m_top <- nadadoresPruebas[nadadoresPruebas$distance==100,] %>% # Filtra para la prueba de 100 metros
-  arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
-  dplyr::slice(1:20)                        # Selecciona las primeras 20 
-
-datos_100m_top
-```
-
-Vemos los 20 primeros y de que continente son:
-
-```{r}
-
-# Contar la cantidad de nadadores por continente
-conteo_por_continente <- datos_100m_top %>%
-  group_by(continent) %>%                                       # Agrupa por continente
-  summarise(cantidad_nadadores = n()) %>%                      # Cuenta los nadadores por continente
-  mutate(percent = (cantidad_nadadores / sum(cantidad_nadadores)) * 100)  # Calcula el porcentaje
-
-# Crear el gráfico de distribución porcentual
-grafico_distribucion_continente <- ggplot(conteo_por_continente, aes(x = continent, y = percent, fill = continent)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Distribución Porcentual de Nadadores por Continente en los Top 20 - 100 Metros",
-       x = "Continente",
-       y = "Porcentaje de Nadadores") +
-  scale_fill_manual(values = paleta) +                          # Usa la paleta de colores personalizada
-  theme_minimal()
-
-# Imprimir el gráfico
-print(grafico_distribucion_continente)
-grafico_circular <- ggplot(conteo_por_continente, aes(x = "", y = percent, fill = continent)) +
-  geom_bar(stat = "identity", width = 1) +                      # Crea las barras
-  coord_polar("y") +                                            # Convierte el gráfico en circular
-  labs(title = "Distribución Porcentual de Nadadores por Continente en los Top 20 - 100 Metros",
-       fill = "Continente") +                                   # Etiqueta para la leyenda
-  scale_fill_manual(values = paleta) +                          # Usa la paleta de colores personalizada
-  theme_void()                                                  # Elimina el fondo y ejes
-
-# Imprimir el gráfico
-print(grafico_circular)
-```
-
-La alta cantidad de nadadores europeos en el podio de 100 metros(más específico que lo anterior, ya que esto nos mete directamente en los primeros 20) sugiere que hay un fuerte nivel de competencia y entrenamiento en las naciones de este continente.
-Esto podría estar relacionado con la inversión en programas de natación.
-Le sigue oceanía,ya que Oceanía, aunque es una región más pequeña en términos de población comparada con Europa, ha producido nadadores destacados que compiten a niveles muy altos.
-La presencia de nadadores de élite, especialmente de Australia, resalta la calidad del talento en la región.
-
-Los datos indican que África tiene solo un 15% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuanto a la inversión en infraestructura deportiva.
-La falta de instalaciones de calidad para la natación, como piscinas adecuadas, puede limitar el desarrollo de talentos.
-
-Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 4 en 100 metros(hemos elegido 100 metros al haber una gran cantidad de nadadores, lo que refleja bien lo que buscamos).
-Podríamos ver que a pesar de que en África no se llegue mucho al podio, cuando se llega es en los tres primeros puestos.
-¿Hemos concluido bien?
-Veámoslo.
-Esto es el podio de los 4 primeros en 100 metros
-
-```{r}
-# Filtrar solo las filas de la prueba de 100 metros y ordenar por puntos
-datos_100m_top_4 <- nadadoresPruebas[nadadoresPruebas$distance==100,] %>% # Filtra para la prueba de 100 metros
-  arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
-  dplyr::slice(1:4)                        # Selecciona las primeras 20 
-
-datos_100m_top_4
-```
-
-La presencia de Sudáfrica en el cuarto lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo.Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable.
-Esto podría implicar que los nadadores africanos son altamente competitivos cuando tienen la oportunidad de competir en el más alto nivel.
-Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de participantes, se obtiene una visión clara del rendimiento de los nadadores en este evento específico.
-Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
-
-```{r}
-# Crear un gráfico para visualizar el podio de los 3 primeros
-grafico_podio_100m <- ggplot(datos_100m_top_4, aes(x = reorder(lastname, points), y = points, fill = continent)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Podio de los 4 Primeros en 100 Metros",
-       x = "Nadador",
-       y = "Puntos",
-       fill = "Continente") +
-  scale_fill_manual(values = paleta) +  # Usa la paleta de colores que ya definiste
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Mejorar legibilidad
-
-# Imprimir el gráfico
-print(grafico_podio_100m)
-
-grafico_podio_100mrepresentacion <- ggplot(datos_100m_top_4, aes(x = reorder(continent, points), y = points, fill = continent)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Representación podium de África VS Europa  (en Puntos)",
-       x = "Nadador",
-       y = "Puntos",
-       fill = "Continente") +
-  scale_fill_manual(values = paleta) +  # Usa la paleta de colores que ya definiste
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Mejorar legibilidad
-
-# Imprimir el gráfico
-print(grafico_podio_100mrepresentacion)
-
-```
-
-```{r, echo=FALSE}
-
-rm(conteo_por_continente, datos_100m_top, datos_100m_top_4, grafico_circular, grafico_distribucion_continente, grafico_podio_100m, grafico_podio_100mrepresentacion, histograma_nadadores, manual, oda_bar, oda_bar1, puntos_por_continente, puntos_por_pais, resumen_paises, resumenContinente, nombres, paleta)
-nadadoresParticipantes<-nadadoresParticipantesCopia
-nadadoresPruebas<-nadadoresPruebasCopia
-```
 
 ## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
 
@@ -1398,7 +1074,7 @@ rm(distancia_stroke, tabla_femenino, tabla_masculino, nadadoresFemeninas, nadado
 
 ```
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan..
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (REVISAR)
 
 ```{r}
 #Crear una nueva columna para clasificar por edad
@@ -1520,13 +1196,13 @@ Evidentemente, como ya nos podíamos esperar, la participación de nadadores men
 Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosivas, como los 50 y 100 metros, requieren menos tiempo de entrenamiento prolongado en comparación con las pruebas de resistencia, que implican una mayor dedicación y condición física a largo plazo.
 
 ```{r, echo=FALSE}
-rm(participaciones_menores,resumen_pruebas, total_nadadores)
+rm(participaciones_menores,resumen_pruebas, total_nadadores, nadadorasPruebas, nadadoresPruebasM)
 
 nadadoresPruebas<-nadadoresPruebasCopia
 
 ```
 
-## Estudio sobre la variable round. [Alonso]
+## Estudio sobre la variable round.
 
 A continuación, vamos a intentar entender más sobre la variable ronda.
 Para ello, primero vemos un resumen:
@@ -1539,14 +1215,14 @@ Observamos que toma 5 posibles valores, tenemos controlados tanto FIN (final), c
 Pero SOP y SOS no parece tan claro saber qué es.
 Vamos a comenzar dejando de lado SOP y SOS, nos vamos a centrar en controlar los otros 3 valores.
 
-### ¿Cuántos nadadores nadan cada ronda? [Alonso]
+### ¿Cuántos nadadores nadan cada ronda?
 
 Una pregunta natural podría ser, ¿cuántos nadadores pasan de ronda?
 ¿Todos?
 Está claro que al ver que por la mañana en preliminares nadan el 75% y por las tardes son semifinales y finales y son un 25%.
 Veamoslo con distintas pruebas:
 
-#### 50 libre femenino: [Alonso]
+#### 50 libre femenino:
 
 Seleccionamos las nadadoras que nadaron preliminares en el 50 libre femenino:
 
@@ -1612,7 +1288,7 @@ dim(free50FinalWomens)
 
 Observamos que hay 8, luego las 8 primeras se clasificaron a la final.
 
-### ¿Se nadan las 3 rondas en cada prueba?(ALONSO)
+### ¿Se nadan las 3 rondas en cada prueba?
 
 Esta cuestión nos surge ya que, algunas pruebas requieren más esfuerzo y el tiempo de descanso para la recuperación total es más largo, por ello alomejor hay pruebas en las que sólo hay 1 ronda, o 2, o esta suposición es falsa y en cada prueba se nadan 3 rondas.
 Para ello, echemos un cálculo inicial.
@@ -1658,7 +1334,7 @@ Se puede ver de manera análoga que nadan 8 nadadores cada final.
 
 Ahora, ya que hemos analizado a fondo qué sucede con las finales, semifinales y preliminares, vamos a ver qué significan los otros dos valores que toma la variable *round*.
 
-### Rondas SOP [Alonso]
+### Rondas SOP
 
 Bien, primeramente, vamos a observar las filas tales que toman ese valor.
 Lo hacemos de la siguiente manera:
@@ -1689,7 +1365,7 @@ head(fly100PREWomen,20)
 Si busco a Osman y Kelly en el anterior dataframe, observo que se encuentran en el puesto 16 y 17 respectivamente y que, hicieron el mismo tiempo.
 Luego tiene sentido razonar que, las rondas SOP son rondas de desempate para ver quién pasa a la siguiente ronda.
 
-### Rondas SOS [Alonso]
+### Rondas SOS 
 
 Viendo el razonamiento de las rondas SOP, intuimos que las rondas SOS deben ser rondas de desempate entre nadadores de las semifinales.
 De todas maneras, vamos a verlo.
@@ -1725,7 +1401,7 @@ rm(datosSOP, datosSOS, fly100PREWomen, free50FinalWomens, free50PrelimWomens, fr
 
 ```
 
-## Estudios relacionados con los puntos(Javi).
+## Estudios relacionados con los puntos.
 
 Veamos las posibles relaciones de puntos con las demás variables:
 
@@ -1735,14 +1411,21 @@ Antes de ello, vamos a tener que eliminar de este estudio a los nadadores descal
 nadadoresPruebas <- nadadoresPruebas %>% filter(!is.na(nadadoresPruebas$points))
 ```
 
-### Mejor nadador por prueba nadada. MVP de los mundiales(Javi).
+### Mejor nadador por prueba nadada. MVP de los mundiales.
 
 Veamos ahora cómo se distribuyen los puntos.
 
 ```{r, warning=FALSE}
 ggplot(nadadoresPruebas, aes(x = points)) +
-geom_density() +
-ggtitle("Distribución. points")
+  geom_density(fill = viridis(1, option = "D"), color = "black", alpha = 0.8) + # Color accesible
+  ggtitle("Distribución de Puntos") +
+  labs(x = "Puntos", y = "Densidad") + # Etiquetas descriptivas
+  theme_minimal(base_size = 14) + # Tema limpio y texto más grande
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"), # Centrar título
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  )
 ```
 
 Observamos que la mayoría de puntos se encuentran a partir de los 750/800 puntos, y esto, tiene sentido si razonamos que para entrar a los mundiales de natación, se necesitan unas marcas mínimas (una cantidad de puntos preestablecida).
@@ -1789,35 +1472,32 @@ nadadoresParticipantes[nadadoresParticipantes$athleteid==102630 | nadadoresParti
 
 Completaron el podio Cameron Van der Burgh, de Sudáfrica, y Katie Ledecky.
 
-### Puntos. Hombres vs Mujeres(Ines)
+### Puntos. Hombres vs Mujeres
 
 A continuación, vamos a comparar los puntos realizados por hombres y mujeres, para ver si podemos sacar alguna conclusión.
 
 Primeramente, vamos a ver la función de densidad:
 
 ```{r, warning=FALSE}
-ggplot(nadadoresPruebas, aes(x = points, colour=gender)) +
-geom_density() +
-ggtitle("Distribución. Puntos por sexo")
+ggplot(nadadoresPruebas, aes(x = points, colour = gender)) +
+  geom_density() +
+  ggtitle("Distribución de Puntos por Sexo") +
+  labs(x = "Puntos", y = "Densidad") +
+  scale_colour_viridis(discrete = TRUE, option = "D") + # Paleta accesible
+  theme_minimal(base_size = 14) + # Tema limpio y texto más grande
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"), # Centrar título
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
 
 ```
 
-A priori, parece haber dos distribuciones muy igualadas.
+A priori, parece haber dos distribuciones muy igualadas. Tiene sentido ya que, los puntos se definen de manera separada para cada sexo. Es decir, la distribución de los puntos se calculan con un algoritmo que se basa en la distribución de tiempos para esa prueba y ordenada respecto al récord mundial en dicha prueba. Nadadores con puntos cercanos a 1000 son nadadores élite cuyo tiempo está muy cerca del récord mundial. En este caso, hay dos distribuciones por cada prueba, una para las chicas y otra para los chicos, luego tiene sentido que la gráfica anterior sea tan parecida. 
 
-```{r}
-modelo= lm(points ~ gender, data = nadadoresParticipantes)
-
-summary(modelo)
-
-# Realizar ANOVA
-anova_puntos_genero <- aov(points ~ gender, data = nadadoresParticipantes)
-
-# Ver el resumen del resultado
-summary(anova_puntos_genero)
-
-```
-
-### Puntos. ¿La edad influye?(Salma)
+### Puntos. ¿La edad influye?
 
 Una buena manera de medir el rendimiento con respecto a la edad del nadador, es verlo a través de los puntos obtenidos.
 
@@ -1925,12 +1605,23 @@ La comparación muestra que, mientras que no hay diferencia significativa entre 
 ```{r}
 ggplot(nadadoresPruebas, aes(x = grupo_edad, y = points, fill = grupo_edad)) +
   geom_boxplot() +
-  labs(title = "Distribución de Puntos por Grupo de Edad", 
-       x = "Grupo de Edad", 
-       y = "Puntos") +
-  theme_minimal()
+  labs(
+    title = "Distribución de Puntos por Grupo de Edad", 
+    x = "Grupo de Edad", 
+    y = "Puntos"
+  ) +
+  scale_fill_viridis(discrete = TRUE, option = "D") + # Paleta viridis para colores accesibles
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
 
 ```
+
 
 ```{r, echo=FALSE}
 #vuelvo de nuevo a la original
@@ -1939,15 +1630,7 @@ rm(anova_puntos_genero, dunn_test, kruskal_result, media_puntos, modelo, promedi
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
 
-### Modelo de regresión lineal: reactiontime vs swimtime(Salma)
-
-```{r, echo=FALSE}
-# Esto no funciona porque las dos variables continuas tienen distinto tamaño
-# Hay que gestionar los NAs previamente
-# Además, como solo se está trabajando con dos variables continuas, no tiene sentido hacer pairs
-# Realmente es un único plot
-# pairs(nadadoresPruebas$points,splitswimtime)
-```
+### Modelo de regresión lineal: reactiontime vs swimtime.
 
 Empezamos viendo la relación lineal (que ya sabemos que será alta) entre puntos y tiempo.
 Es evidente que a mayor tiempo, hay menos puntos.
@@ -2157,6 +1840,8 @@ La pelea por la última medalla en juego dura hasta los 700 metros, donde un ade
 ```{r, echo=FALSE}
 rm(nadadoras800free)
 ```
+
+
 
 # PCA's
 
@@ -2796,23 +2481,9 @@ media_swimtime_por_cluster <- aggregate(free800WomensNormalizado$swimtime ~ free
 media_swimtime_por_cluster
 ```
 
-### IDEAS DE LOS PROFES
 
-Graficar los centroides del kmeans para ver más claro cada tipo de estrategia.
-Además, intentar sacar conclusiones sobre los cluster, ¿cuál es el óptimo, es decir, en cuál están las mejores nadadoras?.
 
-Mirar las gráficas e intentar ponerlas todas en colores para personas con daltonismo.
-
-Poner en análisis de nacionalidades las paletas de los colores de los ¿juegos olímpicos?
-(son el mundial)
-
-Sobre los test shapiro, cambiar e intentar hacer 3 cosas para ver si son normales:
-
-1.  Probabilidad de que en mis datos, el reaction time sea mayor que 0.8?
-2.  Calcular la media y la desviación típica y calcular la probabilidad como una Normal.
-3.  Calcular la media y la desviación típica y calcular la probabilidad simulando los datos.
-
-##Cluster 100 mariposa femenino [Javier]
+##Cluster 100 mariposa femenino.
 
 Vamos a escalar los datos de *prueba[,-1]* (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga media 0 y desviación estándar 1.
 
@@ -2856,7 +2527,7 @@ Observamos gráficamente las dos agrupaciones mencionadas.
 rm(cluster100mariposafem, k100Mariposafemenino, prueba, prueba100MariposaFem, distancias)
 ```
 
-## Cluster 200 mariposa masculina
+## Cluster 200 mariposa masculina.
 
 ```{r}
 clusterprueba200 <- scale(pruebita[,-1])
@@ -2925,7 +2596,7 @@ Los puntos 5 y 26 están en un cluster aislado, probablemente por tener caracter
 El cluster azul representa a nadadores mayores con tiempos de reacción más lentos, lo que afecta negativamente su rendimiento.
 Los otros clusters agrupan a los nadadores con características más cercanas entre sí en cuanto a edad y tiempos de reacción.
 
-## Cluster divisivo 200
+## Cluster divisivo 200.
 
 ```{r}
 # Clustering jerárquico divisivo
@@ -3181,45 +2852,11 @@ rm(clusterprueba1500, clusterprueba200, datos1500Masc, dend1, dend2, hc1, hc2, h
 rm(centroides, centroideslong, cluster800libres, componentess, finalistas, free800WomensNormalizado, free800WomensPre, gap_stat, media_swimtime_por_cluster, auto, conteo, p, prueba200MariposaMasc2, prueba800libresPreliminar, prueba800long, R, i, Cor_CompVar, Cor_CompVar_retenidos)
 ```
 
-# Medidas de rendimiento.
-
-```{r carga de los datos}
-#Voy a cargar aquí los datos para no tener que ejecutar todos los chunks anteriores:
-
-datos2015<-read.csv("datos/2015_FINA.csv", header=TRUE, sep = ',')
-
-datos2015<- datos2015 %>% convert_as_factor(gender,name,code,round,heat,lane,stroke, relaycount)
-
-datos2015$relaycount <- NULL
-
-datos2015<-datos2015 %>%
-  filter(!(is.na(datos2015$points) & is.na(datos2015$reactiontime) & is.na(datos2015$swimtime) & is.na(datos2015$cumswimtime) & is.na(datos2015$splitswimtime)))
 
 
-datos2015$birthdate <- as.Date(datos2015$birthdate)
-#Calculamos la edad
-fechaKazan<- as.Date("2015-07-24")
-datos2015$edad <- as.numeric(difftime(fechaKazan, datos2015$birthdate, units = "weeks")) %/% 52  # Convertir de semanas a años
+# Objetivo del análisis y partición de los datos. 
 
-datos2015$birthdate<-NULL
-
-nadadoresParticipantes <- datos2015 %>%
-  distinct(athleteid, .keep_all = TRUE)
-
-#guardamos una copia de seguridad por si se modifica el dataframe más adelante. 
-
-nadadoresParticipantesCopia<-nadadoresParticipantes
-
-
-nadadoresPruebas <- datos2015 %>%
-  distinct(eventid, athleteid, .keep_all = TRUE)
-
-
-#Copia de seguridad: 
-nadadoresPruebasCopia<-nadadoresPruebas
-
-
-```
+En esta sección y tras haber hecho un EDA genérico sobre los datos que tenemos, vamos a proseguir analizando de manera más específica los datos que tenemos. Nuestro objetivo en este trabajo es PREDECIR de alguna manera si los nadadores que llegan a la final, van a bajar su tiempo en esa prueba (tomarán el valor 1), o si en cambio, no lo harán (tomarán el valor 0). Bien, para ello, vamos a proceder a continuación a crear la tabla que nos ayudará a poder hacerlo. 
 
 A partir de este momento, vamos a estudiar acerca de un target.
 En este caso, nuestro target, ver si los finalistas van a mejorar su tiempo respecto a la ronda anteriormente nadada.
@@ -3389,6 +3026,7 @@ datos2015Target$target <- ifelse(datos2015Target$swimtimeF - datos2015Target$swi
 
 Si visualizo al primer nadador:
 
+
 ```{r}
 head(datos2015Target,1)
 ```
@@ -3442,9 +3080,15 @@ datos2015Target_validation=datos2015Target[indices_validation, ]
 ```
 
 
-# Comprobaciones previas. 
+```{r}
+# Elimino las tablas que no voy a usar: 
 
-Antes de comenzar nuestro estudio, (esto se puede meter en el EDA), vamos a evaluar el total de nadadores que sí bajan de tiempo y el total que NO lo hacen. Lo hacemos: 
+rm(datos2015, nadadoresParticipantes, nadadoresPruebas, nadadoresParticipantesCopia, nadadoresPruebasCopia, nadadoresFinalistas )
+```
+
+## Análisis previo.
+
+Antes de comenzar nuestro estudio, vamos a evaluar el total de nadadores que sí bajan de tiempo y el total que NO lo hacen. Lo hacemos: 
 
 ```{r}
 datos2015Target_train$target <- as.factor(datos2015Target_train$target)
@@ -3454,7 +3098,18 @@ summary(datos2015Target_train$target)
 ```
 Luego, un 0.57% baja de marca. Luego, tiene sentido intentar buscar mediante medidas de rendimiento, esas predicciones sobre nuevas observaciones. Vamos a evaluar todos los modelos de rendimiento vistos en teoría, y elegiremos el (los) que nos aporten un mayor rendimiento en las medidas (DECIDIRLAS).
 
-# Knn suponiendo que tenemos el reactionTime de la final. 
+En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, voy a intentar minimizar el error que se produce cuando predigo que un nadador SÍ baja de tiempo, pero en realidad no lo hace. Me interesa acertar eso. También, buscaré la que acierte más en general. Luego, para evaluar mis modelos, voy a usar las dos siguientes medidas: 
+
+ACCURACY: (PONER FÓRMULA)
+FPR (tasa de falsos positivos): (PONER FÓRMULA)
+
+
+
+# Medidas de rendimiento.
+
+## K-vecinos.
+
+### Knn suponiendo que tenemos el reactionTime de la final. 
 
 El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del ML. Este método se basa en la noción de similitud (o distancia) entre observaciones.
 
@@ -3503,7 +3158,28 @@ table(Predicted=predicciones_test, Actual=df_test$target)
 
 ```
 
-Este modelo parece que falla mucho. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número proximo de vecinos. Podemos buscar cómo ver cómo se ha ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
+Evaluamos el rendimiento de esta tabla anterior y observamos que: 
+
+```{r}
+print("Accuracy: ")
+(47+83)/(47+29+36+83)
+
+print("FPR: ")
+(36)/(36+47)
+
+```
+
+No parece un modelo bueno en el propio conjunto de entrenamiento. En el conjunto de test: 
+
+```{r}
+print("Accuracy: ")
+(12+16)/(12+16+9+12)
+
+print("FPR: ")
+(12)/(24)
+```
+
+Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número proximo de vecinos. Podemos buscar cómo ver cómo se ha ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
 
 
 
