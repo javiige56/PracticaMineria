@@ -611,9 +611,13 @@ rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
 ```
 
 
+
+## Análisis de nacionalidades. 
+
+
 ## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
 
-### Reactiontime. Hombres vs Mujeres.
+### Reactiontime.
 
 Veamos cómo se distribuyen los datos de tiempo de reacción de todos los nadadores.
 Para ello, no tenemos en cuenta las dos filas con datos nulos.
@@ -639,9 +643,52 @@ Igual que antes, vamos a hacer el test de shapiro:
 shapiro.test(na.omit(nadadoresPruebas$reactiontime))
 ```
 
-Al tener un p-valor tan bajo, no parece que siga una distribución normal.
+Al tener un p-valor tan bajo, no parece que siga una distribución normal. Aún así, este test puede ser erróneo al tener tantos datos. Vamos a proceder de maenra análoga a como lo hacíamos con la edad. Vamos a ver si la densidad de este gráfico es igual o parecido a una normal haciendo las siguientes comparaciones. 
 
-(HACER AQUÍ LO MISMO QUE CON LA EDAD).
+#### Probabilidad de que un nadador tenga un reactiontime mayor a 0.8.
+
+Primeramente, voy a calcular cuántas filas de nadadoresPruebas tienen un tiempo de 0.8 o mayor sobre el total. Esto, obviamente nos da la probabilidad de reactiontime>0.8 en nuestros datos: 
+
+```{r}
+valor1<- sum(na.omit(nadadoresPruebas$reactiontime) >0.8)/2804
+```
+
+Bien, ahora, voy a calcular la media y desviación típica de que sigue Reactiontime. Voy a suponer que sigue una distribución normal y voy a calcular su probabilidad teórica. 
+```{r}
+media<-mean(na.omit(nadadoresPruebas$reactiontime))
+desviacion<-sd(na.omit(nadadoresPruebas$reactiontime))
+
+valor2<-1 - pnorm(0.8, media, sd=desviacion)
+```
+
+Por último, voy a simular 2804 datos de una normal con la media y desviación típica calculada anteriormente y vamos a ver cuál es la probabilidad de que los datos simulados valgan más de 0.8: 
+
+```{r}
+datos_simulados <- rnorm(2804, mean = media, sd = desviacion)
+
+conteo <- sum(datos_simulados > 0.8)
+
+valor3<- conteo/2804
+```
+
+
+Bien, veo los valores obtenidos: 
+```{r}
+valor1
+valor2
+valor3
+```
+
+Observo que, la diferencia es de menos de 0.01 entre el menor y el mayor valor, luego, podremos suponer que la variable reactiontime sigue una distribución normal. 
+
+
+```{r, echo=FALSE}
+rm(conteo, datos_simulados, desviacion, media, valor1, valor2, valor3)
+```
+
+
+
+### Reactiontime. Hombres vs Mujeres.
 
 Comparamos las funciones de densidad de mujeres y hombres en general:
 
@@ -691,7 +738,8 @@ mediaTiempoReaccion
 
 Obtenemos que las mujeres tardan un 3.5% más de tiempo que los hombres.
 Es decir que, si mantenemos en igualdad todas las demás variables, si un hombre tarda 22 segundos en un 50, una mujer tardará 3.5% más de tiempo, es decir, 22.77 segundos.
-Una diferencia significativamente grande si hablamos de una prueba tan corta.
+Una diferencia **significativamente** grande si hablamos de una prueba tan corta.
+
 
 ### Reactiontime. Distancias largas vs distancias cortas.
 
@@ -703,6 +751,7 @@ Primeramente calculamos el conjunto de datos:
 nadadorasComparacionReactionTime<-nadadoresPruebas[(nadadoresPruebas$distance==50 | nadadoresPruebas$distance==800) & nadadoresPruebas$gender=="F" , ]
 
 ```
+
 
 ```{r}
 
@@ -799,7 +848,7 @@ Para ello, realizaremos un gráfico de densidad conjunto.
 
 ```{r}
 ggplot(nadadoresPruebas, aes(x = reactiontime, color = as.factor(distance), fill = as.factor(distance))) +
-  geom_density(alpha = 0.5) +  # Ajustar la transparencia
+  geom_density(alpha = 0.3) +  # Ajustar la transparencia
   ggtitle("Distribución comparada de Reaction time") +
   labs(x = "Tiempo de Reacción", y = "Densidad", color = "Distancia", fill = "Distancia") +
   theme_minimal()
@@ -971,10 +1020,11 @@ summary(pruebasVespertinas$round)
 Luego podemos concluir que, el formato que sigue el mundial de Kazán 2015 es, nadar por las mañanas las series preliminares de cada prueba, mientras que por las tardes sólo nadan los nadadores clasificados a semifinales y finales.
 
 ```{r, echo=FALSE}
-rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos_hhmm, convertir_a_hhmm,pruebasMatinales, pruebasVespertinas, colores)
+rm(limite_inferior, limite_inferior1, limite_superior, limite_superior1, tiempos_hhmm, convertir_a_hhmm,pruebasMatinales, pruebasVespertinas, anova_tiempoReaccion_Calles)
 
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
+
 
 ## Estudio sobre la variable distancia y su asociación con los tipos de nado.
 
@@ -992,7 +1042,7 @@ print(distancia_stroke)
 
 A partir de la tabla proporcionada, se observa lo siguiente:
 
--   Las pruebas nadadas en 50m y 100m son los 4 estilos.
+-   En 50 y 100 metros, se nadan 4 estilos.
     (BACK, BREAST, FLY, FREE).
     No se nada MEDLEY ya que, al ser un mundial en piscina de 50m, no podemos cumplir que se nade como mínimo un largo a cada estilo, ya que en estas pruebas sólo se nada 1 o 2 largos en total.
 
@@ -1070,137 +1120,93 @@ Esto confirma que los resultados son consistentes y los datos están bien estruc
 
 
 ```{r, echo=FALSE}
-rm(distancia_stroke, tabla_femenino, tabla_masculino, nadadoresFemeninas, nadadoresMasculinos, anova_tiempoReaccion_Calles)
+rm(nadadorasPruebas, nadadoresPruebasM, distancia_stroke, nadadoresFemeninas, nadadoresMasculinos)
 
 ```
 
-## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan. (REVISAR)
+
+
+## Estudio sobre la relación entre la edad de los nadadores y las distancias que nadan.
+
+A continuación, vamos a tratar de estudiar si existe algún tipo de relación entre la edad que tienen los nadadores y las pruebas que nadan. Para ello, voy a clasificar en 4 grupos: 
+-   Grupo 1: Menores de 18. 
+-   Grupo 2: Entre 19 y 24 años.
+-   Grupo 3: Entre 25 y 29 años. 
+-   Grupo 4: Mayores de 30 años.
+
+Para ello, vamos a crear una nueva variable en nuestro dataframe nadadoresPruebas: 
 
 ```{r}
-#Crear una nueva columna para clasificar por edad
-nadadoresPruebas <- nadadoresPruebas %>%
-  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
-
-#Resumir el número de participantes en cada prueba por grupo de edad
-resumen_pruebas <- nadadoresPruebas %>%
-  group_by(grupo_edad , distance) %>%  # Agrupar por grupo de edad y prueba(LO MIRO POR DISTANCIAS)
-  summarise(num_participantes = n(),.groups = "drop") %>%  #Contar el número de participantes
-  ungroup() %>%  # Quitar agrupación
-  arrange(grupo_edad, desc(num_participantes))  #Ordenar los resultados
-
-# Mostrar el resumen
-resumen_pruebas
+nadadoresPruebas$grupo_edad <- cut(
+  nadadoresPruebas$edad,
+  breaks = c(-Inf, 18, 24, 29, Inf),
+  labels = c(1, 2, 3, 4),
+  right = FALSE
+)
 
 ```
 
-Para poder analizar correctamente la tendencia de los nadadores según su grupo de edad, no podemos quedarnos en las frecuencias absolutas.
-
-Debemos analizar los resultados según sus frecuencias relativas.
+Bien, una vez creada la nueva variable, ahora voy a construir una tabla que, para cada distancia, ponga el número de nadadores que nada esa prueba. 
 
 ```{r}
-# Crear una nueva columna para clasificar por edad
-nadadoresPruebas <- nadadoresPruebas %>%
-  mutate(grupo_edad = ifelse(edad < 18, "Menores de 18", "18 y más"))
+# Contar el número de nadadores en cada grupo de edad y distancia
+tabla_grupos <- nadadoresPruebas %>%
+  group_by(grupo_edad, distance) %>%
+  summarise(num_nadadores = n(), .groups = 'drop')
 
-# Contar el número total de nadadores
-total_nadadores <- nrow(nadadoresPruebas)
+# Convertir a una tabla de contingencia para que los grupos de edad sean filas y las distancias columnas
+tabla_final <- tidyr::pivot_wider(tabla_grupos, names_from = distance, values_from = num_nadadores, values_fill = list(num_nadadores = 0))
 
-# Resumir el número de participantes en cada prueba por grupo de edad
-resumen_pruebas <- nadadoresPruebas %>%
-  group_by(grupo_edad, distance) %>%  # Agrupar por grupo de edad y prueba
-  summarise(num_participantes = n(), .groups = "drop") %>%  # Contar el número de participantes
-  mutate(porcentaje = (num_participantes / total_nadadores) * 100) %>%  # Calcular el porcentaje
-  ungroup() %>%  # Quitar agrupación
-  arrange(grupo_edad, desc(num_participantes))  # Ordenar los resultados
-
-# Mostrar el resumen
-print(resumen_pruebas)
-
-
+# Ver la tabla resultante
+print(tabla_final)
 ```
 
-Lo veo gráficamente:
+Vamos ahora a calcular en porcentaje sobre el total de cada grupo, el porcentaje de nadadores que nadan cada prueba agrupado por grupo de edad. Para ello: 
 
 ```{r}
-# Gráfico de barras para el número de participantes por grupo de edad y distancia
-ggplot(resumen_pruebas, aes(x = factor(distance), y = num_participantes, fill = grupo_edad)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Número de Participantes por Distancia y Grupo de Edad",
-       x = "Distancia (m)",
-       y = "Número de Participantes",
-       fill = "Grupo de Edad") +
-  theme_minimal()
+# Calcular el total de nadadores por grupo de edad
+total_por_grupo <- rowSums(tabla_final[, -1])
 
+# Calcular el porcentaje y añadirlo a la tabla
+tabla_porcentajes <- tabla_final %>%
+  mutate(across(-grupo_edad, ~ . / total_por_grupo[grupo_edad] * 100))
+
+# Ver la tabla de porcentajes
+print(tabla_porcentajes)
 ```
 
-La distancia de 100 y 50 metros es la distancia más popular entre los nadadores mayores de 18 años.
-Le sigue la distancia de 200 metros.
-La participación disminuye considerablemente en distancias más largas, como 1500 metros.
-Para los menores de 18 años tenemos carreras de 100 y 50 metros como las más frecuentadas, aunque menos que el grupo de 18 años o más(hay menos menores).
-La participación en distancias más largas, como 400 metros, es aún más baja en menores.
+Si observo esta tabla, puedo ver que, los menores de 18 años nadan en general más pruebas de 50 y 100 metros. En las edades medias, hay una distribución muy igual para las pruebas tanto de 50, 100 y 200 metros. 
 
-Los nadadores mayores de 18 años tienen una participación significativamente mayor en todas las distancias en comparación con los menores de 18 años.
-La participación en distancias más largas tiende a ser baja en ambos grupos, pero la caída es más pronunciada en los menores de 18.
-
-Tratando de analizar los datos obtenidos podemos concluir con que la distancia de 50 metros es la más popular entre los nadadores.
-Sin embargo, la diferencia en el número de participantes entre ambos grupos de edad es significativa.
-Este es un dato que es evidente con nuestras observaciones anteriores, ya que vimos que la media de los participantes está en torno a 21 años.
-Por tanto, hay más de la mitad de los participantes en el segundo grupo.
-Lo que si podemos apreciar es que se observa una tendencia de disminución en la participación a medida que las distancias aumentan.
-
-```{r, warning=FALSE}
-# Gráfico de líneas para mostrar la tendencia
-resumen_pruebas
-ggplot(resumen_pruebas, aes(x = distance, y = num_participantes, color = grupo_edad, group = grupo_edad)) +
-  geom_line(size = 1) +
-  geom_point(size = 3) +
-  labs(title = "Tendencia de Participación en Distancias de Natación por Grupo de Edad",
-       x = "Distancia (m)",
-       y = "Número de Participantes") +
-  scale_x_continuous(breaks = unique(resumen_pruebas$distance)) +
-  scale_color_manual(values = c("blue", "orange")) +
-  theme_minimal()
-
-```
-
-La distancia de 50 metros es la más popular, tanto para mayores como para menores de 18 años.
-La participación de los mayores de 18 años es considerablemente más alta en todas las distancias.
-La caída en la participación es más pronunciada en el grupo de menores de 18 años, especialmente en distancias más largas.
-
-Nos vamos a centrar, en una de las conclusiones que hemos mencionado varias veces.
-En los menores de edad,¿realmanete hay una diferencia significativa entre el número de nadadores en las pruebas más explosivas, que en las pruebas más largas?
-Para ello, creamos una nueva columna, que nos indique que prueba es explosiva, y cual de más resistencia.
-A continuación, procedo a quedarme con lo que me interesa(menores de edad agrupados en explosivo y resistencia)
+A continuación, vamos a evaluar el porcentaje de nadadores de cada grupo por prueba compardo con los nadadores totales que hubo en dicha prueba. Es decir, la siguiente gráfica: 
 
 ```{r}
-resumen_pruebas
-# Clasificar las distancias
-resumen_pruebas <- resumen_pruebas %>%
-  mutate(tipo_prueba = case_when(
-    distance %in% c(50, 100) ~ "Explosiva",
-    distance %in% c(200, 400, 800, 1500) ~ "Resistencia",
-    TRUE ~ "Otra"
-  ))
+# Calcular los porcentajes de cada columna sobre la suma total de la columna
+tabla_porcentajes2 <- tabla_grupos %>%
+  group_by(distance) %>%
+  mutate(
+    porcentaje_columna = (num_nadadores / sum(num_nadadores)) * 100  # Porcentaje sobre la suma de la columna
+  ) %>%
+  ungroup()
 
-# Filtrar solo los menores de 18 años y contar las participaciones
-participaciones_menores <- resumen_pruebas  %>%
-  filter(grupo_edad == "Menores de 18") %>%
-  group_by(tipo_prueba) %>%
-  summarise(total_participantes = sum(num_participantes),porcentajes_acumulativos=sum(porcentaje))
-
-print(participaciones_menores)
-
+# Ver la tabla resultante con los porcentajes por columna
+print(tabla_porcentajes2)
 ```
 
-Evidentemente, como ya nos podíamos esperar, la participación de nadadores menores de edad en pruebas explosivas es notablemente mayor que en pruebas de resistencia.
-Esto se puede atribuir a la naturaleza de las pruebas, donde las pruebas explosivas, como los 50 y 100 metros, requieren menos tiempo de entrenamiento prolongado en comparación con las pruebas de resistencia, que implican una mayor dedicación y condición física a largo plazo.
+Aquí, observamos que sobre el total de nadadores, la distancia que menos nada el grupo 1 es el 200. Sobre el total, las pruebas que en porcentaje nadan menos el grupo 2 son los 50 y los 100.El grupo 3, tiende a nadar pruebas más cortas en lugar de largas. Y el último grupo también. 
+
+Luego, podríamos concluir que la distribución para los menores de 18 años es bastante simétrica, es decir, son aptos para nadar cualquier tipo de prueba. Para los del grupo 2, nadan en menos proporción pruebas explosivas como el 50 y 100 y es más frecuente verlos en distancias un poco mayores, esto es razonable ya que el pico de rendimiento en los nadadores se alcanza en las edades de este segundo grupo, luego están más y mejor preparados para nadar distancias más largas. Para el grupo 3 y 4, las distancias largas y de resistencia ya no son pruebas en las que destaquen (en general), por ello, tienden a ser nadadores que nadan pruebas cortas. 
+
+
+
 
 ```{r, echo=FALSE}
-rm(participaciones_menores,resumen_pruebas, total_nadadores, nadadorasPruebas, nadadoresPruebasM)
+rm(tabla_final, tabla_grupos, tabla_porcentajes, tabla_porcentajes2,total_por_grupo)
 
 nadadoresPruebas<-nadadoresPruebasCopia
 
 ```
+
+
 
 ## Estudio sobre la variable round.
 
@@ -1750,7 +1756,7 @@ nadadoresPruebas<- nadadoresPruebasCopia
 
 ```
 
-## Prueba 800m Libre femenino. [Alonso]
+## Prueba 800m Libre femenino.
 
 Quiero evaluar la prueba 800m libres.
 
@@ -1772,7 +1778,7 @@ nadadoras800free<-datos2015[datos2015$gender=="F" & datos2015$distance==800 & da
 
 ```
 
-#### Estudio sobre los parciales de la carrera.(ALONSO)
+#### Estudio sobre los parciales de la carrera.
 
 Vamos a evaluar cómo fueron los parciales de las nadadoras, para ello hacemos el siguiente gráfico:
 
@@ -1804,7 +1810,7 @@ También vemos alguna otra nadadora más que hace algo similar como Van Rouwenda
 Otras en cambio, intentan conservar el ritmo marcado desde el inicio y ser constantes.
 Carlin mete un cambio de ritmo muy drástico al paso de los 650m de 31s altos a 31s bajos y sigue luego bajando.
 
-#### Visualización de la carrera.(alonso)
+#### Visualización de la carrera.
 
 Ahora, vamos a definir un dataframe en el que nos va a importar el nombre, la suma total de tiempo al paso de cada parcial:
 
@@ -3100,13 +3106,12 @@ Luego, un 0.57% baja de marca. Luego, tiene sentido intentar buscar mediante med
 
 En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, voy a intentar minimizar el error que se produce cuando predigo que un nadador SÍ baja de tiempo, pero en realidad no lo hace. Me interesa minimizar los falsos positivos. Por tanto, utilizaremos distintos modelos y evaluaremos su calidad mediante medidas de rendimiento que parten de la matriz de confusión, ya que nuestra variable objetivo es binaria (0,1). Comentaremos las principales métricas de rendimiento, haciendo mayor hincapié en las siguientes:
 
-- Accuracy o Exactitud  $= \frac{TP + TN}{N}$. mide la proporción de predicciones correctas     hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
+- Accuracy o Exactitud  $= \frac{TP + TN}{N}$. mide la proporción de predicciones correctas hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
 - FPR (tasa de falsos positivos) $= \frac{FP}{FP+TN}$ Intentaremos minimizar este valor ya que mide la proporción de negativos reales que el modelo clasifica incorrectamente como positivos.
 - Precisión $= \frac{FP}{FP+TN}$. Mide la proporción de casos correctamente clasificados como positivos entre todos los casos que el modelo ha clasificado como positivos. Intentaremos maximizar este valor.
 Otras medidas se comentarán más adelante. 
 
 # Medidas de rendimiento.
-
 
 ## K-vecinos.
 
