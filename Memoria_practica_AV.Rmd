@@ -3098,16 +3098,21 @@ summary(datos2015Target_train$target)
 ```
 Luego, un 0.57% baja de marca. Luego, tiene sentido intentar buscar mediante medidas de rendimiento, esas predicciones sobre nuevas observaciones. Vamos a evaluar todos los modelos de rendimiento vistos en teoría, y elegiremos el (los) que nos aporten un mayor rendimiento en las medidas (DECIDIRLAS).
 
-En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, voy a intentar minimizar el error que se produce cuando predigo que un nadador SÍ baja de tiempo, pero en realidad no lo hace. Me interesa acertar eso. También, buscaré la que acierte más en general. Luego, para evaluar mis modelos, voy a usar las dos siguientes medidas: 
+En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, voy a intentar minimizar el error que se produce cuando predigo que un nadador SÍ baja de tiempo, pero en realidad no lo hace. Me interesa minimizar los falsos positivos. Por tanto, utilizaremos distintos modelos y evaluaremos su calidad mediante medidas de rendimiento que parten de la matriz de confusión, ya que nuestra variable objetivo es binaria (0,1). Comentaremos las principales métricas de rendimiento, haciendo mayor hincapié en las siguientes:
 
-ACCURACY: (PONER FÓRMULA)
-FPR (tasa de falsos positivos): (PONER FÓRMULA)
-
-
+- Accuracy o Exactitud  $= \frac{TP + TN}{N}$. mide la proporción de predicciones correctas     hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
+- FPR (tasa de falsos positivos) $= \frac{FP}{FP+TN}$ Intentaremos minimizar este valor ya que mide la proporción de negativos reales que el modelo clasifica incorrectamente como positivos.
+- Precisión $= \frac{FP}{FP+TN}$. Mide la proporción de casos correctamente clasificados como positivos entre todos los casos que el modelo ha clasificado como positivos. Intentaremos maximizar este valor.
+Otras medidas se comentarán más adelante. 
 
 # Medidas de rendimiento.
 
+
 ## K-vecinos.
+
+### Knn INES que me da cosa borraros cosas, leeroslo porfavor
+
+
 
 ### Knn suponiendo que tenemos el reactionTime de la final. 
 
@@ -3118,20 +3123,22 @@ vecinos, es decir, la moda de la variable objetivo.
 
 Para elegir el número k, seleccionamos aquel valor que minimice la tasa de errores, al mismo tiempo que preserva la capacidad del algoritmo para realizar predicciones precisas en datos no vistos previamente.
 
-Primeramente, vamos a probar metiendo variables que razonablemente podrían determinar los mejores vecinos. Para ello, meto: 
-- Athelteid: si una nadadora ha bajado en todas sus pruebas anteriores, pinta que puede ser determinante.
-- eventidF: es el id de evento de la final. Si meto esta variable, ya no me hace falta ni el sexo, ni el estilo ni la distancia porque dependen de esta variable. 
-- reactionTimeF: Supondremos que vamos a predecir si los nadadores bajan justo en el momento en el que saltan. 
-- edad: También puede ser importante. 
-- eventidP: al igual que el de la final, nos va a "acercar" nadadoras que naden la misma prueba. 
-- pointP: los puntos de las preliminares.
+Primeramente, vamos a probar introduciendo variables que razonablemente podrían determinar los mejores vecinos. Es importante que las variables seleccionadas sean informativas y relevantes para predecir el comportamiento objetivo.
+Las variables introducidas, son las siguientes: 
+- Athelteid: si un nadador ha reducido su tiempo en todas sus pruebas anteriores, indica que puede ser determinante.
+
+**COMENTARIO INES: Esta variable podría ser útil si hay patrones repetitivos en el rendimiento de un mismo nadador a lo largo de las pruebas. Sin embargo, sería mejor usar esta variable para realizar un seguimiento individual. No parece necesaria como una característica para medir similitudes entre nadadores, a menos que estemos observando un historial de desempeño.
+
+
+- eventidF: es el id de evento de la final. Al introducir esta variable no es necesario introducir otras como son: el sexo, estilo y distancia, al agrupar a los nadadores por la misma competencia.
+- reactionTimeF: Supondremos que vamos a predecir si los nadadores bajan justo en el momento en el que saltan. Esta variable es relevante para predecir si un nadador bajará su tiempo, ya que su habilidad para iniciar bien una prueba puede ser determinante.
+- edad: También puede ser importante, ya que la edad puede influir en el rendimiento.
+- eventidP: similar al EventidF, el evento preliminar puede agrupar a los nadadores que compiten en las mismas condiciones.  
+- pointP: los puntos de las preliminares. 
 - reactionTimeP: el tiempo de reacción de la prueba previa. 
 - swimtimeP: el tiempo final de la prueba previa.
 - daytimeP: la hora de la preliminar.
-- mediaParcialesP:
-- minimoParcialesP: 
-- maximoParcialesP:
-- medianaParcialesP:
+- mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP: son bastante útiles, ya que proporcionan información más detallada sobre el rendimiento del nadador a lo largo de la prueba. El promedio de los parciales puede indicar la consistencia del nadador. El máximo y el mínimo pueden ayudar a identificar puntos fuertes o débiles en el desempeño de cada nadador. La mediana es útil porque no se ve afectada por valores atípicos, lo que proporciona una medida robusta del rendimiento.
 
 ```{r}
 library(MASS)
@@ -3139,17 +3146,18 @@ library(caret)
  
 df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
 
-# Primeramente pruebo sin escalar. A ver qué sale: 
+# Primeramente pruebo sin escalar. 
 
 prob1 = knn3(df[,-14], as.factor(df$target), k=5, prob=TRUE)
 
 
-# Obtener las predicciones de clase
+# Obtener las predicciones de clase y la matriz de confusión
 predicciones <- predict(prob1, newdata = df[,-14], type = "class")
 table(Predicted = predicciones, Actual = df$target)
 
 # Ahora las obtenemos para los datos de test para ver si se pierde o se gana: 
 df_test <-  datos2015Target_test %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+
 # Realizar predicciones en el conjunto de test
 predicciones_test <- predict(prob1, newdata = df_test[,-14], type = "class")
 table(Predicted=predicciones_test, Actual=df_test$target)
@@ -3179,11 +3187,11 @@ print("FPR: ")
 (12)/(24)
 ```
 
-Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número proximo de vecinos. Podemos buscar cómo ver cómo se ha ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
+Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número de vecinos próximos. Podemos buscar cómo se han ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
 
 
 
-Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, es fundamental realizar un escalado antes de aplicar KNN para garantizar que todas las variables contribuyan equitativamente.
+Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, escalaremos antes de aplicar KNN y así todas las variables contribuirán equitativamente.
 
 ```{r}
 preProcValues <- preProcess(df[,-14], method = c("center", "scale"))
@@ -3258,21 +3266,109 @@ knn_best2 <- knn3(df[,-14], as.factor(df$target), k = 3, prob = TRUE)
 predicciones_train_best2 <- predict(knn_best2, newdata = df[,-14], type = "class")
 
 # Tabla de confusión
-table(Predicted = predicciones_train_best2, Actual = df$target)
+tabla_train2<- table(Predicted = predicciones_train_best2, Actual = df$target)
 
 
 # Predicciones para el conjunto de prueba escalado
 predicciones_test_best2 <- predict(knn_best2, newdata = df_test[,-14], type = "class")
 
 # Tabla de confusión
-table(Predicted = predicciones_test_best2, Actual = df_test$target)
+tabla_test2<- table(Predicted = predicciones_test_best2, Actual = df_test$target)
 
+
+
+# Tabla de confusión calculada para que aparezcan los parámetros asociados
+conf_matrix_train <- confusionMatrix(predicciones_train_best2, as.factor(df$target))
+
+# Mostrar la matriz de confusión y las métricas asociadas
+print(conf_matrix_train)
+
+
+
+# Tabla de confusión calculada para que aparezcan los parámetros asociados
+conf_matrix_test <- confusionMatrix(predicciones_test_best2, as.factor(df_test$target))
+
+# Mostrar la matriz de confusión y las métricas asociadas
+print(conf_matrix_test)
 
 ```
+
+
+
 El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una precisión razonable (79.4%) y un balance entre sensibilidad y especificidad.
 
 El modelo generaliza mejor en este caso (precisión del 73.3%), lo que sugiere una mejora significativa respecto a versiones previas.
 La sensibilidad para la clase 0 es aceptable (62.5%), aunque podría mejorarse.
+
+
+### knn ines (luego se cambia el titulo :) )
+Otra forma de variar nuestro método es mediante la variación en las variables introducidas. Variables anteriormente introducidas como athleteid, eventid pueden no estar influyendo. Además, estas variables son de tipo factor. Por lo tanto, al no distribuirse de manera lineal, calcular las distancias euclídeas podría no ser la forma correcta para clasificar a nuestros atletas. 
+En este apartado, analizaremos el método Knn sin estas variables.
+
+```{r}
+# Selección de variables y normalización
+kn3 <- datos2015Target_train %>%
+  select(reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, 
+         mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+
+kn3_test <- datos2015Target_test %>%
+  select(reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, 
+         mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+
+# Normalización de las variables predictoras 
+kn3[, 1:9] <- scale(kn3[, 1:9])  # Normaliza todas las columnas predictoras (no la variable target)
+kn3_test[, 1:9] <- scale(kn3_test[, 1:9])  
+
+# Entrenamiento del modelo k-NN
+trainControl <- trainControl(method="repeatedcv", number=10, repeats=3)  # Usar validación cruzada
+
+set.seed(128)  # Para asegurar reproducibilidad
+fit.knn3 <- train(target ~ ., data = kn3, method = "knn", metric = "Accuracy", trControl = trainControl)
+
+# Obtener el mejor valor de k
+knn.k3 <- fit.knn3$bestTune 
+plot(knn.k3)
+print(fit.knn3)  # Imprimir el resultado
+
+```
+Como podemos observar, el modelo con mejor valor en accuracy es el k=7. Tenemos muy cerca también el de k=5. 
+```{r}
+# Entrenar el modelo k-NN con el mejor k
+set.seed(125)
+knn_best3 <- train(target ~ ., data = kn3, method = "knn", 
+                   trControl = trainControl, tuneGrid = data.frame(k = 7))
+
+# Predicciones para el conjunto de entrenamiento
+predicciones_train_best3 <- predict(knn_best3, newdata = kn3)
+
+# Tabla de confusión para el conjunto de entrenamiento
+table(Predicted = predicciones_train_best3, Actual = kn3$target)
+
+# Predicciones para el conjunto de prueba
+predicciones_test_best3 <- predict(knn_best3, newdata = kn3_test)
+
+# Tabla de confusión para el conjunto de prueba
+table(Predicted = predicciones_test_best3, Actual = kn3_test$target)
+
+
+
+# Tabla de confusión
+conf_matrix_train <- confusionMatrix(predicciones_train_best3, as.factor(kn3$target),positive= "1")
+
+# Mostrar la matriz de confusión y las métricas asociadas
+print(conf_matrix_train)
+
+
+# Tabla de confusión
+conf_matrix_test <- confusionMatrix(predicciones_test_best3, as.factor(kn3_test$target),positive= "1")
+
+# Mostrar la matriz de confusión y las métricas asociadas
+print(conf_matrix_test)
+
+
+```
+Como vemos, el accuracy en un primer lugar estaría en un 68%. Sin embargo, al ajustar los datos a test, nos resulta en un 46%. Por lo que nuestro modelo es bastante deficiente. 
+Observación: hallamos las mismas matrices con k=5. Con lo que volvemos a obtener un 46%. Debemos abandonar este modelo.
 
 
 
@@ -3304,7 +3400,7 @@ arbol <- rpart(target ~ ., data = df_arbol, method = "class", control = control_
 rpart.plot(arbol, type = 3, extra = 104, under = TRUE, cex = 0.8)
 
 ```
-La variable swimtimePes el predictor más importante.Si swimtimeP < 106, se clasifica en ramas basadas en otros factores como medianaParcialesP y pointP. Si swimtimeP >= 106, se usan variables adicionales como medianaParcialesP para la clasificación.
+La variable swimtimeP es el predictor más importante. Si swimtimeP < 106, se clasifica en ramas basadas en otros factores como medianaParcialesP y pointP. Si swimtimeP >= 106, se usan variables adicionales como medianaParcialesP para la clasificación.
 
 Cada hoja indica una predicción (0 o 1), con precisión y porcentaje de datos representados.
 
@@ -3315,7 +3411,7 @@ confusionMatrix(pred_train, as.factor(df$target))
 
 # Predicciones en el conjunto de prueba
 pred_test <- predict(arbol, newdata = df_test_arbol, type = "class")
-confusionMatrix(pred_test, as.factor(df_test$target))
+confusionMatrix(pred_test, as.factor(df_test$target), positive= "1")
 
 ```
 El modelo tiene un buen desempeño en el conjunto de entrenamiento, lo que indica que aprende los patrones en los datos.
@@ -3325,7 +3421,7 @@ El modelo tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajust
 
 ## posible mejora
 
-Puedes usar validación cruzada para encontrar el mejor valor de cp que maximice la generalización del árbol.
+Usamos la validación cruzada para encontrar el mejor valor de cp que maximice la generalización del árbol.
 
 ```{r}
 
@@ -3361,7 +3457,7 @@ rpart.plot(arbol_reducido, type = 3, extra = 104, under = TRUE, cex = 0.8)
 # Evaluar el rendimiento
 df_test_arbol_reducido=df_test_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP)
 pred_test_reducido <- predict(arbol_reducido, newdata = df_test_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP), type = "class")
-confusionMatrix(pred_test_reducido, as.factor(df_test_arbol_reducido$target))
+confusionMatrix(pred_test_reducido, as.factor(df_test_arbol_reducido$target), positive= "1")
 
 ```
 
@@ -3413,6 +3509,98 @@ print(cf_rf_test)
 ```
 
 swimtimeP es la variable más importante.
+
+# xgboost
+
+```{r}
+library(purrr)
+library(dplyr)
+library(xgboost)
+
+# Convertimos los datos a formato numérico
+kn3_numeric <- map_df(kn3, function(columna) {
+  columna %>% 
+    as.factor() %>% 
+    as.numeric %>% 
+    { . - 1 }
+})
+kn3_test_numeric <- map_df(kn3_test, function(columna) {
+  columna %>% 
+    as.factor() %>% 
+    as.numeric %>% 
+    { . - 1 }
+})
+
+# Crear matrices DMatrix
+train_mat <- kn3_numeric %>% 
+  select(-target) %>% 
+  as.matrix() %>% 
+  xgb.DMatrix(data = ., label = kn3_numeric$target)
+
+test_mat <- kn3_test_numeric %>% 
+  select(-target) %>% 
+  as.matrix() %>% 
+  xgb.DMatrix(data = ., label = kn3_test_numeric$target)
+
+# Entrenamiento del modelo
+xgb_model <- xgboost(data = train_mat,  
+                     objective = "binary:logistic", 
+                     nround = 50, 
+                     max_depth = 3, 
+                     eta = 0.1, 
+                     nthread = 2)
+
+# Predicciones en el conjunto de prueba
+predicciones <- predict(xgb_model, test_mat)
+clases <- ifelse(predicciones > 0.5, 1, 0)
+
+# Evaluar rendimiento
+conf_matrix <- confusionMatrix(as.factor(clases), as.factor(kn3_test_numeric$target))
+print(conf_matrix)
+
+```
+
+```{r}
+xgb_model
+```
+
+
+
+```{r}
+library(DiagrammeR)
+
+xgb.plot.multi.trees(model = xgb_model)
+```
+
+Ahora con la función de abajo meter los valores de las hojas y comentar vale 
+
+```{r}
+# convertimos log odds a probabilidades
+odds_to_probs <- function(odds){
+    return(exp(odds)/ (1 + exp(odds)))
+}
+```
+```{r}
+# importancia sobre cada característica
+importance_matrix <- xgb.importance(model = xgb_model)
+
+xgb.plot.importance(importance_matrix)
+```
+Aqui hay algo abajo que esta mal, el que? no lo se
+```{r}
+# Realizar las predicciones en la muestra de prueba
+prediccion <- predict(xgb_model, datos2015Target_test$target)
+
+# Crear una tabla de confusión comparando las predicciones con los valores reales
+library(caret)  # Asegúrate de tener cargada la librería 'caret' para la matriz de confusión
+confusion_matrix <- cbind(prediccion > 0.5, datos2015Target_test$target) %>% 
+  data.frame() %>% 
+  table()
+
+# Mostrar la matriz de confusión con los resultados positivos como "1"
+confusionMatrix(confusion_matrix, positive = "1")
+
+```
 
 # Curva ROC (Pruebo por ahora como van los modelos, actualizar)
 
