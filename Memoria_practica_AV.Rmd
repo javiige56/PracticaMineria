@@ -16,6 +16,8 @@ editor_options:
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 # Cargamos las librerias que vamos necesitando a lo largo del codigo
+
+library(caret)
 library(pastecs)
 library(factoextra)
 library(dplyr)
@@ -3115,9 +3117,6 @@ Otras medidas se comentarán más adelante.
 
 ## K-vecinos.
 
-### Knn 1(A)
-(suponiendo que tenemos el reactionTime de la final)
-
 El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del ML. Este método se basa en la noción de similitud (o distancia) entre observaciones.
 
 En un problema de clasificación, el algoritmo devolverá la clase que predomina entre los 
@@ -3125,75 +3124,72 @@ vecinos, es decir, la moda de la variable objetivo.
 
 Para elegir el número k, seleccionamos aquel valor que minimice la tasa de errores, al mismo tiempo que preserva la capacidad del algoritmo para realizar predicciones precisas en datos no vistos previamente.
 
+### Knn k=5, sin escalar.
+
 Primeramente, vamos a probar introduciendo variables que razonablemente podrían determinar los mejores vecinos. Es importante que las variables seleccionadas sean informativas y relevantes para predecir el comportamiento objetivo.
 Las variables introducidas, son las siguientes: 
-- Athelteid: si un nadador ha reducido su tiempo en todas sus pruebas anteriores, indica que puede ser determinante.
-
-**COMENTARIO INES: Esta variable podría ser útil si hay patrones repetitivos en el rendimiento de un mismo nadador a lo largo de las pruebas. Sin embargo, sería mejor usar esta variable para realizar un seguimiento individual. No parece necesaria como una característica para medir similitudes entre nadadores, a menos que estemos observando un historial de desempeño.
-
+- Athelteid: Esta variable podría ser útil si hay patrones repetitivos en el rendimiento de un mismo nadador a lo largo de las pruebas. 
 
 - eventidF: es el id de evento de la final. Al introducir esta variable no es necesario introducir otras como son: el sexo, estilo y distancia, al agrupar a los nadadores por la misma competencia.
-- reactionTimeF: Supondremos que vamos a predecir si los nadadores bajan justo en el momento en el que saltan. Esta variable es relevante para predecir si un nadador bajará su tiempo, ya que su habilidad para iniciar bien una prueba puede ser determinante.
+
+- reactionTimeF: Supondremos que vamos a predecir si los nadadores bajan justo en el momento en el que saltan. Esta variable es relevante para predecir si un nadador bajará su tiempo, si su tiempo de reacción en la final es pésimo, podría influir en la decisión de nuestro modelo.
+
 - edad: También puede ser importante, ya que la edad puede influir en el rendimiento.
+
 - eventidP: similar al EventidF, el evento preliminar puede agrupar a los nadadores que compiten en las mismas condiciones.  
+
 - pointP: los puntos de las preliminares. 
+
 - reactionTimeP: el tiempo de reacción de la prueba previa. 
+
 - swimtimeP: el tiempo final de la prueba previa.
+
 - daytimeP: la hora de la preliminar.
-- mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP: son bastante útiles, ya que proporcionan información más detallada sobre el rendimiento del nadador a lo largo de la prueba. El promedio de los parciales puede indicar la consistencia del nadador. El máximo y el mínimo pueden ayudar a identificar puntos fuertes o débiles en el desempeño de cada nadador. La mediana es útil porque no se ve afectada por valores atípicos, lo que proporciona una medida robusta del rendimiento.
+
+- mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP: son bastante útiles, ya que proporcionan información más detallada sobre el rendimiento del nadador a lo largo de la prueba. El promedio de los parciales puede indicar la consistencia del nadador. El máximo, el mínimo, la media, la mediana, pueden ayudar a identificar vecinos con características parecidas sobre cómo plantean la prueba.
+
+A continuación, voy a entrenar un primer modelo fijándome en los 5 vecinos más proximos con todas las variables y usando la distancia euclídea entre observaciones y sin escalar los datos: 
 
 ```{r}
-library(MASS)
-library(caret)
- 
-df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+# Selecciono las variables. 
 
-# Primeramente pruebo sin escalar. 
+df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
 
 prob1 = knn3(df[,-14], as.factor(df$target), k=5, prob=TRUE)
 
 
-# Obtener las predicciones de clase y la matriz de confusión
-predicciones <- predict(prob1, newdata = df[,-14], type = "class")
-table(Predicted = predicciones, Actual = df$target)
+```
 
-# Ahora las obtenemos para los datos de test para ver si se pierde o se gana: 
+Bien, voy a ver cómo de bien rinde mi modelo en el conjunto en el que se ha entrenado: 
+
+```{r}
+# Obtener las predicciones de clase y la matriz de confusión
+set.seed(2945)
+predicciones <- predict(prob1, newdata = df[,-14], type = "class")
+matrizconfusion1 <- confusionMatrix(predicciones, df$target, positive = "1")
+print(matrizconfusion1)
+```
+
+Tenemos en el conjunto de entrenamiento ya un accuracy bastante bajo, vamos a comprobar en los datos de tests, pero no parece ser un buen modelo: 
+
+```{r}
 df_test <-  datos2015Target_test %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
 
 # Realizar predicciones en el conjunto de test
 predicciones_test <- predict(prob1, newdata = df_test[,-14], type = "class")
-table(Predicted=predicciones_test, Actual=df_test$target)
-
-
-
-```
-
-Evaluamos el rendimiento de esta tabla anterior y observamos que: 
-
-```{r}
-print("Accuracy: ")
-(47+83)/(47+29+36+83)
-
-print("FPR: ")
-(36)/(36+47)
+matrizconfusion2 <- confusionMatrix(predicciones_test, as.factor(df_test$target), positive = "1")
+print(matrizconfusion2)
 
 ```
 
-No parece un modelo bueno en el propio conjunto de entrenamiento. En el conjunto de test: 
 
-```{r}
-print("Accuracy: ")
-(12+16)/(12+16+9+12)
-
-print("FPR: ")
-(12)/(24)
-```
-
-Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número de vecinos próximos. Podemos buscar cómo se han ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
+Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número de vecinos próximos entre otras cosas. 
 
 
 ### knn 2 (S)
+
 Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, escalaremos antes de aplicar KNN y así todas las variables contribuirán equitativamente.
+
 
 ```{r}
 preProcValues <- preProcess(df[,-14], method = c("center", "scale"))
@@ -3204,6 +3200,7 @@ df_scaled <- predict(preProcValues, df[,-14])
 df_scaled <- cbind(df_scaled, target = df$target)
 df_scaled
 ```
+
 
 ```{r}
 # Crear un rango de valores de k
@@ -3386,6 +3383,13 @@ print(conf_matrix_test)
 ```
 Como vemos, el accuracy en un primer lugar estaría en un 68%. Sin embargo, al ajustar los datos a test, nos resulta en un 46%. Por lo que nuestro modelo es bastante deficiente. 
 Observación: hallamos las mismas matrices con k=5. Con lo que volvemos a obtener un 46%. Debemos abandonar este modelo.
+
+
+
+
+### Knn definiendo distancias. 
+
+En este apartado, voy a intentar definir una matriz de similitudes entre observaciones, y, a partir de ahí, tratar de hacer un modelo que no sea tan "caja negra".
 
 
 
