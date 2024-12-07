@@ -3115,11 +3115,8 @@ Otras medidas se comentarán más adelante.
 
 ## K-vecinos.
 
-### Knn INES que me da cosa borraros cosas, leeroslo porfavor
-
-
-
-### Knn suponiendo que tenemos el reactionTime de la final. 
+### Knn 1(A)
+(suponiendo que tenemos el reactionTime de la final)
 
 El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del ML. Este método se basa en la noción de similitud (o distancia) entre observaciones.
 
@@ -3195,7 +3192,7 @@ print("FPR: ")
 Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número de vecinos próximos. Podemos buscar cómo se han ido construyendo las predicciones. Es decir, los vecinos los cuales eran 0 o 1 y a partir de ahí como se ha construido su target.
 
 
-
+### knn 2 (S)
 Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, escalaremos antes de aplicar KNN y así todas las variables contribuirán equitativamente.
 
 ```{r}
@@ -3255,11 +3252,26 @@ predicciones_test_best <- predict(knn_best, newdata = df_test_scaled[,-14], type
 table(Predicted = predicciones_test_best, Actual = df_test$target)
 
 
+# Tabla de confusión
+conf_matrix_train <- confusionMatrix(predicciones_train_best, as.factor(df_scaled$target),positive= "1")
+
+# Mostrar la matriz de confusión y las métricas asociadas
+print(conf_matrix_train)
+
+
+# Tabla de confusión
+conf_matrix_test <- confusionMatrix(predicciones_test_best, as.factor(df_test$target),positive= "1")
+
+# Mostrar la matriz de confusión y las métricas asociadas
+print(conf_matrix_test)
+
+
 ```
-El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión alta (79.7%) y un equilibrio razonable entre sensibilidad y especificidad. Esto indica que el modelo está capturando patrones en los datos de entrenamiento.
+El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión alta (78.9%) y un equilibrio razonable entre sensibilidad y especificidad. Esto indica que el modelo está capturando patrones en los datos de entrenamiento.
 
-Luego,tiene mejor precisión general en el conjunto de entrenamiento (79.7% frente a 72.5% antes). Clasifica mejor la clase 1 tanto en entrenamiento como en prueba.
+Luego,tiene mejor precisión general en el conjunto de entrenamiento (78.9% frente a 72.5% antes). Clasifica mejor la clase 1 tanto en entrenamiento como en prueba.
 
+### knn 3 (S)
 Debido a una sospecha pruebo el siguiente modelo sin escalar pero con **k=3**.
 
 ```{r}
@@ -3274,7 +3286,6 @@ predicciones_train_best2 <- predict(knn_best2, newdata = df[,-14], type = "class
 tabla_train2<- table(Predicted = predicciones_train_best2, Actual = df$target)
 
 
-# Predicciones para el conjunto de prueba escalado
 predicciones_test_best2 <- predict(knn_best2, newdata = df_test[,-14], type = "class")
 
 # Tabla de confusión
@@ -3283,7 +3294,7 @@ tabla_test2<- table(Predicted = predicciones_test_best2, Actual = df_test$target
 
 
 # Tabla de confusión calculada para que aparezcan los parámetros asociados
-conf_matrix_train <- confusionMatrix(predicciones_train_best2, as.factor(df$target))
+conf_matrix_train <- confusionMatrix(predicciones_train_best2, as.factor(df$target),positive= "1")
 
 # Mostrar la matriz de confusión y las métricas asociadas
 print(conf_matrix_train)
@@ -3291,7 +3302,7 @@ print(conf_matrix_train)
 
 
 # Tabla de confusión calculada para que aparezcan los parámetros asociados
-conf_matrix_test <- confusionMatrix(predicciones_test_best2, as.factor(df_test$target))
+conf_matrix_test <- confusionMatrix(predicciones_test_best2, as.factor(df_test$target),positive= "1")
 
 # Mostrar la matriz de confusión y las métricas asociadas
 print(conf_matrix_test)
@@ -3306,7 +3317,7 @@ El modelo generaliza mejor en este caso (precisión del 73.3%), lo que sugiere u
 La sensibilidad para la clase 0 es aceptable (62.5%), aunque podría mejorarse.
 
 
-### knn ines (luego se cambia el titulo :) )
+### knn 4 (I) 
 Otra forma de variar nuestro método es mediante la variación en las variables introducidas. Variables anteriormente introducidas como athleteid, eventid pueden no estar influyendo. Además, estas variables son de tipo factor. Por lo tanto, al no distribuirse de manera lineal, calcular las distancias euclídeas podría no ser la forma correcta para clasificar a nuestros atletas. 
 En este apartado, analizaremos el método Knn sin estas variables.
 
@@ -3337,6 +3348,7 @@ print(fit.knn3)  # Imprimir el resultado
 
 ```
 Como podemos observar, el modelo con mejor valor en accuracy es el k=7. Tenemos muy cerca también el de k=5. 
+
 ```{r}
 # Entrenar el modelo k-NN con el mejor k
 set.seed(125)
@@ -3377,6 +3389,74 @@ Observación: hallamos las mismas matrices con k=5. Con lo que volvemos a obtene
 
 
 
+### knn (S)(resumen y decision)
+
+1. Evaluación del Primer Modelo KNN(sin escalar y k = 5). Incluye todas las variables, incluidas las categóricas como athleteidy eventidF. En el entrenamiento, Accuracy, 0,797 (79,7%),tasa de falsos positivos ( FPR): 0,434 (43,4%). En prueba,Accuracy, 0,733 (73,3%),tasa de falsos positivos ( FPR): 0,5 (50%).
+
+Este modelo muestra un desempeño aceptable, pero tiene un problema notable de generalización, ya que la precisión en el conjunto de prueba es significativamente menor que en el conjunto de entrenamiento.
+
+2. Modelo KNN Escalado. Las variables se escalaron para garantizar que todas tengan una contribución equitativa. Se utilizó validación cruzada para encontrar el mejor k. Mejor valor de k encontrado: 3 .
+En entrenamiento, la precisión ( Accuracy): 0,78. Y en prueba, 0,5.
+
+3. Modelo k=3 sin escalar. Entrenamiento,0,7641 (76,41%). Esto significa que el modelo clasifica correctamente el 76,41% de los datos en el conjunto de entrenamiento.En prueba 0,6735 (67,35%).
+El modelo clasifica correctamente el 67,35% de los datos en el conjunto de prueba.
+
+4. Modelo KNN Simplificado (Sin Variables Categóricas).Variables categóricas como athleteidy eventidFse eliminaron. Solo se incluyen variables numéricas relevantes. Se probaron diferentes valores de k y se encontró que k = 7 es el mejor.En entrenamiento, la precisión ( Accuracy): 0.680 (68%).En prueba, la precisión ( Accuracy): 0,460 (46%).
+Conclusión: El modelo sin variables categóricas y con solo variables numéricas tiene un rendimiento notablemente inferior. La eliminación de información clave (como identificadores o categorías relevantes) ha afectado la capacidad del modelo para predecir correctamente.
+
+
+Basándome en los resultados que se presentaron, el modelo KNN con k=3 sin escalar y usando todas las variables predictoras muestra el mejor desempeño tanto en el conjunto de entrenamiento como en el de prueba.
+
+```{r}
+# Obtener probabilidades para cada modelo
+
+# 1. KNN sin escalar con todas las variables
+pred_probs_knn_no_scale <- predict(prob1, newdata = df_test[,-14], type = "prob")[, 2]
+
+# 2. KNN escalado
+pred_probs_knn_scaled <- predict(knn_best, newdata = df_test_scaled[,-14], type = "prob")[, 2]
+
+# 3. KNN sin escalar k=3
+pred_probs_knn_es_3 <- predict(knn_best2, newdata = df_test[,-14], type = "prob")[, 2]
+
+# 4. KNN con variables seleccionadas
+pred_probs_knn_selected <- predict(knn_best3, newdata = kn3_test, type = "prob")[, 2]
+
+# Generar las curvas ROC para cada modelo
+roc_knn_no_scale <- roc(df_test$target, pred_probs_knn_no_scale)
+roc_knn_scaled <- roc(df_test$target, pred_probs_knn_scaled)
+roc_knn_es_3 <- roc(df_test$target, pred_probs_knn_es_3)
+roc_knn_selected <- roc(kn3_test$target, pred_probs_knn_selected)
+
+# Calcular el AUC para cada modelo
+auc_knn_no_scale <- auc(roc_knn_no_scale)
+auc_knn_scaled <- auc(roc_knn_scaled)
+auc_knn_es_3 <- auc(roc_knn_es_3)
+auc_knn_selected <- auc(roc_knn_selected)
+
+# Imprimir los valores de AUC
+cat("AUC KNN sin escalar con todas las variables:", auc_knn_no_scale, "\n")
+cat("AUC KNN escalado:", auc_knn_scaled, "\n")
+cat("AUC KNN sin escalar k=3:", auc_knn_es_3, "\n")
+cat("AUC KNN con variables seleccionadas:", auc_knn_selected, "\n")
+
+# Graficar las curvas ROC
+plot(roc_knn_no_scale, col = "blue", lwd = 2, main = "Comparación de Curvas ROC para Modelos KNN")
+lines(roc_knn_scaled, col = "red", lwd = 2)
+lines(roc_knn_es_3, col = "green", lwd = 2)
+lines(roc_knn_selected, col = "purple", lwd = 2)
+
+# Añadir una línea diagonal (clasificador aleatorio)
+abline(a = 0, b = 1, col = "gray", lty = 2)
+
+
+# Añadir una leyenda con tamaño reducido
+legend("bottomright", legend = c("KNN sin escalar", "KNN escalado", 
+                                 "KNN sin escalar k=3", "KNN variables seleccionadas"),
+       col = c("blue", "red", "green", "purple"), lwd = 2, cex = 0.5)  # Ajuste del tamaño de la leyenda
+
+```
+KNN sin escalar con k=3, Área bajo la curva: 0,6375. Es el mejor modelo.
 # Árboles de decisión
 
 Los árboles de decisión son un modelo de aprendizaje supervisado ampliamente utilizado por su capacidad de manejar datos categóricos y numéricos, ser interpretables y funcionar bien sin necesidad de escalar. En este análisis, implementamos un árbol de decisión para predecir la variable objetivo target.
