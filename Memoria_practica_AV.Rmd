@@ -17,6 +17,8 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 # Cargamos las librerias que vamos necesitando a lo largo del codigo
 
+library(randomForest)
+library(ipred)
 library(rpart)
 library(rpart.plot)
 library(caret)
@@ -3212,7 +3214,7 @@ En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser q
 - Precisión $= \frac{FP}{FP+TN}$. Mide la proporción de casos correctamente clasificados como positivos entre todos los casos que el modelo ha clasificado como positivos. Intentaremos maximizar este valor.
 Otras medidas se comentarán más adelante.
 
-## K-vecinos.
+# Modelos K-Vecinos.
 
 El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del ML. Este método se basa en la noción de similitud (o distancia) entre observaciones.
 
@@ -3221,7 +3223,7 @@ vecinos, es decir, la moda de la variable objetivo.
 
 Para elegir el número k, seleccionamos aquel valor que minimice la tasa de errores, al mismo tiempo que preserva la capacidad del algoritmo para realizar predicciones precisas en datos no vistos previamente.
 
-### Modelo 1.
+## Modelo 1.
 
 Primeramente, vamos a probar introduciendo variables que razonablemente podrían determinar los mejores vecinos. Es importante que las variables seleccionadas sean informativas y relevantes para predecir el comportamiento objetivo.
 Las variables introducidas, son las siguientes: 
@@ -3287,7 +3289,7 @@ Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escala
 rm(df, df_test, matrizconfusion1, matrizconfusion2)
 ```
 
-### Modelo 2.
+## Modelo 2.
 
 Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, escalaremos antes de aplicar KNN y así todas las variables contribuirán equitativamente.
 
@@ -3386,7 +3388,7 @@ rm(conf_matrix_test, conf_matrix_train, control, df, df_scaled, df_test, df_test
 ```
 
 
-### Modelo 3.
+## Modelo 3.
 
 A continuación, vamos a probar a usar ese k=3, pero ahora SIN escalar. Veamos qué resultado obtenemos: 
 
@@ -3446,7 +3448,7 @@ La sensibilidad para la clase 0 es aceptable (62.5%), aunque podría mejorarse.
 rm(df, df_test,conf_matrix_test, conf_matrix_train, best_k, predicciones, predicciones_test, predicciones_test_best, predicciones_test_best2, predicciones_train_best, predicciones_train_best2, tabla_test2, tabla_train2)
 ```
 
-### Modelo 4.
+## Modelo 4.
 
 Otra forma de variar nuestro método es mediante la variación en las variables introducidas. Variables anteriormente introducidas como athleteid, eventid pueden no estar influyendo. Además, estas variables son de tipo factor. Por lo tanto, al no distribuirse de manera lineal, calcular las distancias euclídeas podría no ser la forma correcta para clasificar a nuestros atletas. 
 En este apartado, analizaremos el método Knn sin estas variables.
@@ -3526,7 +3528,7 @@ rm(conf_matrix_test, conf_matrix_train, fit.knn3, kn3, kn3_test, knn.k3, trainCo
 
 
 
-### Modelo 5. 
+## Modelo 5.(mirar porqué no me funciona.)
 
 En este último modelo, vamos a probar a usar una función que proporciona la librería Caret, la cual va a tratar de darnos la mejor selección de variables. Para ello, seleccionamos primero todas las variables posibles que podríamos considerar meter: 
 
@@ -3589,7 +3591,7 @@ rm(control, variablesSeleccionadas, df, df_test, matrizconfusion1, matrizconfusi
 ```
 
 
-### knn (S)(resumen y decision)
+## Resumen y decisión. (poner los datos bien.)
 
 1. Evaluación del Primer Modelo KNN(sin escalar y k = 5). Incluye todas las variables, incluidas las categóricas como athleteidy eventidF. En el entrenamiento, Accuracy, 0,797 (79,7%),tasa de falsos positivos ( FPR): 0,434 (43,4%). En prueba,Accuracy, 0,733 (73,3%),tasa de falsos positivos ( FPR): 0,5 (50%).
 
@@ -3666,50 +3668,162 @@ rm
 
 # Árboles de decisión
 
-Los árboles de decisión son un modelo de aprendizaje supervisado ampliamente utilizado por su capacidad de manejar datos categóricos y numéricos, ser interpretables y funcionar bien sin necesidad de escalar. En este análisis, implementamos un árbol de decisión para predecir la variable objetivo target.
+## Modelo 1.
+A continuación, vamos a configurar varios modelos basados en árboles de decisión. Los árboles de decisión son un modelo de aprendizaje supervisado ampliamente utilizado por su capacidad de manejar datos categóricos y numéricos, ser interpretables y funcionar bien sin necesidad de escalar. En este análisis, implementamos un árbol de decisión para predecir la variable objetivo target. Este tipo de algoritmos determinan qué variables explicativas proporcionan la mayor parte de la información (ganancia de información) para medir la variable objetivo y hacen predicciones probando secuencialmente las características en orden a su información. Vamos a realizar un árbol de decisión implementando todas las variables que vamos a dar por conocidas PREVIAS a la final. Es decir, todas las variables menos las que involucren el nado en la final (parciales y tiempo de reacción)
 
 ```{r}
-df_arbol <- datos2015Target_train %>% select(eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
-df_test_arbol <- datos2015Target_test %>% select(eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
-# Ajustamos las opciones del árbol con control
+## Además, defino mi variable distancia como categórica.
+df_arbol$distance<- as.factor(df_arbol$distance)
+df_test_arbol$distance<- as.factor(df_test_arbol$distance)
+```
+
+A continuación, calculamos el árbol: 
+
+```{r}
+arbol1 <- rpart(target~., data = df_arbol, method = 'class')
+rpart.plot(arbol1, extra = 1)
+```
+
+Según observamos, podemos concluir que nuestro modelo separa según países, los carriles usados en la preliminar y final, y el swimtime de la preliminar, e incluso por el parcial más lento en la preliminar. 
+
+Tiene sentido por una parte que use esa variable SwimtimeP, ya que como hemos visto en el análisis exploratorio, contra más larga era la prueba, mayor probabilidad de bajar (es decir, target=1) existía. Bien, a continuación, vamos a testear cómo de bueno es nuestro árbol. Para ello, veamos su matriz de confusión: 
+
+```{r}
+prediction <- predict(arbol1, df_arbol, type = 'class')
+cf_train <- confusionMatrix(prediction, as.factor(df_arbol$target),positive="1",
+                      mode = 'everything')
+
+cf_train
+```
+
+Tiene buena pinta nuestro primer modelo, si observamos, tenemos un Accuracy del 0.831, lo cuál es bastante bueno. Además, es un algoritmo con muy buena sensitividad, es decir, clasifica bien los nadadores que bajan, se equivoca en ello 1 de cada 10 veces (0.911). 
+
+
+
+Ahora lo pruebo en mi conjunto de test: 
+```{r}
+prediction <- predict(arbol1, df_test_arbol, type = 'class')
+cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive="1",
+                      mode = 'everything')
+
+cf_test
+```
+
+Para nuestro conjunto test, el modelo baja bastante, luego puede indicar que existe algún tipo de sobreajuste en el modelo anterior. Sí que acierta 3 de cada 4 nadadores cuando predice que baja, pero el accuracy es prácticamente tirar una moneda al aire. 
+
+```{r, warning=FALSE}
+rm(cf_test, cf_train, prediction)
+```
+
+##Modelo 2.
+
+La función que crea el arbol para el modelo anterior, tiene como valores defecto algunos valores que no voy a querer usar o que voy a querer ajustar de manera personalizada. Por ello es que, con la función rpart.control, voy a definir mis propios parámetros sobre los nodos finales y longitud del árbol: 
+
+```{r}
 control_tree <- rpart.control(minsplit = 4,
                          minbucket = 2,
                          maxdepth = 5,
                          cp = 0)
+```
 
+Bien, con estos parámetros establecidos, vuelvo a ejecutar la función rpart y a ver el árbol resultante: 
+
+```{r}
 # Entrenar el árbol de decisión
-arbol <- rpart(target ~ ., data = df_arbol, method = "class", control = control_tree)
+arbol2 <- rpart(target ~ ., data = df_arbol, method = "class", control = control_tree)
 
 # Visualizar el árbol
-rpart.plot(arbol, type = 3, extra = 104, under = TRUE, cex = 0.8)
-
+rpart.plot(arbol2, type = 3, extra = 104, under = TRUE, cex = 0.8)
 ```
-La variable swimtimeP es el predictor más importante. Si swimtimeP < 106, se clasifica en ramas basadas en otros factores como medianaParcialesP y pointP. Si swimtimeP >= 106, se usan variables adicionales como medianaParcialesP para la clasificación.
+
+(Salma mira esta gráfica para mejorarla un poco.)
 
 Cada hoja indica una predicción (0 o 1), con precisión y porcentaje de datos representados.
+A continuación, voy a proceder a hacer las predicciones correspondientes en mis conjuntos de datos tanto de train y test: 
+
+Comienzo en train: 
 
 ```{r}
 # Predicciones en el conjunto de entrenamiento
-pred_train <- predict(arbol, newdata = df_arbol, type = "class")
-confusionMatrix(pred_train, as.factor(df$target))
+pred_train <- predict(arbol2, newdata = df_arbol, type = "class")
+cf_train <- confusionMatrix(pred_train, as.factor(df_arbol$target),positive="1",
+                      mode = 'everything')
+cf_train
+```
 
-# Predicciones en el conjunto de prueba
-pred_test <- predict(arbol, newdata = df_test_arbol, type = "class")
-confusionMatrix(pred_test, as.factor(df_test$target), positive= "1")
+Nuestro modelo, en el conjunto de datos de entrenamiento, es bastante bueno, ya que acierta casi todos las predicciones 1, y además tiene un accuracy del casi 90%. Veamos ahora en los datos test:
 
+```{r}
+pred_test <- predict(arbol2, newdata = df_test_arbol, type = "class")
+cf_test <- confusionMatrix(pred_test, as.factor(df_test_arbol$target),positive="1",
+                      mode = 'everything')
+cf_test
 ```
 El modelo tiene un buen desempeño en el conjunto de entrenamiento, lo que indica que aprende los patrones en los datos.
 
 El modelo tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajuste.
 
 
-## posible mejora
+```{r, warning=FALSE}
+rm(cf_test, cf_train, control_tree, pred_test, pred_train)
+```
 
+## Modelo 3. 
+
+Supongamos que, a partir de ahora, vamos a tener también la variable reactionTimeF, es decir, vamos a predecir si bajan o no después de conocer su salida. Para ello, volvemos a crear nuestros dataframes y hacemos el proceso análogo a los anteriores modelos: 
+
+```{r}
+df_arbol <- datos2015Target_train %>% select(target, reactiontimeF, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_test_arbol <- datos2015Target_test %>% select(target,reactiontimeF, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+
+## Además, defino mi variable distancia como categórica.
+df_arbol$distance<- as.factor(df_arbol$distance)
+df_test_arbol$distance<- as.factor(df_test_arbol$distance)
+```
+
+
+Ahora, construimos nuestro modelo: 
+
+```{r}
+arbol3 <- rpart(target~., data = df_arbol, method = 'class')
+rpart.plot(arbol1, extra = 1)
+```
+
+Y lo evaluamos en train: 
+
+```{r}
+prediction <- predict(arbol3, df_arbol, type = 'class')
+cf_train <- confusionMatrix(prediction, as.factor(df_arbol$target),positive="1",
+                      mode = 'everything')
+
+cf_train
+```
+
+Y en test: 
+
+```{r}
+prediction <- predict(arbol3, df_test_arbol, type = 'class')
+cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive="1",
+                      mode = 'everything')
+
+cf_test
+```
+
+Obtenemos el mismo modelo que antes, luego, en nuestros modelos no es importante dicha variable.
+
+```{r}
+rm(cf_train, cf_test, prediction)
+```
+
+## Modelo 4.
+
+(asignar cp y elegir variables. HACER.)
 Usamos la validación cruzada para encontrar el mejor valor de cp que maximice la generalización del árbol.
 
 ```{r}
-
 set.seed(123)
 control <- trainControl(method = "cv", number = 10)  # 10-fold 
 arbol_cv <- train(target ~ ., 
@@ -3723,8 +3837,6 @@ print(arbol_cv$bestTune)
 ```
 
 De hecho poniendo este cp, deberia mejorar un poco
-
-## posible mejora 2
 
 Si el árbol tiene muchas variables predictoras, algunas podrían no ser útiles y estar introduciendo ruido. 
 
@@ -3746,15 +3858,37 @@ confusionMatrix(pred_test_reducido, as.factor(df_test_arbol_reducido$target), po
 
 ```
 
+# Métodos de ensamblado.
+(hacer introducción sobre en qué consisten.)
 
+## Bagging.
+(explicar en qué consiste este método. )
 
-
-
-
-# Random Forest
+### Modelo 1. 
+A continuación, vamos a construir un modelo de bagging sobre el modelo 3 hecho en Árboles de decisión, buscamos de alguna manera generar una mejora. Para ello, primeramente voy a crear mis dataFrames: 
 
 ```{r}
-#install.packages("randomForest")
+
+```
+
+
+### Modelo 2. 
+(hacer este modelo con el MEJOR MODELO  de Árboles de decisión.)
+
+### Modelo 3. 
+(hacer este modelo con el MEJOR MODELO de k-vecinos. (creo que se puede))
+
+# Random Forest
+(hacer un modelo sobre el mejor modelo de árboles de decisión.)
+
+Un Bosque Aleatorio es una potente técnica de ensamblado que utiliza un conjunto de DTs para mejorar la precisión de las predicciones. En lugar de confiar en un solo árbol, se construye un bosque compuesto por numerosos árboles individuales. La singularidad de un Bosque Aleatorio radica en cómo se crean y combinan estos árboles.
+
+Cada árbol dentro del Bosque Aleatorio no se crea a partir de todo el conjunto de datos, sino que se entrena con un subconjunto aleatorio de variables y un conjunto de observaciones seleccionadas al azar. Este proceso de muestreo aleatorio introduce diversidad en la construcción de cada árbol, lo que ayuda a mitigar la tendencia de DT a sobreajustar los datos.
+
+Cada árbol individual en el Bosque Aleatorio genera una predicción para la variable objetivo, pero no se espera que cada árbol sea altamente efectivo por sí solo. La fortaleza del método radica en la combinación de numerosos árboles, cada uno de los cuales opera en una región diferente del espacio de características. El Bosque Aleatorio se basa en una regla de decisión que cuenta los votos de cada árbol para determinar la predicción final. En teoría, un gran número de modelos relativamente no correlacionados que funcionan como un comité superarán a cualquier modelo individual.
+
+```{r}
+
 library(randomForest)
 
 # Entrenar el modelo Random Forest
@@ -3795,7 +3929,9 @@ print(cf_rf_test)
 
 swimtimeP es la variable más importante.
 
-# xgboost
+
+# Boosting.
+(análogo a bagging)
 
 ```{r}
 library(purrr)
