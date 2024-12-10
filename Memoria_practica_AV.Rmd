@@ -3280,13 +3280,26 @@ print(matrizconfusion2)
 ```
 
 
-Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables, e incluso probar con otras matrices de distancia para intentar mejorarlo. También, Vamos a probar a bajar el número de vecinos próximos entre otras cosas. 
+Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables... También, Vamos a probar a bajar el número de vecinos próximos entre otras cosas. 
 
+
+```{r, echo=FALSE}
+rm(df, df_test, matrizconfusion1, matrizconfusion2)
+```
 
 ### Modelo 2.
 
 Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, escalaremos antes de aplicar KNN y así todas las variables contribuirán equitativamente.
 
+Para ello, cargo primeramente mis datos con las mismas variables que el modelo 1: 
+
+```{r}
+df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+
+df_test <-  datos2015Target_test %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+```
+
+A continuación, las escalo: 
 
 ```{r}
 preProcValues <- preProcess(df[,-14], method = c("center", "scale"))
@@ -3298,6 +3311,7 @@ df_scaled <- cbind(df_scaled, target = df$target)
 df_scaled
 ```
 
+Ahora, voy a usar validación cruzada para tratar de encontrar el mejor k. Es decir, el mejor número de obsevaciones más próximas (vecinos) en los que me dejo fijar. 
 
 ```{r}
 # Crear un rango de valores de k
@@ -3321,7 +3335,8 @@ print(paste("El mejor valor de k es:", best_k))
 plot(knnFit)
 
 ```
-Guarda el valor de k que obtuvo el mejor rendimiento durante la validación cruzada(3).
+
+Bien, visto que el mejor es k=3, vamos a continuación a evaluar mi modelo con k=3 y escalando: 
 
 ```{r}
 set.seed(1466)
@@ -3363,10 +3378,26 @@ print(conf_matrix_test)
 ```
 El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión alta (78.9%) y un equilibrio razonable entre sensibilidad y especificidad. Esto indica que el modelo está capturando patrones en los datos de entrenamiento.
 
+(JURARÍA QUE NO TIENE ESA PRECISIÓN)
 Luego,tiene mejor precisión general en el conjunto de entrenamiento (78.9% frente a 72.5% antes). Clasifica mejor la clase 1 tanto en entrenamiento como en prueba.
 
+```{r}
+rm(conf_matrix_test, conf_matrix_train, control, df, df_scaled, df_test, df_test_scaled, knnFit, preProcValues, tuneGrid)
+```
+
+
 ### Modelo 3.
-Debido a una sospecha pruebo el siguiente modelo sin escalar pero con **k=3**.
+
+A continuación, vamos a probar a usar ese k=3, pero ahora SIN escalar. Veamos qué resultado obtenemos: 
+
+```{r}
+# Creo las tablas: 
+df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+
+df_test<- datos2015Target_test%>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
+
+```
+
 
 ```{r}
 set.seed(125)
@@ -3403,20 +3434,17 @@ print(conf_matrix_test)
 
 ```
 
-
-
 El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una precisión razonable (79.4%) y un balance entre sensibilidad y especificidad.
 
 El modelo generaliza mejor en este caso (precisión del 73.3%), lo que sugiere una mejora significativa respecto a versiones previas.
 La sensibilidad para la clase 0 es aceptable (62.5%), aunque podría mejorarse.
 
 
-```{r}
+```{r, echo=FALSE, warning=FALSE}
 # Elimino lo que no sirve más: 
 
-rm(conf_matrix_test, conf_matrix_train, control, matrizconfusion1, matrizconfusion2, knnFit, preProcValues, tuneGrid)
+rm(df, df_test,conf_matrix_test, conf_matrix_train, best_k, predicciones, predicciones_test, predicciones_test_best, predicciones_test_best2, predicciones_train_best, predicciones_train_best2, tabla_test2, tabla_train2)
 ```
-
 
 ### Modelo 4.
 
@@ -3449,6 +3477,7 @@ plot(knn.k3)
 print(fit.knn3)  # Imprimir el resultado
 
 ```
+
 Como podemos observar, el modelo con mejor valor en accuracy es el k=7. Tenemos muy cerca también el de k=5. 
 
 ```{r}
@@ -3486,61 +3515,53 @@ print(conf_matrix_test)
 
 
 ```
+
 Como vemos, el accuracy en un primer lugar estaría en un 68%. Sin embargo, al ajustar los datos a test, nos resulta en un 46%. Por lo que nuestro modelo es bastante deficiente. 
 Observación: hallamos las mismas matrices con k=5. Con lo que volvemos a obtener un 46%. Debemos abandonar este modelo.
 
+```{r, echo=FALSE, warning=FALSE}
+#elimino cosas: 
+rm(conf_matrix_test, conf_matrix_train, fit.knn3, kn3, kn3_test, knn.k3, trainControl, predicciones_test_best3, predicciones_train_best3)
+```
 
 
 
 ### Modelo 5. 
 
-En este último modelo, vamos a tratar de elegir las mejores variables que consiguen predecir el Target. Para ello, vamos a hacer uso del análisis previo, y vamos a tratar de ponderar cada una por un peso para tratar de predecir mejor. Primeramente, vamos a elegir qué variables meto: 
+En este último modelo, vamos a probar a usar una función que proporciona la librería Caret, la cual va a tratar de darnos la mejor selección de variables. Para ello, seleccionamos primero todas las variables posibles que podríamos considerar meter: 
 
 ```{r}
-df <- datos2015Target_train %>% select(target, distance, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
+df <- datos2015Target_train %>% select(target, athleteid, distance, eventidF, reactiontimeF, daytimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
-df_test <-  datos2015Target_test %>% select(target, distance, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP,daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
-
-```
-
-Bien, he elegido estas variables. Ahora voy a escalarlas: 
-
-```{r}
-# Nombre de la columna que no quieres escalar
-columna_no_escalar <- "target"
-df <- df %>%
-  mutate(across(-all_of(columna_no_escalar), ~ scale(.) %>% as.vector()))
-
-df_test <- df_test %>%
-  mutate(across(-all_of(columna_no_escalar), ~ scale(.) %>% as.vector()))
-
-
+df_test <-  datos2015Target_test %>% select(target, athleteid, distance, eventidF, reactiontimeF, daytimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
 ```
 
 
-A continuación, voy a añadir mayor importancia a las variables: 
-- swimtimeP
-- medianaParcialesP
-- edad
-- pointsP
+A continuación, uso la librería caret: 
+
+```{r, warning=FALSE, echo=FALSE}
+rownames(df)<- NULL
+set.seed(33321)
+control <- rfeControl(functions = caretFuncs, method = "cv", number = 8)
+variablesSeleccionadas <- rfe(
+  df[,-1],              # Variables predictoras
+  df$target,  # Variable objetivo
+  metric= "Accuracy",
+  sizes = c(1:15),           # Cantidad de variables a probar
+  rfeControl = control,
+  method = "knn"
+)
+
+# Ver las variables seleccionadas
+print(variablesSeleccionadas)
+```
+
+Observo el modelo con 3 variables a ver cómo funciona: 
 
 ```{r}
-df <- df %>%
-  mutate(
-    #swimtimeP = swimtimeP * 3,
-    #edad = edad * 2,
-    #medianaParcialesP= medianaParcialesP*2.5,
-    #pointP=pointP*2
-  )
-
-df_test <- df_test %>%
-  mutate(
-    #swimtimeP = swimtimeP * 2,
-    #edad = edad * 2,
-    #medianaParcialesP= medianaParcialesP*2.5,
-    #pointP=pointP*2
-  )
+df <- datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, medianaParcialesP)
+df_test <-  datos2015Target_test %>% select(target, swimtimeP, mediaParcialesP, medianaParcialesP )
 
 ```
 
@@ -3559,6 +3580,12 @@ predicciones_test <- predict(modelo5knn, newdata = df_test[,-1], type = "class")
 matrizconfusion2 <- confusionMatrix(predicciones_test, as.factor(df_test$target), positive = "1")
 print(matrizconfusion2)
 
+```
+
+Observo que tiene un accuracy de 0.774 en Train y 0.61 en test. No es el mejor modelo pero nos ha sacado uno de los mejores que nos puede proveer k-vecinos para los datos que manejamos. 
+
+```{r, echo=FALSE}
+rm(control, variablesSeleccionadas, df, df_test, matrizconfusion1, matrizconfusion2, predicciones, predicciones_test)
 ```
 
 
