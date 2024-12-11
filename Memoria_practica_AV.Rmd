@@ -1857,170 +1857,7 @@ rm(nadadoras800free)
 
 # PCA's
 
-Realizaremos ahora el análisis de componentes principales del 800m libres femenino:
-
-## Análisis de componentes principales. 200 mariposa masculino preliminares (Salma)
-
-La idea de realizar el siguiente PCA es porque disponemos de gran cantidad de variables, algunas de las cuales están correlacionadas entre sí, lo que complica su análisis.
-En estas situaciones es conveniente aplicar el método de componentes principales, que permita reducir el número de variables sin pérdida sustancial de información, y consiguiendo que estas nuevas variables sean incorreladas evitando así que haya información redundante.
-
-Comenzamos,cargando los datos:
-
-```{r}
-prueba200MariposaMasc<- datos2015[datos2015$distance==200 & datos2015$gender=="M" & datos2015$stroke=="FLY"& datos2015$round=="PRE", ]
-
-prueba200MariposaMasc <- prueba200MariposaMasc %>%
-    dplyr::select(lastname, reactiontime, splitdistance, splitswimtime, edad)
-```
-
-Creamos un dataframe en la que nos quedamos con el nombre, apellidos y parciales
-
-```{r, warning=FALSE}
-pruebita <- prueba200MariposaMasc %>%
-  pivot_wider(names_from = splitdistance,       # Los valores de 'Split' serán los nombres de las columnas
-              values_from =splitswimtime)     # Los valores de 'Tiempo' llenarán las celdas
-head(pruebita,10)
-#omito los valores nulos: 
-pruebita<- na.omit(pruebita)
-row.names(pruebita) <- pruebita$lastname # esto es para llamar a las filas con el nombre de los nadadores
-head(pruebita,10)
-```
-
-Calculas estadísticas descriptivas utilizando 'pastecs::stat.desc' para entender mejor tus datos:
-
-```{r}
-pastecs::stat.desc(pruebita, basic = F)
-```
-
-Se puede observar que hay grandes diferencias entre las varianzas de las variables, lo que puede afectar a los resultados de un análisis de componentes principales (ACP), debido a que las variables con mayor varianza tendrán más influencia en la generación de un componente.
-
-El ACP tiene sentido cuando hay correlación entre las variables pues permite eliminar información redundante.
-Si se analiza la matriz de correlaciones se puede ver, a modo de ejemplo, que hay correlaciones fuertes.Luego, procedemos con el PCA
-
-```{r}
-prueba200MariposaMasc2<- datos2015[datos2015$distance==200 & datos2015$gender=="M" & datos2015$stroke=="FLY"& datos2015$round=="PRE", ]
-
-prueba200MariposaMasc2 <- prueba200MariposaMasc2 %>%
-    dplyr::select( reactiontime, splitdistance, splitswimtime, edad)
-
-R <- cor(prueba200MariposaMasc2)
-corrplot::corrplot(R, method = "number", 
-                   number.cex = 0.75) # Matriz de correlaciones con números en letra pequeña
-```
-
-Para la obtención de los componentes principales utilizamos la función princomp.
-Para evitar la influencia de la diferencia en magnitud de las varianzas se puede emplear los datos originales y el argumento cor = TRUE o los datos originales estandarizados y el argumento cor = FALSE.Utilizaremos el primer caso,ya que conseguimos que la suma de las varianzas de las variables originales y la de los componentes coincida con el número de variables de la matriz de datos original.
-
-```{r, warning=FALSE}
-componentess=prcomp(pruebita[,-1], cor = TRUE)
-summary(componentess)
-```
-
-Los componentes están ordenados en función de la varianza que explican y el porcentaje acumulado permite decidir con cuántos componentes trabajar.
-En este caso con solo dos se explica el 96%, con tres el 98%, con uno el 68%...
-
-Generalmente, hay un número pequeño de componentes, los primeros, que contienen casi toda la información y el resto suele contribuir relativamente poco.
-Ya lo hemos visto en nuestro estudio.
-Podemos directamente coger 2, trabajar sobre el plano y tener una alta varianza explicada, pero vamos a demostrarlo de una manera un poco más empírica.
-Utilizamos el criterio del autovalor superior a la unidad (regla de Kaiser) y el gráfico de sedimentación (scree test).
-
-Para el primero, tenemos que saber que este criterio retiene aquellos componentes cuyos valores propios son superiores a la unidad y funciona bastante bien salvo con un gran número de variables, que no es nuestro caso.Luego, será muy preciso.
-Las raices de los autovalores asociados a la matriz de correlaciones son las desviaciones típicas de los componentes y se encuentran en '\$sdev' del objeto componentes creado con la función princomp.
-
-```{r}
-auto<-componentess$sdev^2
-auto
-```
-
-El número de componentes a retener según este criterio sería 2, ya que únicamente hay 2 autovalores mayores que uno.
-Como ya se ha visto, esta decisión implicaría quedarnos con un 96% de la varianza total de los datos, que es bastante.
-
-Otra manera de ver el número de componentes que escojamos, más gráfica, es un gráfico de sedimentación (scree test).
-Este gráfico muestra en el eje de ordenadas los autovalores y en el eje de abscisas los componentes.
-Los cambios en la pendiente nos permiten observar cuánta capacidad explicativa va aportando cada componente.
-
-Se escoge el número de componentes a partir del cual los autovalores restantes son relativamente más pequeños en comparación con él.
-
-```{r}
-plot(componentess, type="lines", main = "Gráfico de sedimentación")
-abline(h=1, lty=3, col="red")
-```
-
-El gráfico de codo nos aconseja también quedarnos con 2 componentes.
-Ambos criterios ofrecen la misma conclusión, que el número de componentes a retener es 2.
-
-Una vez pasamos a la interpretación de las componentes debemos estudiar sus relaciones con cada una de las variables originales.
-Para ello se obtienen e interpretan las correlaciones entre los componentes (componentes\$scores) y las variables.
-Una forma de calcularla es con la función cor:
-
-```{r}
-
-Cor_CompVar <- round(cor(pruebita[,-1], componentess$scores), 4) # con round se redondea, en este caso concreto, a 4 decimales 
-Cor_CompVar
-```
-
-Estos coeficientes que se acaban de calcular son los que se utilizan para interpretar los componentes.
-Como se ha decidido retener solo dos componentes, es conveniente crear un objeto que contenga solo las correlaciones con esos tres componentes, que será el objeto a analizar:
-
-```{r}
-Cor_CompVar_retenidos <- Cor_CompVar[, 1:2]
-Cor_CompVar_retenidos
-```
-
-Antes de seguir con la interpretación de los componentes, es conveniente analizar si con el número de componentes elegido (dos) están todas las variables bien representadas.
-Para ello se utiliza el coeficiente de correlación al cuadrado.El valor de la correlación al cuadrado se utiliza para estimar la calidad de la representación.
-Cuanto más cercano esté a la unidad, mejor será esta.
-
-```{r}
-round(Cor_CompVar[,1:2]^2, 4) # con round se redondea, en este caso concreto, a 4 decimales
-```
-
-Estos resultados se pueden visualizar con corrplot:
-
-```{r}
-corrplot::corrplot(factoextra::get_pca_var(componentess)$cos2[, 1:2], is.corr = F)
-```
-
-La variable correspondiente a 200m se explica principalmente por la componente 1, lo que sugiere que el rendimiento en esta distancia está fuertemente asociado a la variabilidad que captura este componente.
-La visualización indica que esta relación tiene un porcentaje de varianza explicada de aproximadamente 37% lo cual es significativo.La variable 150m también tiene una correlación notable con el componente 1, aunque en menor medida que la variable de 200m.
-Esto indica que el rendimiento en 150m también está influenciado por las mismas características que se reflejan en el componente 1.
-
-La variable edad tiene un fuerte impacto en el componente 1, con un porcentaje de varianza explicada alrededor del 74%.
-Esto sugiere que este componente refleja características que son particularmente relevantes para la edad de los nadadores, implicando que, a medida que los nadadores envejecen, sus tiempos y capacidades en el agua podrían verse influidos por la edad.
-Este hallazgo es importante porque indica que la edad no solo es un factor en el rendimiento, sino que también está profundamente integrada en los componentes que explican la variabilidad del rendimiento en natación.
-
-```{r}
-
-
-factoextra::fviz_cos2(componentess, choice = "var", 
-                      axes = 1:2, # axes recoge los componentes a utilizar
-                         title = "Cos2 de las variables para los componentes 1 a 2") 
-```
-
-En este caso, se representa la suma de cos2 para los 2 componentes.La proporción de variabilidad explicada por los dos componentes retenidos es bastante baja.
-
-Procedemos, con la función fviz_pca_var del paquete factoextra, donde sobre un círculo de radio unidad, se sitúan las variables, utilizando como coordenadas sus correlaciones con cada uno de los componentes en el plano.
-Además, las variables se pueden colorear en función de distintas características, entre las que destacan su contribución y el valor del cos2 (por ejemplo, verde, naranja o rojo dependiendo de que sean valores bajos, medios o altos, respectivamente).
-
-En edad,la recta formada por la primera componente solo explica el 0,28% de la varianza de edad, lo que significa que está pobremente representado por esta dimensión.
-
-```{r}
-
-factoextra::fviz_pca_var(componentess, col.var = "cos2", 
-                         gradient.cols = c("green", "orange", "red"),
-                         repel = TRUE,
-                         title = "Cos2 de las variables en el plano 1")
-```
-
-Cuanto más cercana esté una variable al borde, mejor será la calidad de la representación en el conjunto de las dos componentes.
-
-La variable reactiontime también se observa en una posición cercana al centro del círculo, lo que sugiere que su variabilidad no está suficientemente capturada por los dos componentes principales.
-Esto refuerza la idea de que el tiempo de reacción podría requerir un análisis más profundo o considerar otros componentes adicionales para una representación más adecuada.
-Por el contrario, otras variables relacionadas con las distancias (como las variables de 50m, 100m, 150m, y 200m) están más alejadas del centro, lo que indica que están bien representadas por los dos primeros componentes.
-Esto sugiere que estos componentes capturan la mayor parte de la variabilidad del rendimiento en natación en estas distancias.
-Este PCA, dadas las conclusiones que hemos obtenido, y las variables que hay, simplemente se utilizará para entender la manera de proceder
-
-## Análisis de componentes principales del 800 libres femenino. Ronda preliminar [Alonso]
+## Análisis de componentes principales del 800 libres femenino. Ronda preliminar.
 
 Lo primero que debemos hacer es cargar los datos:
 
@@ -2112,88 +1949,8 @@ fviz_pca_biplot(pca800libres, repel = TRUE)
 rm(pca800libres, prueba800libresPreliminar, pruebawide)
 ```
 
-## Análisis de componentes principales del 100m mariposa femenino. [JAVIER]
 
-En primer lugar, vamos a crear un nuevo dataframe llamado prueba100MariposaFem en la cuál nos quedamos con todas las pruebas de atletas femeninos, de distancia igual a 100 metros y de estilo de nado mariposa.
-A continuación, nos quedamos con las columnas de lastname, reactiontime, splitdistance, splitswimtime y swimtime del dataframe prueba100MariposaFem.
-
-```{r}
-# Filtro de pruebas de 100m mariposa femenino
-prueba100MariposaFem <- datos2015[datos2015$distance==100 & datos2015$gender=="F" & datos2015$stroke=="FLY" & datos2015$round =="PRE",]
-
-# Selección de columnas relevantes
-prueba100MariposaFem <- prueba100MariposaFem %>% dplyr::select(lastname, reactiontime, splitdistance, splitswimtime)
-head(prueba100MariposaFem, 10)
-```
-
-A continuación, vamos a organizar los datos del dataframe *prueba100MariposaFem*.
-de modo que cada nadador tiene una fila única con columnas para cada distancia.
-
-```{r}
-prueba <- prueba100MariposaFem %>%
-  pivot_wider(names_from = splitdistance,       # Las diferenetes distancias se convierten en los nombres de las columnas
-              values_from =splitswimtime)     #los valores de las celdas serán los tiempos de nado
-
-#Eliminamos duplicados y NA de la columna 'lastname'
-prueba <- prueba[!duplicated(prueba$lastname) & !is.na(prueba$lastname), ]
-
-#Convertimos a data frame
-prueba <- as.data.frame(prueba)
-
-# Asignar los nombres de fila como el apellido del nadador
-row.names(prueba) <- prueba$lastname
-
-#Eliminamos filas con NA restantes
-prueba <- na.omit(prueba)
-head(prueba,10)
-```
-
-Con todo esto, estamos preparados para realizar el PCA.
-
-```{r}
-#Realizamos el PCA (estandarizamos los datos)
-pca_100mariposafemenino <- prcomp(prueba[,-1], scale=T)
-pca_100mariposafemenino
-
-```
-
-Observamos que la primera y segunda componente son las que tienen mayor valor de standard deviations, luego serán las más relevantes a efectos de la visualización.
-Veamos la importancia relativa de cada componente
-
-```{r}
-plot(pca_100mariposafemenino)
-summary(pca_100mariposafemenino)
-```
-
-El resultado del análisis de componentes principales (PCA) muestra tres componentes principales (PC1, PC2, PC3).
-Veamos cada aspecto de la salida: Los datos de la fila de desivación estándar (Standard deviation), cuanto mayores sean, mas variabilidad de los datos se captura.
-En este caso, la componente principal PC1 es la que tiene mayor desviación estándar, lo que sugiere que capta la mayor parte de la varianza.
-
-En segundo lugar, la proporción de la varianza (proportion of variance) indica qué porcentaje de la varianza total de los datos está capturado por cada componente.
-Aquí, PC1 captura el 74.23% de la varianza, mientras que PC2 captura el 23.28%, y PC3 solo el 2.493%.
-Esto significa que PC1 es el componente más relevante para representar la estructura de los datos, mientras que PC3 aporta muy poco.
-(como habiámos adelantado anteriormente)
-
-Por último, para la variable de proporción acumulada (cumulative proportion) indica la varianza total capturada al considera las componentes en conjunto.
-PC1 junto con PC2 explican el 97,51% de la variabilidad de los datos (bastante alto).
-Esto sugiere que podemos reducir la dimensionalidad a estas dos primeros componentes sin perder mucha información.
-
-El análisis PCA muestra que los datos prueba pueden ser bien representados con solo dos componentes principales (PC1 y PC2).
-Este resultado implica que la mayor parte de la variabilidad de los tiempos de nado de los participantes se puede resumir en estas dos dimensiones.
-
-Por último, dibujamos los datos proyectados sobre las dos primeras componentes
-
-```{r}
-plot(pca_100mariposafemenino$x[,1:2])
-text(pca_100mariposafemenino$x[,1:2], rownames(prueba[,-1]))
-biplot(pca_100mariposafemenino) 
-```
-
-```{r, echo=FALSE}
-rm(pca_100mariposafemenino, prueba100MariposaFem)
-```
-
-## Análisis de componentes principales en la carrera preliminar de 1500 metros (INES)
+## Análisis de componentes principales en la carrera preliminar de 1500 metros
 
 Vamos a ver en qué estilo predominan los nadadores de 1500 metros.
 
@@ -2301,7 +2058,7 @@ rm(datos1500Masc, pca_1500masculino, resumen1500)
 
 # Clusters
 
-## Cluster sobre el 800m libres femenino. Análisis de estrategias de las nadadoras. [Alonso]
+## Cluster sobre el 800m libres femenino. Análisis de estrategias de las nadadoras.
 
 Voy a crear a continuación un dataframe en el cual, contenga el nombre de las nadadoras del 800 libres femenino.
 Además, quiero los parciales al paso por cada 50 y el tiempo final.
@@ -2493,167 +2250,6 @@ media_swimtime_por_cluster <- aggregate(free800WomensNormalizado$swimtime ~ free
 media_swimtime_por_cluster
 ```
 
-
-
-##Cluster 100 mariposa femenino.
-
-Vamos a escalar los datos de *prueba[,-1]* (los relativos al PCA de 100 mariposa femenimo), es decir, restamos la media y dividimos por la desviación estándar, para que cada columna tenga media 0 y desviación estándar 1.
-
-```{r}
-cluster100mariposafem <- scale(prueba[,-1])
-cluster100mariposafem
-```
-
-Ahora, calculamos y visualizamos la matriz de distancias entre las observaciones de *cluster100mariposafem* (REVISAR)
-
-```{r}
-#Calulamos la matriz de distancias
-distancias <- get_dist(cluster100mariposafem)
-#Vemos la matriz de distancias como un mapa de calor
-fviz_dist(distancias, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
-```
-
-Aquí: - low = "#00AFBB" (azul claro) representa las distancias pequeñas entre observaciones.
-- mid = "white" representa las distancias medias.
-- high = "#FC4E07" (rojo) representa las distancias grandes.
-
-Aplicamos el algoritmo de las k-medias con k=2 con la función k-means, ejecutando el algoritmo 25 veces, por ejemplo
-
-```{r}
-k100Mariposafemenino <- kmeans(cluster100mariposafem, centers = 2, nstart = 25)
-k100Mariposafemenino
-```
-
-La técnica aplicada genera 2 agrupaciones de 48 y 21 observaciones cada una.
-Además se especifica a qué conglomerado pertenece cada asignación (por ejemplo, Borshi pertenece al la agrupación 2, Nobrega a la 2, Mckeon a la 1...)
-
-Ahora, visualicemos los resultados con fviz_cluster
-
-```{r}
-fviz_cluster(k100Mariposafemenino, data =cluster100mariposafem)
-```
-
-Observamos gráficamente las dos agrupaciones mencionadas.
-
-```{r}
-rm(cluster100mariposafem, k100Mariposafemenino, prueba, prueba100MariposaFem, distancias)
-```
-
-## Cluster 200 mariposa masculina.
-
-```{r}
-clusterprueba200 <- scale(pruebita[,-1])
-
-summary(clusterprueba200)
-```
-
-```{r}
-distancias <- get_dist(clusterprueba200)
-fviz_dist(distancias, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
-```
-
-```{r}
-k200 <- kmeans(clusterprueba200, centers = 2, nstart = 25)
-str(k200)
-```
-
-```{r}
-fviz_cluster(k200, data = clusterprueba200)
-```
-
-Como vemos, con 2 clusters nos divide a los participantes según el tiempo de reacción (vemos como el 5, que ya habiamos mencionado, aparece en los más rápidos).
-Los medios, son más, y están en el rojo.
-
-Realmente parece que dos grupos no son suficientes.
-Vamos a verlo empíricamente.
-
-```{r}
-# Reproducible
-set.seed(123)
-
-fviz_nbclust(clusterprueba200, kmeans, method = "wss")
-```
-
-Parece que deberiamos aumentar el número de grupos, incluso 5 grupos.
-A partir de 5 grupos, parece muy baja mejora.
-
-Utilizamos otros métodos.
-Para ello, como el de la silueta.
-
-```{r}
-fviz_nbclust(clusterprueba200, kmeans, method = "silhouette")
-```
-
-Parece que con dos grupos, podemos excluir a valores muy discriminados en nuestro estudio.
-Luego, depende de si nuestro objetivo es encontrar valores peculiares.
-
-Probamos con k=5
-
-```{r}
-k5_200 <- kmeans(clusterprueba200, centers = 5, nstart = 25)
-
-fviz_cluster(k5_200, data = clusterprueba200)
-```
-
-El cluster 5 representa un grupo de nadadores que tienen un comportamiento peculiar en cuanto a los tiempos de reacción, y la edad no parece ser un factor determinante para ellos.
-
-El grupo azul (cluster 4) tiene varias observaciones distribuidas más arriba a la derecha del gráfico, a lo largo de Dim1.
-Estos nadadores parecen tener una mayor edad y mayor tiempo de reacción.
-Esto tiene sentido, ya que el eje de Dim1 parece estar relacionado con el rendimiento en la prueba (donde mayor puntuación indicaría menor rendimiento).
-
-Este cluster verde está ubicado hacia el centro del gráfico, alrededor del origen de los ejes de Dim1 y Dim2.
-Esto sugiere que los nadadores en este grupo tienen un rendimiento promedio o neutral en las variables consideradas (edad y tiempo de reacción).
-
-Los puntos 5 y 26 están en un cluster aislado, probablemente por tener características atípicas en cuanto a su tiempo de reacción, pero con una edad no influyente.
-El cluster azul representa a nadadores mayores con tiempos de reacción más lentos, lo que afecta negativamente su rendimiento.
-Los otros clusters agrupan a los nadadores con características más cercanas entre sí en cuanto a edad y tiempos de reacción.
-
-## Cluster divisivo 200.
-
-```{r}
-# Clustering jerárquico divisivo
-hc200 <- diana(clusterprueba200)
-
-# Coeficiente de división; cantidad de estructura de agrupación encontrada
-hc200$dc
-```
-
-Podemos proceder a realizar el dendograma(cercano a 1).
-
-```{r}
-# Drendrograma
-pltree(hc200, cex = 0.6, hang = -1, main = "Dendrogram de DIANA")
-```
-
-Utilizamos k=5
-
-```{r}
-# Método de Ward
-# Matriz de disimilaridades
-d200 <- dist(clusterprueba200, method = "euclidean")
-hc5_200 <- hclust(d200, method = "ward.D2" )
-
-# Cortamos en 4 clusters
-sub_grp <- cutree(hc5_200, k = 5)
-
-# Visualizamos el corte en el dendrograma
-plot(hc5_200, cex = 0.6)
-rect.hclust(hc5_200, k = 5, border = 2:5)
-```
-
-Veamos si coincide con los clusters anteriores
-
-```{r}
-# Visualización
-#Cluster realizado con el método de división
-fviz_cluster(list(data=clusterprueba200,cluster=sub_grp))
-
-#Cluster realizado con kmeans
-fviz_cluster(k5_200, data = clusterprueba200)
-```
-
-Vemos que coinciden.
-
 ## Cluster para la prueba de 1500 masculina
 
 ```{r}
@@ -2736,6 +2332,7 @@ fviz_gap_stat(gap_stat)
 Utilizando estos dos últimos métodos, nos dan el resultado de que el número óptimo de clústers son dos en "silueta" y uno en "Gap".
 Puesto que cada método nos determina un número distinto de k, utilizaremos la división en grupos según el objetivo a tratar, como hemos comentado recientemente.
 
+
 ##Cluster jerarquico prueba de 1500 metros masculina
 
 ### Cluster aglomerativo. AGNES.
@@ -2784,8 +2381,7 @@ Interpretando el dendrograma, vemos como los primeros pasos de agrupamiento son 
 Por tanto, no tiene sentido cortar en esas etapas iniciales.
 El gráfico parece sugerir la aglomeración en 3 grupos.
 
-##Cluster divisivo.
-DIANA.
+### Cluster divisivo. DIANA.
 
 Calculamos ahora el coeficiente de división.
 
@@ -3023,6 +2619,7 @@ datos2015Target<- datos2015Target%>%
 
 ```
 
+
 ```{r}
 rm(dataframe1, dataframe2, datos2015TargetLong )
 ```
@@ -3044,6 +2641,7 @@ head(datos2015Target,1)
 ```
 
 Observo que Joseph Schooling, nadó la final más rapido que la final, por lo que tienen de target un 1.
+
 
 ## Partición de los datos.
 
@@ -3211,8 +2809,7 @@ En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser q
 
 - Accuracy o Exactitud  $= \frac{TP + TN}{N}$. mide la proporción de predicciones correctas hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
 - FPR (tasa de falsos positivos) $= \frac{FP}{FP+TN}$ Intentaremos minimizar este valor ya que mide la proporción de negativos reales que el modelo clasifica incorrectamente como positivos.
-- Precisión $= \frac{FP}{FP+TN}$. Mide la proporción de casos correctamente clasificados como positivos entre todos los casos que el modelo ha clasificado como positivos. Intentaremos maximizar este valor.
-Otras medidas se comentarán más adelante.
+
 
 # Modelos K-Vecinos.
 
@@ -3310,7 +2907,6 @@ df_scaled <- predict(preProcValues, df[,-14])
 
 #incluimos la columna target
 df_scaled <- cbind(df_scaled, target = df$target)
-df_scaled
 ```
 
 Ahora, voy a usar validación cruzada para tratar de encontrar el mejor k. Es decir, el mejor número de obsevaciones más próximas (vecinos) en los que me dejo fijar. 
@@ -3338,7 +2934,7 @@ plot(knnFit)
 
 ```
 
-Bien, visto que el mejor es k=3, vamos a continuación a evaluar mi modelo con k=3 y escalando: 
+Bien, visto que el mejor es k=3, vamos a continuación a evaluar mi modelo con k=3 y escalando. A continuación entrenamos el modelo y vemos la matriz de confusión en los datos de entrenamiento: 
 
 ```{r}
 set.seed(1466)
@@ -3348,40 +2944,28 @@ modelo2knn <- knn3(df_scaled[,-14], as.factor(df_scaled$target), k = 3, prob = T
 # Predicciones para el conjunto de entrenamiento
 predicciones_train_best <- predict(modelo2knn, newdata = df_scaled[,-14], type = "class")
 
-# Tabla de confusión
-table(Predicted = predicciones_train_best, Actual = df_scaled$target)
-
-
-# Ahora las obtenemos para los datos de test para ver si se pierde o se gana: 
-# Escalar el conjunto de prueba
-df_test_scaled <- predict(preProcValues, df_test %>% select(-target))  # Escalar todas menos el target
-
-# Predicciones para el conjunto de prueba escalado
-predicciones_test_best <- predict(modelo2knn, newdata = df_test_scaled[,-14], type = "class")
-
-# Tabla de confusión
-table(Predicted = predicciones_test_best, Actual = df_test$target)
-
-
-# Tabla de confusión
 conf_matrix_train <- confusionMatrix(predicciones_train_best, as.factor(df_scaled$target),positive= "1")
 
-# Mostrar la matriz de confusión y las métricas asociadas
-print(conf_matrix_train)
-
-
-# Tabla de confusión
-conf_matrix_test <- confusionMatrix(predicciones_test_best, as.factor(df_test$target),positive= "1")
-
-# Mostrar la matriz de confusión y las métricas asociadas
-print(conf_matrix_test)
-
+conf_matrix_train
 
 ```
-El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión alta (78.9%) y un equilibrio razonable entre sensibilidad y especificidad. Esto indica que el modelo está capturando patrones en los datos de entrenamiento.
 
-(JURARÍA QUE NO TIENE ESA PRECISIÓN)
-Luego,tiene mejor precisión general en el conjunto de entrenamiento (78.9% frente a 72.5% antes). Clasifica mejor la clase 1 tanto en entrenamiento como en prueba.
+Parece que se produce una mejora respecto al anterior modelo tanto en accuracy como en sensitivity. A continuación, evalúo mi modelo en el conjunto de test. Para ello, primero escalo mis datos de test:
+
+```{r}
+df_test_scaled <- predict(preProcValues, df_test %>% select(-target))  # Escalar todas menos el target
+```
+
+Y ahora, hago las predicciones: 
+
+```{r}
+predicciones_test_best <- predict(modelo2knn, newdata = df_test_scaled[,-14], type = "class")
+conf_matrix_test <- confusionMatrix(predicciones_test_best, as.factor(df_test$target),positive= "1")
+conf_matrix_test
+```
+
+
+El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una sensibilidad alta (85.7%). Esto indica que el modelo está capturando patrones en los datos de entrenamiento. Pero, en el test, tanto el accuracy como la sensibilidad caen, 53.06% (accuracy), 72% (sensitivity), lo que sugiere un sobreajuste a mis datos de entrenamiento.
 
 ```{r}
 rm(conf_matrix_test, conf_matrix_train, control, df, df_scaled, df_test, df_test_scaled, knnFit, preProcValues, tuneGrid)
@@ -3400,46 +2984,30 @@ df_test<- datos2015Target_test%>% select(athleteid, eventidF, reactiontimeF, eda
 
 ```
 
+A continuación, entreno mi modelo y voy a ver las predicciones en el conjunto de entrenamiento: 
 
 ```{r}
 set.seed(125)
-#Entrenar el modelo KNN con el mejor k encontrado
 modelo3knn <- knn3(df[,-14], as.factor(df$target), k = 3, prob = TRUE)
-
-# Predicciones para el conjunto de entrenamiento
-predicciones_train_best2 <- predict(modelo3knn, newdata = df[,-14], type = "class")
-
-# Tabla de confusión
-tabla_train2<- table(Predicted = predicciones_train_best2, Actual = df$target)
-
-
-predicciones_test_best2 <- predict(modelo3knn, newdata = df_test[,-14], type = "class")
-
-# Tabla de confusión
-tabla_test2<- table(Predicted = predicciones_test_best2, Actual = df_test$target)
-
-
-
-# Tabla de confusión calculada para que aparezcan los parámetros asociados
+predicciones_train_best2<- predict(modelo3knn, newdata = df[,-14], type = "class")
 conf_matrix_train <- confusionMatrix(predicciones_train_best2, as.factor(df$target),positive= "1")
 
-# Mostrar la matriz de confusión y las métricas asociadas
-print(conf_matrix_train)
+conf_matrix_train
+```
 
+Y evalúo en test: 
 
-
-# Tabla de confusión calculada para que aparezcan los parámetros asociados
+```{r}
+predicciones_test_best2 <- predict(modelo3knn, newdata = df_test[,-14], type = "class")
 conf_matrix_test <- confusionMatrix(predicciones_test_best2, as.factor(df_test$target),positive= "1")
 
-# Mostrar la matriz de confusión y las métricas asociadas
-print(conf_matrix_test)
+conf_matrix_test
 
 ```
 
-El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una precisión razonable (79.4%) y un balance entre sensibilidad y especificidad.
+El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una sensibilidad razonable (81.25%). Y accuracy(76.41%)
 
-El modelo generaliza mejor en este caso (precisión del 73.3%), lo que sugiere una mejora significativa respecto a versiones previas.
-La sensibilidad para la clase 0 es aceptable (62.5%), aunque podría mejorarse.
+El modelo en el conjunto de test es mejor en este caso (sensitivity del 72%), y un accuracy de 67.35%, lo que sugiere una mejora significativa respecto a versiones previas.
 
 
 ```{r, echo=FALSE, warning=FALSE}
@@ -3527,7 +3095,6 @@ rm(conf_matrix_test, conf_matrix_train, fit.knn3, kn3, kn3_test, knn.k3, trainCo
 ```
 
 
-
 ## Modelo 5.(mirar porqué no me funciona.)
 
 En este último modelo, vamos a probar a usar una función que proporciona la librería Caret, la cual va a tratar de darnos la mejor selección de variables. Para ello, seleccionamos primero todas las variables posibles que podríamos considerar meter: 
@@ -3584,6 +3151,8 @@ print(matrizconfusion2)
 
 ```
 
+(HAY QUE MIRAR SPECIFITY EN VEZ DE SENSITIVITY)
+
 Observo que tiene un accuracy de 0.774 en Train y 0.61 en test. No es el mejor modelo pero nos ha sacado uno de los mejores que nos puede proveer k-vecinos para los datos que manejamos. 
 
 ```{r, echo=FALSE}
@@ -3613,22 +3182,27 @@ Basándome en los resultados que se presentaron, el modelo KNN con k=3 sin escal
 # Obtener probabilidades para cada modelo
 
 # 1. KNN sin escalar con todas las variables
-pred_probs_knn_no_scale <- predict(prob1, newdata = df_test[,-14], type = "prob")[, 2]
+pred_probs_knn_no_scale <- predict(modelo1knn, newdata = df_test[,-14], type = "prob")[, 2]
 
 # 2. KNN escalado
-pred_probs_knn_scaled <- predict(knn_best, newdata = df_test_scaled[,-14], type = "prob")[, 2]
+pred_probs_knn_scaled <- predict(modelo2knn, newdata = df_test_scaled[,-14], type = "prob")[, 2]
 
 # 3. KNN sin escalar k=3
-pred_probs_knn_es_3 <- predict(knn_best2, newdata = df_test[,-14], type = "prob")[, 2]
+pred_probs_knn_es_3 <- predict(modelo3knn, newdata = df_test[,-14], type = "prob")[, 2]
 
-# 4. KNN con variables seleccionadas
-pred_probs_knn_selected <- predict(knn_best3, newdata = kn3_test, type = "prob")[, 2]
+# 4. KNN con variables seleccionadas.
+pred_probs_knn_selected <- predict(modelo4knn, newdata = kn3_test, type = "prob")[, 2]
+
+# 5. KNN con las MEJORES variables seleccionadas.
+pred_prbos_knn_5 <- predict(modelo4knn, newdata = df_test[,-14], type = "prob")[, 2]
 
 # Generar las curvas ROC para cada modelo
 roc_knn_no_scale <- roc(df_test$target, pred_probs_knn_no_scale)
 roc_knn_scaled <- roc(df_test$target, pred_probs_knn_scaled)
 roc_knn_es_3 <- roc(df_test$target, pred_probs_knn_es_3)
 roc_knn_selected <- roc(kn3_test$target, pred_probs_knn_selected)
+
+#mirar los dataframes. 
 
 # Calcular el AUC para cada modelo
 auc_knn_no_scale <- auc(roc_knn_no_scale)
@@ -3660,15 +3234,10 @@ legend("bottomright", legend = c("KNN sin escalar", "KNN escalado",
 ```
 KNN sin escalar con k=3, Área bajo la curva: 0,6375. Es el mejor modelo.
 
-
-
-```{r}
-rm
-```
-
 # Árboles de decisión
 
 ## Modelo 1.
+
 A continuación, vamos a configurar varios modelos basados en árboles de decisión. Los árboles de decisión son un modelo de aprendizaje supervisado ampliamente utilizado por su capacidad de manejar datos categóricos y numéricos, ser interpretables y funcionar bien sin necesidad de escalar. En este análisis, implementamos un árbol de decisión para predecir la variable objetivo target. Este tipo de algoritmos determinan qué variables explicativas proporcionan la mayor parte de la información (ganancia de información) para medir la variable objetivo y hacen predicciones probando secuencialmente las características en orden a su información. Vamos a realizar un árbol de decisión implementando todas las variables que vamos a dar por conocidas PREVIAS a la final. Es decir, todas las variables menos las que involucren el nado en la final (parciales y tiempo de reacción)
 
 ```{r}
@@ -3818,9 +3387,9 @@ Obtenemos el mismo modelo que antes, luego, en nuestros modelos no es importante
 rm(cf_train, cf_test, prediction)
 ```
 
-## Modelo 4.
+## Modelo 4. (Salma e Inés)
 
-(asignar cp y elegir variables. HACER.)
+(asignar cp y elegir variables. INés)
 Usamos la validación cruzada para encontrar el mejor valor de cp que maximice la generalización del árbol.
 
 ```{r}
@@ -3864,21 +3433,100 @@ confusionMatrix(pred_test_reducido, as.factor(df_test_arbol_reducido$target), po
 ## Bagging.
 (explicar en qué consiste este método. )
 
-### Modelo 1. 
+### Modelo 1.
 A continuación, vamos a construir un modelo de bagging sobre el modelo 3 hecho en Árboles de decisión, buscamos de alguna manera generar una mejora. Para ello, primeramente voy a crear mis dataFrames: 
 
 ```{r}
+df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
+## Además, defino mi variable distancia como categórica.
+df_arbol$distance<- as.factor(df_arbol$distance)
+df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 ```
 
 
-### Modelo 2. 
-(hacer este modelo con el MEJOR MODELO  de Árboles de decisión.)
+Una vez definidos mis árboles, voy a entrenar mi modelo: 
 
-### Modelo 3. 
+```{r}
+# Bagging
+modeloBagging1 <- bagging(target ~., data=df_arbol, coob=TRUE,nbagg=50,
+               rpart= rpart.control(minsplit = 4,
+                             minbucket = 2,
+                             maxdepth = 1,
+                             cp = 0))
+
+```
+
+Veo ahora sus predicciones de test: 
+
+```{r}
+pred_bag_train <- predict(modeloBagging1, df_arbol,type="prob")[,2]
+clase.pred.bag.train=ifelse(pred_bag_train>0.5,"1","0")
+cf_bag_train <- confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_arbol$target),positive="1")
+
+cf_bag_train
+```
+
+Parece que sobreajusta, voy a ver los datos en test: 
+
+```{r}
+pred_bag_test <- predict(modeloBagging1, df_test_arbol,type="prob")[,2]
+clase.pred.bag.test=ifelse(pred_bag_test>0.5,"1","0")
+cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test_arbol$target),positive="1")
+
+cf_bag_test
+```
+
+Confirmamos que tiende al sobreajuste, en el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
+
+```{r}
+rm(cf_bag_train, cf_bag_test)
+```
+
+### Modelo 2.
+
+Una vez definidos mis árboles, voy a entrenar mi modelo: 
+
+```{r}
+# Bagging
+modeloBagging2 <- bagging(target ~., data=df_arbol, coob=TRUE,nbagg=20,
+               rpart= rpart.control(minsplit = 6,
+                             maxdepth = 5,
+                             cp = 0.8))
+
+```
+
+Veo ahora sus predicciones de test: 
+
+```{r}
+pred_bag_train <- predict(modeloBagging2, df_arbol,type="prob")[,2]
+clase.pred.bag.train=ifelse(pred_bag_train>0.5,"1","0")
+cf_bag_train <- confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_arbol$target),positive="1")
+
+cf_bag_train
+```
+
+Parece que sobreajusta, voy a ver los datos en test: 
+
+```{r}
+pred_bag_test <- predict(modeloBagging2, df_test_arbol,type="prob")[,2]
+clase.pred.bag.test=ifelse(pred_bag_test>0.5,"1","0")
+cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test_arbol$target),positive="1")
+
+cf_bag_test
+```
+
+Confirmamos que tiende al sobreajuste, en el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
+
+```{r}
+rm(cf_bag_train, cf_bag_test)
+```
+
+### Modelo 3. (preguntar a Carmen)
 (hacer este modelo con el MEJOR MODELO de k-vecinos. (creo que se puede))
 
-# Random Forest
+# Random Forest (Salma e INés)
 (hacer un modelo sobre el mejor modelo de árboles de decisión.)
 
 Un Bosque Aleatorio es una potente técnica de ensamblado que utiliza un conjunto de DTs para mejorar la precisión de las predicciones. En lugar de confiar en un solo árbol, se construye un bosque compuesto por numerosos árboles individuales. La singularidad de un Bosque Aleatorio radica en cómo se crean y combinan estos árboles.
@@ -3930,8 +3578,16 @@ print(cf_rf_test)
 swimtimeP es la variable más importante.
 
 
-# Boosting.
-(análogo a bagging)
+# Boosting. ?????????
+
+## Modelo 1.
+
+No lo ha dado carmen todavía.
+
+
+## Modelo 2. 
+
+Sobre el k-vecinos??????
 
 ```{r}
 library(purrr)
@@ -4022,6 +3678,35 @@ confusion_matrix <- cbind(prediccion > 0.5, datos2015Target_test$target) %>%
 confusionMatrix(confusion_matrix, positive = "1")
 
 ```
+
+
+
+
+# Conclusiones sobre nuestro mejor modelo.
+
+hacer los contrafácticos y tema 7 en general.
+
+
+
+
+PREGUNTAR A CARMEN CÓMO ELEGIR LA PROBABILIDAD (0.5 O OTRA)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Curva ROC (Pruebo por ahora como van los modelos, actualizar)
 
