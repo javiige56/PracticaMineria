@@ -619,6 +619,181 @@ rm(tabla1,tabla2, tabla3, generos, porcentajes, totales, datos_porcentajes)
 
 
 ## Análisis de nacionalidades. 
+Vamos a ver la cantidad de nadadores por país. Para ello, primero voy a ver cuántos paises hay: 
+
+```{r}
+nlevels(nadadoresParticipantes$code)
+```
+
+Hay 185 países. Debido a la cantidad de países, ver por países cuántos nadadores hay no va a ser muy interpretable.
+
+```{r eval=FALSE, warning=FALSE, include=FALSE}
+
+nadadoresParticipantes$iso2 <- countrycode(nadadoresParticipantes$name, "country.name", "iso2c")
+
+nombres<- unique(nadadoresParticipantes$name) #Para no repetir
+#print(nombres)
+manual <- data.frame(
+  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
+  iso2 = c("FI", "XK", "FM", "VI")  
+)
+
+# Agregamos la variable continente 
+nadadoresParticipantes$continent <- countrycode(nadadoresParticipantes$iso2, "iso2c", "continent")
+
+
+
+nadadoresParticipantes <- nadadoresParticipantes %>%
+  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
+
+
+#nadadores por país
+resumen_paises <- nadadoresParticipantes %>%
+  group_by(name, iso2, continent) %>%
+  summarise(num_nadadores = n(), .groups = "drop") %>%
+  arrange(desc(num_nadadores))  # Ordenar por número de nadadores
+
+head(resumen_paises,6)
+```
+
+
+Por ello, intentaremos analizar los resultados en función de proporciones relativas a continentes.
+
+```{r}
+paleta <- c("Americas" = "#0084ff", 
+            "Asia" = "#44bec7", 
+            "Europe" = "#ffc300", 
+            "Oceania" = "#fa3c4c", "Africa"="#ff6347")
+
+# Crear el histograma de cantidad de nadadores por continente
+histograma_nadadores <- resumen_paises %>% 
+  ggplot(aes(x = continent, y = num_nadadores, fill = continent)) + 
+  geom_bar(stat = "identity") +  # Sumar cantidad de nadadores por continente
+  labs(title = "Cantidad de Nadadores por Continente",
+       x = "Continente",
+       y = "Número de Nadadores") +
+  scale_fill_manual(values = paleta) +  # Colores personalizados por continente
+  theme_minimal()
+
+# Imprimir el histograma
+print(histograma_nadadores)
+
+```
+
+
+Como podemos observar en los gráficos, la mayor cantidad de nadadores son de procedencia europea, continuando con Asia y Américas, y teniendo baja proporción los nadadores de África y Oceanía.
+
+Nos preguntamos en esta situación, si los Europeos tendrán los puestos más altos en el ranking.
+Es decir, si existe mayor proporción de ganadores en los países con más densidad de participantes.
+
+Para ello, analizaremos los puntos según las nacionalidades de los nadadores.
+
+```{r}
+puntos_por_pais <- nadadoresPruebas %>%
+  group_by(name) %>%  
+  summarise(total_puntos = sum(points, na.rm = TRUE))  
+
+# Ver el resultado
+head(puntos_por_pais,20)
+
+```
+
+Lo vemos por continentes:
+
+```{r, warning=FALSE}
+
+nadadoresPruebas$iso2 <- countrycode(nadadoresPruebas$name, "country.name", "iso2c")
+
+nombres<- unique(nadadoresPruebas$name) 
+
+manual <- data.frame(
+  nombre = c("Fina", "Kosovo", "Micronesia", "Virgin Islands"),
+  iso2 = c("FI", "XK", "FM", "VI")  
+)
+
+
+nadadoresPruebas$continent <- countrycode(nadadoresPruebas$iso2, "iso2c", "continent")
+
+nadadoresPruebas <- nadadoresPruebas %>%
+  mutate(continent = ifelse(iso2 == "XK", "Europe", continent))  
+
+
+puntos_por_continente <- nadadoresPruebas %>%
+  group_by(continent) %>% 
+  summarise(total_puntos = sum(points, na.rm = TRUE))  
+
+print(puntos_por_continente)
+```
+
+Anteriormente hemos hallado para cada contiente todos los puntos conseguidos por los nadadores de dicho continente.
+Lo que vamos a hacer a continuación es normalizar los puntos por continente, es decir, para cada continente tomamos todos los puntos de dicho continente y lo dividimos por todos participantes de ese continente y comparamos.
+
+```{r}
+# Agrupar por continente, sumar puntos y contar participantes
+resumenContinente <- nadadoresPruebas %>%
+  group_by(continent) %>%
+  summarise(
+    puntos_totales_continente = sum(points, na.rm = TRUE),
+    numero_Participantes_continente = n()  # Contar los participantes
+  ) %>%
+  mutate(
+    relacion_puntos_por_participante = puntos_totales_continente / numero_Participantes_continente
+  )
+
+# Imprimir el resultado
+print(resumenContinente %>% select(continent, relacion_puntos_por_participante))
+```
+
+Vemos que Europa tiene el mejor promedio con una cierta diferencia, le siguen América y Oceanía (puntuaciones similares), después Asia y por último Africa.
+
+Para terminar con esta sección, vamos a ver los 20 primeros en el ranking, y a hacer un gráfico que nos indique de que pais es cada uno de los 20.
+
+```{r}
+datos_100m_top <- nadadoresPruebas[nadadoresPruebas$distance==100,] %>% # Filtra para la prueba de 100 metros
+  arrange(desc(points)) %>%           # Ordena por puntos de mayor a menor
+  dplyr::slice(1:20)                        # Selecciona las primeras 20 
+
+```
+
+```{r}
+conteo_por_continente <- datos_100m_top %>%
+  group_by(continent) %>%                                       
+  summarise(cantidad_nadadores = n()) %>%                      
+  mutate(percent = (cantidad_nadadores / sum(cantidad_nadadores)) * 100)  # Calcula el porcentaje
+
+# Crear el gráfico de distribución porcentual
+grafico_distribucion_continente <- ggplot(conteo_por_continente, aes(x = continent, y = percent, fill = continent)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Distribución Porcentual de Nadadores por Continente en los Top 20 - 100 Metros",
+       x = "Continente",
+       y = "Porcentaje de Nadadores") +
+  scale_fill_manual(values = paleta) +                          # Usa la paleta de colores personalizada
+  theme_minimal()
+
+# Imprimir el gráfico
+print(grafico_distribucion_continente)
+
+```
+
+La alta cantidad de nadadores europeos en el podio de 100 metros (más específico que lo anterior, ya que esto nos mete directamente en los primeros 20) sugiere que hay un fuerte nivel de competencia y entrenamiento en las naciones de este continente.
+Esto podría estar relacionado con la inversión en programas de natación.
+Le sigue oceanía,ya que Oceanía, aunque es una región más pequeña en términos de población comparada con Europa, ha producido nadadores destacados que compiten a niveles muy altos.
+La presencia de nadadores de élite, especialmente de Australia, resalta la calidad del talento en la región.
+
+Los datos indican que África tiene solo un 15% de ganadores en la natación en comparación con otros continentes como Europa y Oceanía, esto puede abrir un amplio espacio para el análisis, ya que muchos países africanos enfrentan desafíos significativos en cuánto a la inversión en infraestructura deportiva.La falta de instalaciones de calidad para la natación, como piscinas adecuadas, puede limitar el desarrollo de talentos.
+
+Realizando un chequeo rápido a la tabla de los 20 mejores, vemos que tenemos South Africa en el top 4 en 100 metros. 
+La presencia de Sudáfrica en el cuarto lugar es un indicador de que, a pesar de la baja representación general, el continente tiene al menos algunos atletas de élite que pueden competir con los mejores del mundo. Aunque la cantidad de nadadores africanos en el podio es baja, su éxito en alcanzar los primeros puestos es notable.
+Esto podría implicar que los nadadores africanos son altamente competitivos cuando tienen la oportunidad de competir en el más alto nivel.
+Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de participantes, se obtiene una visión clara del rendimiento de los nadadores en este evento específico.
+Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
+
+```{r, echo=FALSE}
+rm( conteo_por_continente, datos_100m_top, grafico_distribucion_continente, histograma_nadadores, manual, puntos_por_continente, puntos_por_pais, resumen_paises, resumenContinente, nombres, paleta)
+nadadoresParticipantes<-nadadoresParticipantesCopia
+nadadoresPruebas<-nadadoresPruebasCopia
+```
+
 
 
 ## Estudio sobre los eventos, reactiontime, lane, heats, daytime:
@@ -3387,51 +3562,76 @@ Obtenemos el mismo modelo que antes, luego, en nuestros modelos no es importante
 rm(cf_train, cf_test, prediction)
 ```
 
-## Modelo 4. (Salma e Inés)
-
-(asignar cp y elegir variables. INés)
-Usamos la validación cruzada para encontrar el mejor valor de cp que maximice la generalización del árbol.
-
+## Modelo 4.
+Falta concluir
 ```{r}
+# Validación cruzada para encontrar el mejor cp
 set.seed(123)
-control <- trainControl(method = "cv", number = 10)  # 10-fold 
+control <- trainControl(method = "cv", number = 10)  # 10-fold validation
 arbol_cv <- train(target ~ ., 
                   data = df_arbol, 
                   method = "rpart", 
                   trControl = control, 
-                  tuneLength = 10)  
-
-print(arbol_cv$bestTune)
+                  tuneLength = 10)   
 
 ```
 
-De hecho poniendo este cp, deberia mejorar un poco
-
-Si el árbol tiene muchas variables predictoras, algunas podrían no ser útiles y estar introduciendo ruido. 
+```{r}
+# Mejor valor de cp
+print(arbol_cv$bestTune)
+```
 
 ```{r}
+# Importancia de las variables
 importancia <- varImp(arbol_cv, scale = TRUE)
 print(importancia)
-
 ```
-Puedes simplificar el modelo eliminando variables con baja importancia (por ejemplo, reactiontimeF y eventidP), lo que podría reducir el ruido y mejorar la generalización.
+
 
 ```{r}
-arbol_reducido <- rpart(target ~ ., data = df_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP), method = "class", control = control_tree)
-rpart.plot(arbol_reducido, type = 3, extra = 104, under = TRUE, cex = 0.8)
+# Árbol reducido eliminando variables con baja importancia
+arbol4 <- rpart(target ~ ., 
+                        data = df_arbol %>% select(maximoParcialesP, swimtimeP, medianaParcialesP,target), 
+                        method = "class", 
+                        control = rpart.control(cp = arbol_cv$bestTune$cp))
+```
 
-# Evaluar el rendimiento
-df_test_arbol_reducido=df_test_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP)
-pred_test_reducido <- predict(arbol_reducido, newdata = df_test_arbol %>% select(-eventidP, -reactiontimeF,-reactiontimeP), type = "class")
-confusionMatrix(pred_test_reducido, as.factor(df_test_arbol_reducido$target), positive= "1")
+```{r}
+# Visualización del árbol reducido
+rpart.plot(arbol4, type = 3, extra = 104, under = TRUE, cex = 0.8)
 
+```
+
+Evaluamos el modelo,
+
+```{r}
+prediction <- predict(arbol4, df_arbol, type = 'class')
+cf_train <- confusionMatrix(prediction, as.factor(df_arbol$target),positive="1",
+                      mode = 'everything')
+
+cf_train
+```
+
+Y en test: 
+
+```{r}
+prediction <- predict(arbol4, df_test_arbol, type = 'class')
+cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive="1",
+                      mode = 'everything')
+
+cf_test
+```
+
+
+```{r}
+rm(cf_train, cf_test, prediction,arbol_cv)
 ```
 
 # Métodos de ensamblado.
-(hacer introducción sobre en qué consisten.)
+Los métodos de ensamblado son técnicas avanzadas de aprendizaje automático que combinan múltiples modelos base para mejorar la precisión, la robustez y la generalización de las predicciones. El objetivo principal de estos métodos es reducir el error del modelo base mediante la integración de varios predictores, lo que permite capturar diferentes patrones en los datos. 
 
 ## Bagging.
-(explicar en qué consiste este método. )
+Bagging es un método de ensamblado paralelo que busca reducir la varianza de los modelos base, mejorando la precisión general de las predicciones. Este enfoque es particularmente útil en algoritmos inestables, como árboles de decisión, que pueden producir modelos muy diferentes con ligeros cambios en los datos de entrenamiento.
 
 ### Modelo 1.
 A continuación, vamos a construir un modelo de bagging sobre el modelo 3 hecho en Árboles de decisión, buscamos de alguna manera generar una mejora. Para ello, primeramente voy a crear mis dataFrames: 
