@@ -3621,6 +3621,8 @@ arbol4 <- rpart(target ~ .,
 rpart.plot(arbol4, type = 3, extra = 104, under = TRUE, cex = 0.8)
 
 ```
+En este árbol toma la variable más importante el tiempo de nado en el parcial. En concreto, es relevante si los nadadores tienen un tiempo mayor o menor de 106 segundos, probablemente indique una división entre las pruebas de larga y baja distancia. Posteriormene divide según las medianas de dichos parciales. Por último, utiliza nuevamente los tiempos de los parciales. 
+En resumen, el árbol toma como las variables más influyentes las basadas en los tiempos y sus medianas parciales.
 
 Evaluamos el modelo en entrenamiento,
 
@@ -3641,7 +3643,10 @@ cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive=
 
 cf_test
 ```
+El accuracy de 61.22% indica que el modelo acierta en aproximadamente el 61% de las predicciones. Aunque es superior a una predicción aleatoria, el p-valor de 0.09887 sugiere que esta diferencia no es estadísticamente significativa. Esto sugiere que el modelo no está significativamente mejor que una estrategia aleatoria y podría necesitar ajustes o mejoras.
 
+La sensibilidad de 72% indica que el modelo tiene una buena capacidad para identificar los casos positivos (por ejemplo, nadadores que "bajan"). Acierta en 7 de cada 10 casos positivos, lo cual es positivo, aunque por sí solo este estadístico no indica un buen modelo ya que se necesita un equilibrio con la especificidad.
+La especificidad de 50% muestra que el modelo identifica correctamente la mitad de los casos negativos. Sin embargo, la otra mitad de los casos negativos son clasificados erróneamente como positivos, lo que significa que el modelo está generando una cantidad significativa de falsos positivos.
 
 ```{r}
 rm(cf_train, cf_test, prediction,arbol_cv)
@@ -3678,7 +3683,7 @@ modeloBagging1 <- bagging(target ~., data=df_arbol, coob=TRUE,nbagg=50,
 
 ```
 
-Veo ahora sus predicciones de test: 
+Vemos sus predicciones en entrenamiento: 
 
 ```{r}
 pred_bag_train <- predict(modeloBagging1, df_arbol,type="prob")[,2]
@@ -3688,7 +3693,8 @@ cf_bag_train <- confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_ar
 cf_bag_train
 ```
 
-Parece que sobreajusta, voy a ver los datos en test: 
+Parece que sobreajusta ya que tenemos un accuracy, sensitivity y specificity del 100%. 
+Probamos este modelo con los datos en test: 
 
 ```{r}
 pred_bag_test <- predict(modeloBagging1, df_test_arbol,type="prob")[,2]
@@ -3698,7 +3704,9 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 cf_bag_test
 ```
 
-Confirmamos que tiende al sobreajuste, en el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
+Confirmamos que tiende al sobreajuste, se reducen todos los estadísticos. En concreto, la especificidad baja a un 45.83%. Un valor de 45.83% es relativamente bajo, lo que significa que el modelo está cometiendo muchos falsos positivos, clasificando incorrectamente como positivos a muchos casos negativos. 
+
+En el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
 
 ```{r}
 rm(cf_bag_train, cf_bag_test)
@@ -3706,7 +3714,7 @@ rm(cf_bag_train, cf_bag_test)
 
 ### Modelo 2.
 
-Una vez definidos mis árboles, voy a entrenar mi modelo: 
+Una vez definidos los árboles, entrenamos el modelo: 
 
 ```{r}
 # Bagging
@@ -3717,7 +3725,7 @@ modeloBagging2 <- bagging(target ~., data=df_arbol, coob=TRUE,nbagg=20,
 
 ```
 
-Veo ahora sus predicciones de test: 
+Vemos ahora sus predicciones en train y su matriz de confusión, 
 
 ```{r}
 pred_bag_train <- predict(modeloBagging2, df_arbol,type="prob")[,2]
@@ -3727,7 +3735,8 @@ cf_bag_train <- confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_ar
 cf_bag_train
 ```
 
-Parece que sobreajusta, voy a ver los datos en test: 
+Obtenemos igual que en el caso anterior, unos estadísticos del 100%. 
+Vemos cómo se comporta el modelo en los datos test: 
 
 ```{r}
 pred_bag_test <- predict(modeloBagging2, df_test_arbol,type="prob")[,2]
@@ -3737,7 +3746,8 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 cf_bag_test
 ```
 
-Confirmamos que tiende al sobreajuste, en el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
+Confirmamos que tiende al sobreajuste, aunque se comporta ligeramente mejor que en el caso anterior. 
+en el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
 
 ```{r}
 rm(cf_bag_train, cf_bag_test)
