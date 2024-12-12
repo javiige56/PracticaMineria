@@ -2905,7 +2905,7 @@ porcentajes <- df %>%
 ggplot(porcentajes, aes(x = grupo_edad, y = porcentaje, fill = factor(target))) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(
-    title = "Porcentaje de Nadadores que Bajan y No Bajan por Grupo de Edad",
+    title = "Porcentaje de Nadadores que Bajan y no Bajan por Grupo de Edad",
     x = "Grupo de Edad",
     y = "Porcentaje",
     fill = "¿Bajan?"
@@ -2968,7 +2968,7 @@ ggplot(porcentajes, aes(x = distance, y = porcentaje, fill = factor(target))) +
   theme_minimal()
 ```
 
-Aquí observamos que a partir de los 200 metros, suelen dejarse "algo" de energía para las finales, y allí si que bajan de tiempo. Luego parece que esto lo debemos ponderar. 
+A partir de los 200 metros, se observa una tendencia en la que los nadadores parecen reservar parte de su energía durante las etapas iniciales para maximizar su rendimiento en las finales, donde efectivamente logran disminuir sus tiempos. Este comportamiento sugiere que es necesario considerar este factor en el análisis.
 
 ```{r, echo=FALSE}
 rm(datos, porcentajes)
@@ -2982,13 +2982,13 @@ rm(datos, porcentajes)
 
 En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, voy a intentar minimizar el error que se produce cuando predigo que un nadador SÍ baja de tiempo, pero en realidad no lo hace. Me interesa minimizar los falsos positivos. Por tanto, utilizaremos distintos modelos y evaluaremos su calidad mediante medidas de rendimiento que parten de la matriz de confusión, ya que nuestra variable objetivo es binaria (0,1). Comentaremos las principales métricas de rendimiento, haciendo mayor hincapié en las siguientes:
 
-- Accuracy o Exactitud  $= \frac{TP + TN}{N}$. mide la proporción de predicciones correctas hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
+- Accuracy o Exactitud  $= \frac{TP + TN}{N}$. Mide la proporción de predicciones correctas hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
 - FPR (tasa de falsos positivos) $= \frac{FP}{FP+TN}$ Intentaremos minimizar este valor ya que mide la proporción de negativos reales que el modelo clasifica incorrectamente como positivos.
 
 
 # Modelos K-Vecinos.
 
-El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del ML. Este método se basa en la noción de similitud (o distancia) entre observaciones.
+El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del Machine Learning. Este método se basa en la noción de similitud (o distancia) entre observaciones.
 
 En un problema de clasificación, el algoritmo devolverá la clase que predomina entre los 
 vecinos, es decir, la moda de la variable objetivo.
@@ -2999,30 +2999,30 @@ Para elegir el número k, seleccionamos aquel valor que minimice la tasa de erro
 
 Primeramente, vamos a probar introduciendo variables que razonablemente podrían determinar los mejores vecinos. Es importante que las variables seleccionadas sean informativas y relevantes para predecir el comportamiento objetivo.
 Las variables introducidas, son las siguientes: 
-- Athelteid: Esta variable podría ser útil si hay patrones repetitivos en el rendimiento de un mismo nadador a lo largo de las pruebas. 
+- athelteid. Esta variable podría ser útil si hay patrones repetitivos en el rendimiento de un mismo nadador a lo largo de las pruebas. 
 
-- eventidF: es el id de evento de la final. Al introducir esta variable no es necesario introducir otras como son: el sexo, estilo y distancia, al agrupar a los nadadores por la misma competencia.
+- eventidF. Es el id de evento de la final. Al introducir esta variable no es necesario introducir otras como son: el sexo, estilo y distancia, al agrupar a los nadadores por la misma competencia.
 
-- reactionTimeF: Supondremos que vamos a predecir si los nadadores bajan justo en el momento en el que saltan. Esta variable es relevante para predecir si un nadador bajará su tiempo, si su tiempo de reacción en la final es pésimo, podría influir en la decisión de nuestro modelo.
+- reactionTimeF. Supondremos que vamos a predecir si los nadadores bajan justo en el momento en el que saltan. Esta variable es relevante para predecir si un nadador bajará su tiempo. Si su tiempo de reacción en la final es excesivamente alto, podría influir en la decisión de nuestro modelo.
 
-- edad: También puede ser importante, ya que la edad puede influir en el rendimiento.
+- edad. Puede ser importante, ya que la edad puede influir en el rendimiento, tal y como hemos observado previamente.
 
-- eventidP: similar al EventidF, el evento preliminar puede agrupar a los nadadores que compiten en las mismas condiciones.  
+- eventidP. Similar al EventidF, el evento preliminar puede agrupar a los nadadores que compiten en las mismas condiciones.  
 
-- pointP: los puntos de las preliminares. 
+- pointP. Puntos de las preliminares. 
 
-- reactionTimeP: el tiempo de reacción de la prueba previa. 
+- reactionTimeP. Tiempo de reacción de la prueba previa. 
 
-- swimtimeP: el tiempo final de la prueba previa.
+- swimtimeP. Tiempo final de la prueba previa.
 
-- daytimeP: la hora de la preliminar.
+- daytimeP. Hora de la preliminar.
 
-- mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP: son bastante útiles, ya que proporcionan información más detallada sobre el rendimiento del nadador a lo largo de la prueba. El promedio de los parciales puede indicar la consistencia del nadador. El máximo, el mínimo, la media, la mediana, pueden ayudar a identificar vecinos con características parecidas sobre cómo plantean la prueba.
+- mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP. Son bastante útiles, ya que proporcionan información más detallada sobre el rendimiento del nadador a lo largo de la prueba. El promedio de los parciales puede indicar la consistencia del nadador. El máximo, el mínimo, la media y la mediana pueden ayudar a identificar vecinos con características parecidas sobre cómo plantean la prueba.
 
-A continuación, voy a entrenar un primer modelo fijándome en los 5 vecinos más proximos con todas las variables y usando la distancia euclídea entre observaciones y sin escalar los datos: 
+A continuación, entrenamos un primer modelo fijándonos en los 5 vecinos más proximos con todas las variables y usando la distancia euclídea entre observaciones sin escalar los datos: 
 
 ```{r}
-# Selecciono las variables. 
+# Selección de variables. 
 
 df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
 
@@ -3031,7 +3031,7 @@ modelo1knn = knn3(df[,-14], as.factor(df$target), k=5, prob=TRUE)
 
 ```
 
-Bien, voy a ver cómo de bien rinde mi modelo en el conjunto en el que se ha entrenado: 
+Observamos el rendimiento del modelo en el conjunto de datos de entrenamiento, 
 
 ```{r}
 # Obtener las predicciones de clase y la matriz de confusión
@@ -3054,7 +3054,8 @@ print(matrizconfusion2)
 ```
 
 
-Es como lanzar una moneda al aire. No es un buen modelo. Vamos a probar a escalar, meter otras variables... También, Vamos a probar a bajar el número de vecinos próximos entre otras cosas. 
+La precisión del modelo está en un 57%. Es decir, acierta prácticamente por azar. Por tanto,no es un buen modelo. Probaremos con algunas modificaciones esperando conseguir un modelo mejor: escalar, introducir o descartar variables y/o elegir un k distinto.
+ 
 
 
 ```{r, echo=FALSE}
@@ -3063,7 +3064,7 @@ rm(df, df_test, matrizconfusion1, matrizconfusion2)
 
 ## Modelo 2.
 
-Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, escalaremos antes de aplicar KNN y así todas las variables contribuirán equitativamente.
+Dado que KNN depende de la distancia entre las observaciones, las variables con rangos más amplios podrían influir desproporcionadamente en los resultados. Por lo tanto, escalaremos antes de aplicar KNN. De esta forma, todas las variables contribuirán equitativamente.
 
 Para ello, cargo primeramente mis datos con las mismas variables que el modelo 1: 
 
@@ -3073,7 +3074,7 @@ df <- datos2015Target_train %>% select(athleteid, eventidF, reactiontimeF, edad,
 df_test <-  datos2015Target_test %>% select(athleteid, eventidF, reactiontimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
 ```
 
-A continuación, las escalo: 
+A continuación, las escalamos: 
 
 ```{r}
 preProcValues <- preProcess(df[,-14], method = c("center", "scale"))
@@ -3084,7 +3085,7 @@ df_scaled <- predict(preProcValues, df[,-14])
 df_scaled <- cbind(df_scaled, target = df$target)
 ```
 
-Ahora, voy a usar validación cruzada para tratar de encontrar el mejor k. Es decir, el mejor número de obsevaciones más próximas (vecinos) en los que me dejo fijar. 
+Con el objetivo de obtener un modelo más preciso, utilizaremos la validación cruzada para encontrar el mejor k. Es decir, el número ideal de observaciones más cercanas (vecinos) en las que basar nuestras predicciones.
 
 ```{r}
 # Crear un rango de valores de k
@@ -3109,7 +3110,7 @@ plot(knnFit)
 
 ```
 
-Bien, visto que el mejor es k=3, vamos a continuación a evaluar mi modelo con k=3 y escalando. A continuación entrenamos el modelo y vemos la matriz de confusión en los datos de entrenamiento: 
+Tenemos en los resultados que el mejor k es 3. Por tanto, evaluamos el modelo con k=3 y las variables escaladas. Posteriomente, entrenamos el modelo y analizamos la matriz de confusión en los datos de entrenamiento.
 
 ```{r}
 set.seed(1466)
@@ -3125,13 +3126,13 @@ conf_matrix_train
 
 ```
 
-Parece que se produce una mejora respecto al anterior modelo tanto en accuracy como en sensitivity. A continuación, evalúo mi modelo en el conjunto de test. Para ello, primero escalo mis datos de test:
+Parece que se produce una mejora respecto al anterior modelo tanto en accuracy como en sensitivity. A continuación, evaluamos el modelo en el conjunto de test. Para ello, escalamos los datos test.
 
 ```{r}
 df_test_scaled <- predict(preProcValues, df_test %>% select(-target))  # Escalar todas menos el target
 ```
 
-Y ahora, hago las predicciones: 
+Tras este paso, generamos las predicciones. 
 
 ```{r}
 predicciones_test_best <- predict(modelo2knn, newdata = df_test_scaled[,-14], type = "class")
@@ -3140,7 +3141,7 @@ conf_matrix_test
 ```
 
 
-El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una sensibilidad alta (85.7%). Esto indica que el modelo está capturando patrones en los datos de entrenamiento. Pero, en el test, tanto el accuracy como la sensibilidad caen, 53.06% (accuracy), 72% (sensitivity), lo que sugiere un sobreajuste a mis datos de entrenamiento.
+El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión y sensibilidad alta (78% y 85.71%, respectivamente). Esto indica que el modelo está capturando patrones en los datos de entrenamiento. Sin embargo, en el test ambas caen, 53.06% (accuracy), 72% (sensitivity), lo que sugiere un sobreajuste a mis datos de entrenamiento.
 
 ```{r}
 rm(conf_matrix_test, conf_matrix_train, control, df, df_scaled, df_test, df_test_scaled, knnFit, preProcValues, tuneGrid)
@@ -3149,7 +3150,7 @@ rm(conf_matrix_test, conf_matrix_train, control, df, df_scaled, df_test, df_test
 
 ## Modelo 3.
 
-A continuación, vamos a probar a usar ese k=3, pero ahora SIN escalar. Veamos qué resultado obtenemos: 
+A continuación, probamos a usar k=3 con los datos sin escalar. Comenzamos nuevamente seleccionando las variables.
 
 ```{r}
 # Creo las tablas: 
@@ -3170,7 +3171,7 @@ conf_matrix_train <- confusionMatrix(predicciones_train_best2, as.factor(df$targ
 conf_matrix_train
 ```
 
-Y evalúo en test: 
+Evaluamos el modelo en test.
 
 ```{r}
 predicciones_test_best2 <- predict(modelo3knn, newdata = df_test[,-14], type = "class")
@@ -3180,13 +3181,11 @@ conf_matrix_test
 
 ```
 
-El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una sensibilidad razonable (81.25%). Y accuracy(76.41%)
-
-El modelo en el conjunto de test es mejor en este caso (sensitivity del 72%), y un accuracy de 67.35%, lo que sugiere una mejora significativa respecto a versiones previas.
+El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una sensibilidad razonable (76.41 %) y accuracy(81.25%). El modelo en el conjunto de test es mejor que en el modelo de variables escaladas (sensitivity del 72%  y accuracy de 67.35%), lo que sugiere una mejora significativa respecto a versiones previas.
 
 
 ```{r, echo=FALSE, warning=FALSE}
-# Elimino lo que no sirve más: 
+# Eliminamos datos que no usaremos más
 
 rm(df, df_test,conf_matrix_test, conf_matrix_train, best_k, predicciones, predicciones_test, predicciones_test_best, predicciones_test_best2, predicciones_train_best, predicciones_train_best2, tabla_test2, tabla_train2)
 ```
@@ -3197,7 +3196,7 @@ Otra forma de variar nuestro método es mediante la variación en las variables 
 En este apartado, analizaremos el método Knn sin estas variables.
 
 ```{r}
-# Selección de variables y normalización
+# Selección de variables y estandarización
 kn3 <- datos2015Target_train %>%
   select(reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, 
          mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
@@ -3206,7 +3205,7 @@ kn3_test <- datos2015Target_test %>%
   select(reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, 
          mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP, target)
 
-# Normalización de las variables predictoras 
+# Estandarización de las variables predictoras 
 kn3[, 1:9] <- scale(kn3[, 1:9])  # Normaliza todas las columnas predictoras (no la variable target)
 kn3_test[, 1:9] <- scale(kn3_test[, 1:9])  
 
@@ -3218,12 +3217,11 @@ fit.knn3 <- train(as.factor(target) ~ ., data = kn3, method = "knn", metric = "A
 
 # Obtener el mejor valor de k
 knn.k3 <- fit.knn3$bestTune 
-plot(knn.k3)
 print(fit.knn3)  # Imprimir el resultado
 
 ```
 
-Como podemos observar, el modelo con mejor valor en accuracy es el k=7. Tenemos muy cerca también el de k=5. 
+Como podemos observar, el modelo con mejor valor en accuracy es el k=7. Tenemos muy cerca también el de k=5. Por lo que ajustaremos nuestros datos a un modelo knn de k=7 escalado.
 
 ```{r}
 # Entrenar el modelo k-NN con el mejor k
@@ -3235,13 +3233,13 @@ modelo4knn <- train(target ~ ., data = kn3, method = "knn",
 predicciones_train_best3 <- predict(modelo4knn, newdata = kn3)
 
 # Tabla de confusión para el conjunto de entrenamiento
-table(Predicted = predicciones_train_best3, Actual = kn3$target)
+tabla_knn3<- table(Predicted = predicciones_train_best3, Actual = kn3$target)
 
 # Predicciones para el conjunto de prueba
 predicciones_test_best3 <- predict(modelo4knn, newdata = kn3_test)
 
 # Tabla de confusión para el conjunto de prueba
-table(Predicted = predicciones_test_best3, Actual = kn3_test$target)
+tabla_knn3<- table(Predicted = predicciones_test_best3, Actual = kn3_test$target)
 
 
 
@@ -3261,11 +3259,11 @@ print(conf_matrix_test)
 
 ```
 
-Como vemos, el accuracy en un primer lugar estaría en un 68%. Sin embargo, al ajustar los datos a test, nos resulta en un 46%. Por lo que nuestro modelo es bastante deficiente. 
-Observación: hallamos las mismas matrices con k=5. Con lo que volvemos a obtener un 46%. Debemos abandonar este modelo.
+Como vemos, la precisión en los datos de entrenamiento estaría en un 68%. Sin embargo, al ajustar los datos a test, nos resulta en un 46%. Por tanto, nuestro modelo es bastante deficiente. 
+Como observación tenemos que hallando el modelo y sus predicciones para con k=5 volvemos a obtener un 46%. Debemos abandonar este modelo.
 
 ```{r, echo=FALSE, warning=FALSE}
-#elimino cosas: 
+#Eliminamos datos que no se usarán en el futuro. 
 rm(conf_matrix_test, conf_matrix_train, fit.knn3, kn3, kn3_test, knn.k3, trainControl, predicciones_test_best3, predicciones_train_best3)
 ```
 
