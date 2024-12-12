@@ -3141,7 +3141,7 @@ conf_matrix_test
 ```
 
 
-El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión y sensibilidad alta (78% y 85.71%, respectivamente). Esto indica que el modelo está capturando patrones en los datos de entrenamiento. Sin embargo, en el test ambas caen, 53.06% (accuracy), 72% (sensitivity), lo que sugiere un sobreajuste a mis datos de entrenamiento.
+El modelo tiene un buen rendimiento en el conjunto de entrenamiento con una precisión y especificidad alta (78.97% y 69.88%, respectivamente). Esto indica que el modelo está capturando patrones en los datos de entrenamiento. Sin embargo, en el test ambas caen, 53.06% (accuracy), 33.33% (especificidad), lo que sugiere un sobreajuste a mis datos de entrenamiento.
 
 ```{r}
 rm(conf_matrix_test, conf_matrix_train, control, df, df_scaled, df_test, df_test_scaled, knnFit, preProcValues, tuneGrid)
@@ -3181,7 +3181,7 @@ conf_matrix_test
 
 ```
 
-El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una sensibilidad razonable (76.41 %) y accuracy(81.25%). El modelo en el conjunto de test es mejor que en el modelo de variables escaladas (sensitivity del 72%  y accuracy de 67.35%), lo que sugiere una mejora significativa respecto a versiones previas.
+El modelo tiene un buen desempeño en el conjunto de entrenamiento, con una especificidad razonable (69.88 %) y accuracy(81.25%). El modelo en el conjunto de test es mejor que en el modelo de variables escaladas (especificidad del 62.5%  y accuracy de 67.35%), lo que sugiere una mejora significativa respecto a versiones previas.
 
 
 ```{r, echo=FALSE, warning=FALSE}
@@ -3259,8 +3259,8 @@ print(conf_matrix_test)
 
 ```
 
-Como vemos, la precisión en los datos de entrenamiento estaría en un 68%. Sin embargo, al ajustar los datos a test, nos resulta en un 46%. Por tanto, nuestro modelo es bastante deficiente. 
-Como observación tenemos que hallando el modelo y sus predicciones para con k=5 volvemos a obtener un 46%. Debemos abandonar este modelo.
+Como vemos, la precisión en los datos de entrenamiento estaría en un 68%. Sin embargo, al ajustar los datos a test, nos resulta en un 46%. Además, la especificidad es tan sólo de un 25%. Por tanto, nuestro modelo es bastante deficiente y debemos abandonarlo. 
+Como observación tenemos que hallando el modelo y sus predicciones para con k=5 volvemos a obtener un 46% de precisión. Tampoco continuaremos con ese modelo.
 
 ```{r, echo=FALSE, warning=FALSE}
 #Eliminamos datos que no se usarán en el futuro. 
@@ -3270,7 +3270,11 @@ rm(conf_matrix_test, conf_matrix_train, fit.knn3, kn3, kn3_test, knn.k3, trainCo
 
 ## Modelo 5.(mirar porqué no me funciona.)
 
-En este último modelo, vamos a probar a usar una función que proporciona la librería Caret, la cual va a tratar de darnos la mejor selección de variables. Para ello, seleccionamos primero todas las variables posibles que podríamos considerar meter: 
+En este último modelo, vamos a probar a usar una función que proporciona la librería Caret, la cual va a tratar de darnos la mejor selección de variables. Para ello, seleccionamos primero todas las variables posibles. 
+```{r}
+library(caret)
+```
+
 
 ```{r}
 df <- datos2015Target_train %>% select(target, athleteid, distance, eventidF, reactiontimeF, daytimeF, edad, eventidP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
@@ -3299,7 +3303,7 @@ variablesSeleccionadas <- rfe(
 print(variablesSeleccionadas)
 ```
 
-Observo el modelo con 3 variables a ver cómo funciona: 
+Observamos el funcionamiento del modelo con 3 variables: 
 
 ```{r}
 df <- datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, medianaParcialesP)
@@ -3324,9 +3328,8 @@ print(matrizconfusion2)
 
 ```
 
-(HAY QUE MIRAR SPECIFITY EN VEZ DE SENSITIVITY)
 
-Observo que tiene un accuracy de 0.774 en Train y 0.61 en test. No es el mejor modelo pero nos ha sacado uno de los mejores que nos puede proveer k-vecinos para los datos que manejamos. 
+Observamos que tiene un accuracy de 77.4% en Train y 61% en test. La especificidad es del 41%, significa que el modelo identifica correctamente solo el 41% de las instancias negativas reales como negativas. Esto implica que un 60% de las instancias negativas reales están siendo clasificadas erróneamente como positivas (falsos positivos). Por tanto, no es un buen modelo para el objetivo que estamos buscando.
 
 ```{r, echo=FALSE}
 rm(control, variablesSeleccionadas, df, df_test, matrizconfusion1, matrizconfusion2, predicciones, predicciones_test)
@@ -3334,8 +3337,9 @@ rm(control, variablesSeleccionadas, df, df_test, matrizconfusion1, matrizconfusi
 
 
 ## Resumen y decisión. (poner los datos bien.)
+A continuación haremos un resumen de los modelos ajustados.
 
-1. Evaluación del Primer Modelo KNN(sin escalar y k = 5). Incluye todas las variables, incluidas las categóricas como athleteidy eventidF. En el entrenamiento, Accuracy, 0,797 (79,7%),tasa de falsos positivos ( FPR): 0,434 (43,4%). En prueba,Accuracy, 0,733 (73,3%),tasa de falsos positivos ( FPR): 0,5 (50%).
+1.  KNN sin escalar y k = 5. Incluye todas las variables, incluidas las categóricas como athleteid y eventidF. En el entrenamiento, Accuracy, 0,797 (79,7%),tasa de falsos positivos ( FPR): 0,434 (43,4%). En prueba, Accuracy, 0,733 (73,3%), tasa de falsos positivos ( FPR): 0,5 (50%).
 
 Este modelo muestra un desempeño aceptable, pero tiene un problema notable de generalización, ya que la precisión en el conjunto de prueba es significativamente menor que en el conjunto de entrenamiento.
 
@@ -3431,7 +3435,7 @@ rpart.plot(arbol1, extra = 1)
 
 Según observamos, podemos concluir que nuestro modelo separa según países, los carriles usados en la preliminar y final, y el swimtime de la preliminar, e incluso por el parcial más lento en la preliminar. 
 
-Tiene sentido por una parte que use esa variable SwimtimeP, ya que como hemos visto en el análisis exploratorio, contra más larga era la prueba, mayor probabilidad de bajar (es decir, target=1) existía. Bien, a continuación, vamos a testear cómo de bueno es nuestro árbol. Para ello, veamos su matriz de confusión: 
+Tiene sentido por una parte que use esa variable SwimtimeP, ya que como hemos visto en el análisis exploratorio, contra más larga era la prueba, mayor probabilidad de reducir su tiempo (es decir, target=1) existía. A continuación, probamos cómo de bueno es nuestro árbol. Para ello, vemos su matriz de confusión: 
 
 ```{r}
 prediction <- predict(arbol1, df_arbol, type = 'class')
@@ -3441,11 +3445,10 @@ cf_train <- confusionMatrix(prediction, as.factor(df_arbol$target),positive="1",
 cf_train
 ```
 
-Tiene buena pinta nuestro primer modelo, si observamos, tenemos un Accuracy del 0.831, lo cuál es bastante bueno. Además, es un algoritmo con muy buena sensitividad, es decir, clasifica bien los nadadores que bajan, se equivoca en ello 1 de cada 10 veces (0.911). 
+Nuestro árbol inicial presenta buenos resultados, con una precisión (Accuracy) del 83.1%, lo cual se considera un desempeño notable. Además, el algoritmo destaca por su alta sensibilidad (Sensitivity) de 91.1%, evidenciando una gran capacidad para clasificar a los nadadores que mejoran sus tiempos, cometiendo errores en aproximadamente 1 de cada 10 casos.
+Por otro lado, la especificidad del modelo es del 72%, lo que indica que identifica correctamente al 72% de los nadadores que no mejoran sus tiempos.
 
-
-
-Ahora lo pruebo en mi conjunto de test: 
+Probamos el árbol en el conjunto test.
 ```{r}
 prediction <- predict(arbol1, df_test_arbol, type = 'class')
 cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive="1",
@@ -3454,7 +3457,8 @@ cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive=
 cf_test
 ```
 
-Para nuestro conjunto test, el modelo baja bastante, luego puede indicar que existe algún tipo de sobreajuste en el modelo anterior. Sí que acierta 3 de cada 4 nadadores cuando predice que baja, pero el accuracy es prácticamente tirar una moneda al aire. 
+Se observa una disminución significativa en su desempeño, lo que podría indicar la presencia de sobreajuste en el modelo. Se logra una sensibilidad del 76%, lo que significa que clasifica correctamente a ese porcentaje de los nadadores que mejoran sus tiempos. Sin embargo, la especificidad es de 45.83%, lo que indica que solo identifica correctamente a ese porcentaje de los nadadores que no mejoran sus tiempos, resultando en una alta tasa de falsos positivos.
+Esto refuerza la necesidad de reevaluar los parámetros y técnicas utilizadas para evitar el sobreajuste.
 
 ```{r, warning=FALSE}
 rm(cf_test, cf_train, prediction)
@@ -3462,7 +3466,7 @@ rm(cf_test, cf_train, prediction)
 
 ##Modelo 2.
 
-La función que crea el arbol para el modelo anterior, tiene como valores defecto algunos valores que no voy a querer usar o que voy a querer ajustar de manera personalizada. Por ello es que, con la función rpart.control, voy a definir mis propios parámetros sobre los nodos finales y longitud del árbol: 
+La función utilizada para generar el árbol en el modelo anterior incluye valores predeterminados que no se ajustan completamente a las necesidades de este análisis, por lo que será necesario personalizarlos. Para ello, emplearemos la función rpart.control, que permite definir parámetros ajustados según los requerimientos, como el número de nodos terminales y la profundidad máxima del árbol. Esta configuración asegurará un mayor control sobre la estructura y complejidad del modelo.
 
 ```{r}
 control_tree <- rpart.control(minsplit = 4,
@@ -3471,22 +3475,38 @@ control_tree <- rpart.control(minsplit = 4,
                          cp = 0)
 ```
 
-Bien, con estos parámetros establecidos, vuelvo a ejecutar la función rpart y a ver el árbol resultante: 
+Con estos parámetros establecidos, volvemos a ejecutar la función rpart y ver el árbol resultante.
 
 ```{r}
 # Entrenar el árbol de decisión
 arbol2 <- rpart(target ~ ., data = df_arbol, method = "class", control = control_tree)
 
 # Visualizar el árbol
-rpart.plot(arbol2, type = 3, extra = 104, under = TRUE, cex = 0.8)
+#rpart.plot(arbol2, type = 3, extra = 104, under = TRUE, cex = 0.8)
 ```
 
-(Salma mira esta gráfica para mejorarla un poco.)
+```{r}
 
-Cada hoja indica una predicción (0 o 1), con precisión y porcentaje de datos representados.
-A continuación, voy a proceder a hacer las predicciones correspondientes en mis conjuntos de datos tanto de train y test: 
+# Modificar las etiquetas con salto de línea
+rpart.plot(arbol2, 
+           type = 1, 
+           extra = 104, 
+           branch=1,
+           space=0.5,
+           under = TRUE, 
+           cex = 0.3, 
+           box.palette = "Blues", 
+           tweak = 1.5,
+           fallen.leaves = TRUE, 
+           main = "Árbol de Decisión")
 
-Comienzo en train: 
+```
+
+
+Cada hoja (nodo final) indica una predicción (0 o 1), con precisión y porcentaje de datos representados.
+A continuación, voy a proceder a hacer las predicciones correspondientes en nuestros conjuntos de datos tanto de train como de test. 
+
+Comenzamos en train:
 
 ```{r}
 # Predicciones en el conjunto de entrenamiento
@@ -3496,7 +3516,10 @@ cf_train <- confusionMatrix(pred_train, as.factor(df_arbol$target),positive="1",
 cf_train
 ```
 
-Nuestro modelo, en el conjunto de datos de entrenamiento, es bastante bueno, ya que acierta casi todos las predicciones 1, y además tiene un accuracy del casi 90%. Veamos ahora en los datos test:
+Nuestro modelo, en el conjunto de datos de entrenamiento, es bastante bueno, ya que acierta casi todos las predicciones 1, y además tiene un accuracy del casi 90%. 
+En general, el modelo muestra un buen rendimiento: la precisión (87.69%) es bastante alta, lo que indica que la mayoría de las predicciones son correctas. La sensibilidad (94.64%) es excelente, lo que significa que el modelo es muy eficaz para identificar correctamente los casos positivos (en este caso, los nadadores que bajan de tiempo). La especificidad (78.31%) también es razonable, indicando que el modelo es relativamente bueno para identificar los casos negativos, aunque podría mejorarse.
+
+Lo analizamos con los datos test:
 
 ```{r}
 pred_test <- predict(arbol2, newdata = df_test_arbol, type = "class")
@@ -3504,9 +3527,7 @@ cf_test <- confusionMatrix(pred_test, as.factor(df_test_arbol$target),positive="
                       mode = 'everything')
 cf_test
 ```
-El modelo tiene un buen desempeño en el conjunto de entrenamiento, lo que indica que aprende los patrones en los datos.
-
-El modelo tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajuste.
+El modelo tiene un buen desempeño en el conjunto de entrenamiento, pero tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajuste. En este caso, tiene un accuracy de 57.14%, lo que indica que el modelo acierta en aproximadamente la mitad de las predicciones y el valor de especificidad es relativamente bajo, lo que sugiere que el modelo está cometiendo bastantes falsos positivos.
 
 
 ```{r, warning=FALSE}
@@ -3527,14 +3548,15 @@ df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 ```
 
 
-Ahora, construimos nuestro modelo: 
+Ahora, construimos el modelo: 
 
 ```{r}
 arbol3 <- rpart(target~., data = df_arbol, method = 'class')
 rpart.plot(arbol1, extra = 1)
 ```
+Observamos que el árbol obtenido es el mismo que en el caso anterior. El tiempo de reacción no parece ser influyente en la reducción del tiempo de los nadadores. Al menos, a nivel general.
 
-Y lo evaluamos en train: 
+Para corroborar que los resultados van a ser equivalentes, objetivo meramente lúdico, evaluamos el árbol en train y test. En primer lugar, 
 
 ```{r}
 prediction <- predict(arbol3, df_arbol, type = 'class')
@@ -3554,7 +3576,7 @@ cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive=
 cf_test
 ```
 
-Obtenemos el mismo modelo que antes, luego, en nuestros modelos no es importante dicha variable.
+Obtenemos el mismo modelo que antes, como habíamos explicado previamente.
 
 ```{r}
 rm(cf_train, cf_test, prediction)
@@ -3600,7 +3622,7 @@ rpart.plot(arbol4, type = 3, extra = 104, under = TRUE, cex = 0.8)
 
 ```
 
-Evaluamos el modelo,
+Evaluamos el modelo en entrenamiento,
 
 ```{r}
 prediction <- predict(arbol4, df_arbol, type = 'class')
