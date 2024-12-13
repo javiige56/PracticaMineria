@@ -15,12 +15,13 @@ editor_options:
 
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#Configuro para que no salten warnings en ningún trozo de código.
+knitr::opts_chunk$set(warning = FALSE)
 # Cargamos las librerias que vamos necesitando a lo largo del codigo
-
-#library(randomForest)
+library(randomForest)
 library(ipred)
 library(rpart)
-#library(rpart.plot)
+library(rpart.plot)
 library(caret)
 library(pastecs)
 library(factoextra)
@@ -660,23 +661,10 @@ head(resumen_paises,6)
 Por ello, intentaremos analizar los resultados en función de proporciones relativas a continentes.
 
 ```{r}
-paleta <- c("Americas" = "#0084ff", 
-            "Asia" = "#44bec7", 
-            "Europe" = "#ffc300", 
-            "Oceania" = "#fa3c4c", "Africa"="#ff6347")
-
-# Crear el histograma de cantidad de nadadores por continente
-histograma_nadadores <- resumen_paises %>% 
-  ggplot(aes(x = continent, y = num_nadadores, fill = continent)) + 
-  geom_bar(stat = "identity") +  # Sumar cantidad de nadadores por continente
-  labs(title = "Cantidad de Nadadores por Continente",
-       x = "Continente",
-       y = "Número de Nadadores") +
-  scale_fill_manual(values = paleta) +  # Colores personalizados por continente
-  theme_minimal()
-
-# Imprimir el histograma
-print(histograma_nadadores)
+paleta <- c("Americas" = "red", 
+            "Asia" = "yellow", 
+            "Europe" = "blue", 
+            "Oceania" = "green", "Africa"="black")
 
 ```
 
@@ -789,7 +777,7 @@ Además,al centrarse en la prueba de 100 metros, que tiene una gran cantidad de 
 Esto ayuda a eliminar sesgos que podrían surgir al mirar pruebas con menos competidores.
 
 ```{r, echo=FALSE}
-rm( conteo_por_continente, datos_100m_top, grafico_distribucion_continente, histograma_nadadores, manual, puntos_por_continente, puntos_por_pais, resumen_paises, resumenContinente, nombres, paleta)
+rm( conteo_por_continente, datos_100m_top, grafico_distribucion_continente, manual, puntos_por_continente, puntos_por_pais, resumenContinente, nombres, paleta, resumen_paises)
 nadadoresParticipantes<-nadadoresParticipantesCopia
 nadadoresPruebas<-nadadoresPruebasCopia
 ```
@@ -2633,7 +2621,7 @@ rm(centroides, centroideslong, cluster800libres, componentess, finalistas, free8
 
 # Objetivo del análisis y partición de los datos.
 
-Nuestro objetivo en esta sección es **PREDECIR** si los nadadores que llegan a la final, van a disminuir su tiempo en esa prueba (tomarán el valor 1), o si en cambio, no lo harán (tomarán el valor 0).
+Nuestro objetivo en esta sección es **predecir** si los nadadores que llegan a la final, van a disminuir su tiempo en esa prueba (tomarán el valor 1), o si en cambio, no lo harán (tomarán el valor 0).
 Para ello, vamos a crear la tabla `datos2015Target`.
 
 A partir de este momento, vamos a estudiar acerca de un target.
@@ -2799,6 +2787,79 @@ head(datos2015Target,1)
 
 Observo que Joseph Schooling, nadó la final más rapido que la final, por lo que tienen de target un 1.
 
+
+
+
+## Categorización de algunas variables. 
+
+Algunas de nuestras variables, son categóricas, pero tienen demasiadas categorías, por lo que si queremos hacer modelos como k-vecinos o árboles, puede que no sean todo lo generales que deberían. Por ejemplo, la variable país, puede servirnos para un modelo k-vecinos, pero en un árbol de decisión podría hacer una división si perteneces a un conjunto de países muy específico. Como el objetivo es predecir con modelos lo más generales posibles, a continuación voy a ir evaluando las variables a las cuales les debemos hacer un tratamiento distinto de los datos: 
+
+### Daytime. 
+
+Vamos a categorizar de cierta manera esta variable daytime. Como vimos en el EDA, tenemos dos sesiones, matinal y vespertina, luego, vamos a agrupar por sesión. Para ello, hacemos lo siguiente: 
+
+```{r}
+# Visto en el eda, se puede dividir por sesión si cojo del mínimo a 2, 
+datos2015Target$sesionP <- ifelse(datos2015Target$daytimeP<1400, "Matinal", "Vespertina")
+datos2015Target$sesionP <- as.factor(datos2015Target$sesionP)
+
+```
+
+Cabe destacar que, la sesion de las finales es SIEMPRE vespertina, luego no es necesario crear esa nueva variable.
+
+### País.
+Nuestra variable país está bien, nos será útil en modelos que buscan más especificidad como los k-vecinos, pero en modelos como árboles de decisión, puede no ser lo suficientemente general. Por ello, vamos a agrupar por continente: 
+
+```{r}
+library(countrycode)
+
+datos2015Target$continente <- countrycode(datos2015Target$code, origin = "iso3c", destination = "continent")
+
+datos2015Target$continente <- as.factor(datos2015Target$continente)
+
+summary(datos2015Target$continente)
+
+```
+
+Si observo, hay algunos países que no los está cogiendo, voy a ver cuáles son: 
+
+```{r}
+naContinentes<- datos2015Target[is.na(datos2015Target$continente),]
+
+summary(naContinentes$code)
+```
+
+Observo que países como Alemania, Países Bajos, Dinamarca... No me los está cogiendo adecuadamente, luego voy a proceder a hacerlo manualmente. Para ello: 
+
+```{r}
+datos2015Target$continente[datos2015Target$code == "GER" | datos2015Target$code == "NED" |
+                             datos2015Target$code == "DEN" | datos2015Target$code == "GRE"  
+                           | datos2015Target$code == "SLO" ] <- "Europe"
+
+datos2015Target$continente[datos2015Target$code == "RSA"]<- "Africa"
+
+datos2015Target$continente[datos2015Target$code == "SIN" | datos2015Target$code == "BAH"]<- "Asia"
+
+datos2015Target$continente[datos2015Target$code == "CHI"]<- "Americas"
+
+
+
+```
+
+
+Visualicemos que todo esté en orden: 
+
+```{r}
+summary(datos2015Target$continente)
+```
+
+Perfecto, podemos proseguir. 
+
+```{r}
+rm(naContinentes)
+```
+
+
 ## Partición de los datos.
 
 La repartición de nuestros datos, será sobre las finales.
@@ -2861,7 +2922,7 @@ summary(datos2015Target_train$target)
 112/(112+83)
 ```
 
-Luego, un 0.57% baja de marca.
+Luego, un 57.43% baja de marca.
 Luego, tiene sentido intentar buscar mediante medidas de rendimiento, esas predicciones sobre nuevas observaciones.
 Vamos a evaluar todos los modelos de rendimiento vistos en teoría, y elegiremos el (los) que nos aporten un mayor rendimiento en las medidas (DECIDIRLAS).
 
@@ -3033,6 +3094,22 @@ modelo1knn = knn3(df[,-14], as.factor(df$target), k=5, prob=TRUE)
 
 
 ```
+
+
+Vamos a hacer knn solo con las variables continuas dado que usamos por defecto distancia euclídea.
+
+```{r}
+## KNN solo con variables continuas
+
+df <- datos2015Target_train %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
+
+modelo1knn = knn3(df[,-1], as.factor(df$target), k=5, prob=TRUE)
+
+```
+
+
+
+
 
 Observamos el rendimiento del modelo en el conjunto de datos de entrenamiento,
 
@@ -3456,6 +3533,8 @@ Es decir, todas las variables menos las que involucren el nado en la final (parc
 ```{r}
 df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+
+# Falta tratar correctamente la variable hora
 
 ## Además, defino mi variable distancia como categórica.
 df_arbol$distance<- as.factor(df_arbol$distance)
