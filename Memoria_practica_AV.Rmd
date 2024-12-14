@@ -51,6 +51,9 @@ library(proxy)
 library(counterfactuals)
 library(iml)
 library(GGally)
+
+
+
 ```
 
 # Introducción.
@@ -3195,7 +3198,7 @@ Miraré próximamente si es posible
 
 
 ```{r}
-rm(df,df_test,dist_train,dist_test)
+#rm(df,df_test,dist_train,dist_test)
 ```
 
 
@@ -3793,12 +3796,106 @@ print(cf_rf_test)
 ```{r}
 rm(pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,clase_pred_rf_test ,cf_rf_test)
 
-#rm(df_random,df_test_random) #lo uso en contrafacticos
+#rm(df_random,df_test_random) #lo uso en contrafacticos y shap
 ```
 
 # Técnica SHAP
 
-(hacer)
+La técnica SHAP (SHapley Additive exPlanations) descompone la predicción de un modelo en contribuciones atribuibles a cada característica. Es una técnica de interpretabilidad, que da respuesta al por qué del valor de la predicción de una observación o qué impacto tiene cada caracter´sitica en dicha perdicción.
+Esta técnica está basada en la teoría de juegos. Se calculan los valores de Shapley, que determinan cuánto contribuye cada característica en un modelo predictivo, considerando todas las combinaciones posibles de características.
+
+
+Elegimos el modelo de Random Forest que nos dió mejores resultados. Tras esto, creamos un predictor. Este predictor conectará la técnica SHAP con el modelo que hemos elegido, separando la variable objetivo de las explicativas. 
+
+```{r}
+# Crear un predictor para el modelo
+predictor_rf2 <- Predictor$new(
+  model = rf2,
+  data = df_random %>% select(laneP, swimtimeP, daytimeP, maximoParcialesP),  # Variables explicativas
+  y = df_random$target                                                     # Variable objetivo
+)
+
+```
+
+Posteriormente, se calculan los valores SHAP para la primera fila de df_random.
+
+```{r}
+# Calcular valores SHAP para una observación específica (primera fila)
+shap_rf2 <- Shapley$new(
+  predictor = predictor_rf2,
+  x.interest = df_random[1, c("laneP", "swimtimeP", "daytimeP", "maximoParcialesP")]
+)
+
+# Mostrar los valores SHAP calculados
+shap_rf2$results
+
+```
+Estima cómo cada característica influye en la predicción del modelo para esta observación.
+SHAP evalúa el modelo para todas las combinaciones posibles de variables (introduciéndolas o desechándolas). Luego el método promedia estas contribuciones marginales para determinar el impacto de cada característica.
+
+
+```{r}
+# Gráfico de contribuciones SHAP
+plot(shap_rf2)
+
+```
+Representando los resultados para la primera fila tenemos que las variables que influyen en la bajada de tiempos es predominantemente el tiempo máximo de los parciales. En segundo y tercer lugar, el tiempo de los parciales y el número de calle. En último lugar, no parece ser muy influyente el tiempo del parcial (la sesión).
+
+Calculamos ahora los valores SHAP para todas las observaciones
+```{r}
+# Calcular valores SHAP para múltiples observaciones
+shap_rf2_global <- FeatureImp$new(predictor_rf2, loss = "ce")
+
+# Gráfico de importancia global basado en SHAP
+plot(shap_rf2_global)
+
+```
+Vemos como la importancia en el conjunto de datos la obtiene la variable swimtimeP. Es decir, el tiempo de nado de los parciales. 
+
+```{r}
+# Calcular valores SHAP para una fila específica del conjunto de prueba
+shap_test <- Shapley$new(
+  predictor = predictor_rf2,
+  x.interest = df_test_random[1, c("laneP", "swimtimeP", "daytimeP", "maximoParcialesP")]
+)
+
+# Mostrar resultados en tabla
+print(shap_test$results)
+
+# Visualizar resultados para esta observación
+plot(shap_test)
+
+
+```
+
+
+```{r}
+# Calcular valores SHAP para múltiples observaciones
+#shap_rf2_global_test <- FeatureImp$new(predictor_rf2, loss = "ce",data = df_test_random)
+
+# Gráfico de importancia global basado en SHAP
+#plot(shap_rf2_global_test)
+
+```
+
+```{r}
+# Calcular SHAP para las primeras 5 filas del conjunto de prueba
+shap_results <- lapply(1:5, function(i) {
+  shap <- Shapley$new(
+    predictor = predictor_rf2,
+    x.interest = df_test_random[i, c("laneP", "swimtimeP", "daytimeP", "maximoParcialesP")]
+  )
+  return(shap$results)
+})
+
+# Combinar resultados en un único data frame
+shap_combined <- do.call(rbind, shap_results)
+print(shap_combined)
+
+
+```
+
+(comentario ines: me falta rellenar y lo de los hastaghs q no se q le pasa pero da error, creo q es algo del df pero no se)
 # Contrafácticos
 
 ### Manera 1
