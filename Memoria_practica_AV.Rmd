@@ -51,8 +51,7 @@ library(proxy)
 library(counterfactuals)
 library(iml)
 library(GGally)
-
-
+library(pROC)
 
 ```
 
@@ -3040,7 +3039,21 @@ rm(datos, porcentajes)
 
 En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, voy a intentar minimizar el error que se produce cuando predigo que un nadador SÍ baja de tiempo, pero en realidad no lo hace.
 Me interesa minimizar los falsos positivos.
+Una tabla de contingencia, es una herramienta que permite evaluar el rendimiento de un modelo de clasificación. Esta tabla resume las predicciones del modelo comparándolas con los valores reales y se utiliza principalmente en problemas de clasificación binaria (aunque puede ampliarse a multiclase).
+
+|                  |  (1) |  (0) |
+|------------------|--------------------------|--------------------------|
+| (1) | Verdaderos Positivos (TP)    | Falsos Negativos (FN)    |
+| (0) | Falsos Positivos (FP)         | Verdaderos Negativos (TN) |
+
+
+- TP (Verdaderos Positivos): Casos positivos correctamente predichos por el modelo.
+- FN (Falsos Negativos): Casos positivos que el modelo clasificó incorrectamente como negativos.
+- FP (Falsos Positivos): Casos negativos que el modelo clasificó incorrectamente como positivos.
+- TN (Verdaderos Negativos): Casos negativos correctamente predichos por el modelo.
+
 Por tanto, utilizaremos distintos modelos y evaluaremos su calidad mediante medidas de rendimiento que parten de la matriz de confusión, ya que nuestra variable objetivo es binaria (0,1).
+
 Comentaremos las principales métricas de rendimiento, haciendo mayor hincapié en las siguientes:
 
 -   Accuracy o Exactitud $= \frac{TP + TN}{N}$. Mide la proporción de predicciones correctas hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
@@ -3056,6 +3069,7 @@ En un problema de clasificación, el algoritmo devolverá la clase que predomina
 Para elegir el número k, seleccionamos aquel valor que minimice la tasa de errores, al mismo tiempo que preserva la capacidad del algoritmo para realizar predicciones precisas en datos no vistos previamente.
 
 ## Modelo 1.
+
 Primeramente, vamos a probar a introducir todas las variables continuas posibles y escaladas. Usaremos un modelo knn con definido con distancias euclídeas: 
 
 ```{r}
@@ -3134,15 +3148,15 @@ Una vez entrenado mi modelo, vamos a ver cuál es su rendimiento en train:
 predicciones <- predict(modelo2knn, newdata = scale(df[,-1]), type = "class")
 matrizconfusion1 <- confusionMatrix(predicciones, as.factor(df$target), positive = "1")
 print(matrizconfusion1)
-
 ```
 
-Parece que nuestro modelo mejora en train respecto al anterior. Veamos cómo se comporta en test: 
+Observamos los resultados del modelo en el conjunto de entrenamiento. Esto nos da una idea inicial del ajuste del modelo. Sin embargo, lo más importante es cómo se comporta en datos no vistos:
 
 ```{r}
 predicciones <- predict(modelo2knn, newdata = scale(df_test[,-1]), type = "class")
 matrizconfusion1 <- confusionMatrix(predicciones, as.factor(df_test$target), positive = "1")
 print(matrizconfusion1)
+
 ```
 
 Nos sale un modelo con un 0.65 en test. (comentar luego)
@@ -3156,9 +3170,15 @@ rm(matrizconfusion1, df, df_test)
 
 ## Modelo 3 
 
-En este modelo, usaremos la distancia de Gower, una métrica que permite calcular distancias entre observaciones con datos mixtos (categóricos y numéricos). 
+En este paso, seleccionamos las variables predictoras más relevantes para el modelo basado en K-Vecinos, según los resultados obtenidos en el modelo previo. Estas variables han demostrado ser las más representativas para predecir el target, que indica si un nadador logra mejorar su tiempo en la final. 
+Las variables seleccionadas son:
+- swimtimeP
+- mediaParcialesP: 
+- minimoParcialesP: 
+- maximoParcialesP
+- medianaParcialesP
 
-Voy a realizar la misma selección de variables que en el modelo anterior.
+
 ```{r}
 df <- datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 
@@ -3166,50 +3186,56 @@ df_test<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, min
 
 ```
 
-Calculamos las distancias de Gower en nuestros datos(ya está implementada en R)
-```{r}
-dist_train <- gower.dist(df[, -1])  
-dist_test <- gower.dist(df_test[, -1])  
 
-# otra opción de distancias para quien quiera mirarlo
-#dist_train <- proxy::dist(df[, -1], method = "manhattan")
-#dist_test <- proxy::dist(df_test[, -1],df[, -1], method = "manhattan")
+Mientras que knn3 entrena un modelo K-Vecinos y lo almacena para futuras predicciones, knn3Train calcula directamente las predicciones sobre un conjunto de prueba proporcionado, basado en los datos de entrenamiento, sin guardar un modelo explícito.
 
-```
-
-Miraré próximamente si es posible 
-```{r}
-
-#Entreno el modelo 
-#modelo3knn <- knn(
-  #train = dist_train,
-  #test = dist_test,
-  #cl = as.factor(df$target),  
-  #k = 3
-#)
-
-
-#predicciones <- predict(modelo3knn, newdata = scale(df[,-1]), type = "class")
-#matrizconfusion1 <- confusionMatrix(predicciones, as.factor(df$target), positive = "1")
-#print(matrizconfusion1)
-
-
-```
-
+En este ejemplo, utilizamos knn3Train para implementar un modelo KNN con un  escalado de datos y la distancia Manhattan como métrica.
 
 ```{r}
-#rm(df,df_test,dist_train,dist_test)
+#los empleamos escalados
+x_train <- as.matrix(scale(df[, -1]))  
+x_test <- as.matrix(scale(df_test[, -1]))
+
+dist_train <- proxy::dist(x_train, method = "manhattan")
+dist_test <- proxy::dist(x_test, x_train, method = "manhattan")
+
+
+modelo3knn <- knn3Train(
+  train = x_train,
+  test = x_test,
+  cl = as.factor(df$target),
+  k = 3,
+  prob = TRUE
+)
 ```
 
+El modelo knn3Train devuelve directamente las predicciones sobre el conjunto de prueba. Las predicciones se pueden usar para construir una matriz de confusión .
+
+```{r}
+predicciones <- modelo3knn
+matriz_confusion <- confusionMatrix(as.factor(predicciones), as.factor(df_test$target), positive = "1")
+
+# Mostrar la matriz de confusión y métricas
+print(matriz_confusion)
+```
+Un 65.31% de las predicciones fueron correctas. Balance aceptable entre sensibilidad y especificidad.
 
 
+
+```{r}
+rm(df,df_test,dist_train,dist_test,matriz_confusion, x_train,x_test,predicciones)
+```
 ## Modelo 4. (si da tiempo)
 
 En este apartado, tratar de hacer un modelo definiendo distancias entre obsevaciones de alguna manera. (seguramente sea el más complicado y lioso de hacer, dejarlo para el final)
+También se podria mirar la distancia de Gower
 
 
 
 ## Resumen y decisión. (poner los datos bien.)
+
+
+MODIFICAR ESTO ADAPTANDOSE A LOS MODELOS ACTUALES
 
 A continuación haremos un resumen de los modelos ajustados.
 
@@ -3235,65 +3261,71 @@ Este modelo muestra un desempeño aceptable, pero tiene un problema notable de g
     Conclusión: El modelo sin variables categóricas y con solo variables numéricas tiene un rendimiento notablemente inferior.
     La eliminación de información clave (como identificadores o categorías relevantes) ha afectado la capacidad del modelo para predecir correctamente.
 
-Basándome en los resultados que se presentaron, el modelo KNN con k=3 sin escalar y usando todas las variables predictoras muestra el mejor desempeño tanto en el conjunto de entrenamiento como en el de prueba.
+**DESDE AQUÍ EMPIEZA EL RESUMEN ACTUAL:**
+
+Basándome en los resultados que se presentaron, tenemos 2 modelos principales(modelo1knn y modelo2knn)
 
 ```{r}
-# Obtener probabilidades para cada modelo
+# Elijo todas las variables continuas.
+df_test1 <- datos2015Target_test %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 
-# 1. KNN sin escalar con todas las variables
-pred_probs_knn_no_scale <- predict(modelo1knn, newdata = df_test[,-14], type = "prob")[, 2]
+df_test2<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 
-# 2. KNN escalado
-pred_probs_knn_scaled <- predict(modelo2knn, newdata = df_test_scaled[,-14], type = "prob")[, 2]
+```
 
-# 3. KNN sin escalar k=3
-pred_probs_knn_es_3 <- predict(modelo3knn, newdata = df_test[,-14], type = "prob")[, 2]
+La curva ROC mide la sensibilidad (tasa de verdaderos positivos) frente a la especificidad (1 - tasa de falsos positivos).
 
-# 4. KNN con variables seleccionadas.
-pred_probs_knn_selected <- predict(modelo4knn, newdata = kn3_test, type = "prob")[, 2]
+Ambas curvas parecen similares y están relativamente cerca de la diagonal (línea gris), lo que sugiere un desempeño moderado para ambos modelos.
 
-# 5. KNN con las MEJORES variables seleccionadas.
-pred_prbos_knn_5 <- predict(modelo4knn, newdata = df_test[,-14], type = "prob")[, 2]
+```{r}
+probs_knn1 <- predict(modelo1knn, newdata = df_test1[,-1], type = "prob")[, 2]
 
-# Generar las curvas ROC para cada modelo
-roc_knn_no_scale <- roc(df_test$target, pred_probs_knn_no_scale)
-roc_knn_scaled <- roc(df_test$target, pred_probs_knn_scaled)
-roc_knn_es_3 <- roc(df_test$target, pred_probs_knn_es_3)
-roc_knn_selected <- roc(kn3_test$target, pred_probs_knn_selected)
+probs_knn2<- predict(modelo2knn, newdata = df_test2[,-1], type = "prob")[, 2]
+
+
+#Generar las curvas ROC para cada modelo
+roc_knn1 <- roc(df_test1$target, probs_knn1)
+roc_knn2<- roc(df_test2$target, probs_knn2)
 
 #mirar los dataframes. 
 
 # Calcular el AUC para cada modelo
-auc_knn_no_scale <- auc(roc_knn_no_scale)
-auc_knn_scaled <- auc(roc_knn_scaled)
-auc_knn_es_3 <- auc(roc_knn_es_3)
-auc_knn_selected <- auc(roc_knn_selected)
+auc_knn1 <- auc(roc_knn1)
+auc_knn2<- auc(roc_knn2)
+
+#auc_knn_es_3 <- auc(roc_knn_es_3)
+#auc_knn_selected <- auc(roc_knn_selected)
 
 # Imprimir los valores de AUC
-cat("AUC KNN sin escalar con todas las variables:", auc_knn_no_scale, "\n")
-cat("AUC KNN escalado:", auc_knn_scaled, "\n")
-cat("AUC KNN sin escalar k=3:", auc_knn_es_3, "\n")
-cat("AUC KNN con variables seleccionadas:", auc_knn_selected, "\n")
+cat("AUC KNN modelo 1", auc_knn1, "\n")
+cat("AUC KNN modelo 2:", auc_knn2, "\n")
+
+
+#cat("AUC KNN sin escalar k=3:", auc_knn_es_3, "\n")
+#cat("AUC KNN con variables seleccionadas:", auc_knn_selected, "\n")
 
 # Graficar las curvas ROC
-plot(roc_knn_no_scale, col = "blue", lwd = 2, main = "Comparación de Curvas ROC para Modelos KNN")
-lines(roc_knn_scaled, col = "red", lwd = 2)
-lines(roc_knn_es_3, col = "green", lwd = 2)
-lines(roc_knn_selected, col = "purple", lwd = 2)
+plot(roc_knn1, col = "blue", lwd = 2, main = "Comparación de Curvas ROC para Modelos KNN")
+lines(roc_knn2, col = "red", lwd = 2)
 
-# Añadir una línea diagonal (clasificador aleatorio)
+#lines(roc_knn_es_3, col = "green", lwd = 2)
+#lines(roc_knn_selected, col = "purple", lwd = 2)
+
 abline(a = 0, b = 1, col = "gray", lty = 2)
 
-
-# Añadir una leyenda con tamaño reducido
-legend("bottomright", legend = c("KNN sin escalar", "KNN escalado", 
-                                 "KNN sin escalar k=3", "KNN variables seleccionadas"),
-       col = c("blue", "red", "green", "purple"), lwd = 2, cex = 0.5)  # Ajuste del tamaño de la leyenda
-
+legend("bottomright", legend = c("KNN modelo 1", "KNN modelo2"),
+       col = c("blue", "red", "green", "purple"), lwd = 2, cex = 0.5) 
 ```
 
-KNN sin escalar con k=3, Área bajo la curva: 0,6375.
-Es el mejor modelo.
+El modelo 2 tiene una ligera ventaja en términos de capacidad discriminativa, ya que su AUC está por encima de 0.5, lo que indica que puede distinguir mejor entre nadadores que bajan y no bajan de tiempo. En contraste, el modelo 1 (AUC ~ 0.4983) está prácticamente en el azar (similar a tirar una moneda al aire).
+
+Aunque el AUC del modelo 2 es superior, un valor de 0.5275 sigue siendo bajo. Esto sugiere que ambos modelos tienen un desempeño moderado y que todavía hay espacio para mejorar, ya sea ajustando hiperparámetros (k), probando otras distancias (como Manhattan o Gower), o incluyendo nuevas variables predictoras.
+
+```{r}
+rm(auc_knn1,auc_knn2,roc_knn1,roc_knn2,df_test1,df_test2)
+```
+
+Mantenemos el modelo 2 como el mejor hasta ahora, ya que tiene un AUC superior.
 
 # Árboles de decisión
 
@@ -3432,7 +3464,7 @@ rm(cf_test, cf_train, control_tree, pred_test, pred_train)
 
 
 ## Modelo 3.
-En este modelo vamos a jugar con el cp. Escogiendo las variables que mas me interesan.
+En este modelo vamos a jugar con el cp. Escogiendo las variables que mas me interesan(evidentemente esto ya lo esta realizando el árbol, es como si estuviesemos cortando a cierta profundidad,ANALOGO)
 
 ```{r}
 # Validación cruzada para encontrar el mejor cp
@@ -3756,7 +3788,9 @@ rm(var_importance,pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,cl
 ```
 
 ## Modelo 2
-Realmente con un buen Random hemos ganado y te realiza seleccion, pero realizo selección de variables manual por si algún casual mejora(me baso en mi desinformación creo q esto no es necesario)
+ESTO ES UN INTENTO DE ENCONTRAR UN MEJOR RANDOM FOREST PERO REALMENTE ESTA MAL PLANTEADO. DEBIDO A LA NATURALEZA DEL RANDOM DEBERIAMOS CONSEGUIR UNO CON MEJOR RENDIMIENTO(INTENTARLO :( )
+
+Realmente con un buen Random hemos ganado y te realiza seleccion, pero realizo selección de variables manual por si algún casual mejora
 
 ```{r}
 set.seed(213)
@@ -3896,42 +3930,61 @@ print(shap_combined)
 ```
 
 (comentario ines: me falta rellenar y lo de los hastaghs q no se q le pasa pero da error, creo q es algo del df pero no se)
+
 # Contrafácticos
 
+El análisis contrafáctico permite explorar cómo los cambios en las variables de entrada afectan las predicciones del modelo. A continuación, se detalla la implementación de este método utilizando el modelo rf1 . Este procedimiento es útil para identificar qué variables tienen mayor influencia en el modelo y cómo se pueden ajustar para obtener un resultado deseado.
+
 ### Manera 1
-(implementado con R)
-Lo voy a hacer sobre el rf1(opción barajada de cambios ante un mejor rf). 
 
+Seleccionamos un registro específico del conjunto de datos para analizarlo:
 ```{r}
-
 df_random[10,]
 ```
+Esto nos permite ver las características originales de la observación seleccionada. A partir de esta información, realizaremos cambios en las variables relevantes.
 
 ```{r}
-rf <- randomForest(
+set.seed(2345)
+rf1 <- randomForest(
   target ~ ., 
-  data = df_random[-10,])
+  data = df_random[-10,], 
+  importance = TRUE, 
+  proximity = TRUE,
+  ntree = 20, 
+  mtry = 6
+)
 
 # Tenemos que usar iml::Predictor para poner el modelo en el formato adecuado
 # type='prob' para tener las probabilidades y no las etiquetas binarizadas
-predictor = iml::Predictor$new(rf, type = "prob") 
+predictor = iml::Predictor$new(rf1, type = "prob") 
 
 # Punto de interés para buscar contrafácticos
 x_interest = df_random[10, ]
 
 ```
-Para saber lo que queremos mejorar, vemos la predicción de la probabilidad de cada clase.
+
+Obtenemos las probabilidades predichas por el modelo para el punto de interés (x_interest). Esto es útil para interpretar cómo el modelo clasifica ese caso particular antes de generar contrafácticos.
+
 ```{r}
 # Predicción de la probabilidad de cada clase
-predictor$predict(x_interest) # probability of being a good credit risk
+predictor$predict(x_interest) 
 
 ```
+Esto significa que el modelo predice un 10% de probabilidad de que el nadador no baje su tiempo.
 
-Ahora estudiamos qué factores  se deben cambiar para que la probabilidad de mejora sea de al menos un 80%.
-fixed_features aquellos que no vamos a poder cambiar, voy a poner la edad, el continente y el género(Alonso con tu conosimiento se fija alguno mas?)
+Esto indica un 90% de probabilidad de que el nadador sí baje su tiempo.
+
+En este caso, el modelo está bastante seguro de que el nadador bajará su tiempo en la final, con una probabilidad alta (90%). Dado que la probabilidad ya está a favor de la clase positiva (1), probablemente no sea necesario generar contrafácticos para modificar esta predicción, ya que el objetivo parece haberse logrado. Igualmente procedemos.
+
 ```{r}
 head(df_random)
 ```
+
+
+El código utiliza el método MOCClassif para determinar los cambios necesarios en las características de un punto de interés (x_interest) para mover su predicción a una clase deseada  con una probabilidad dentro de un rango definido. 
+
+Los fixed_features son variables que no queremos modificar en los contrafácticos. En este caso, continente, edad, y gender están fijas porque podrían ser atributos que no se pueden cambiar.
+
 
 ```{r}
 # Ahora estudiamos qué factores  se deben cambiar para que la probabilidad aumente
@@ -3945,19 +3998,21 @@ moc_classif = MOCClassif$new(
   predictor, epsilon = 0, fixed_features = c("continente", "edad","gender"))
 # Sacamos los contrafácticos
 cfactuals = moc_classif$find_counterfactuals(
-   x_interest, desired_class = "1", desired_prob = c(0.8, 1))
+   x_interest, desired_class = "1", desired_prob = c(0.92, 1))
 
 
 ```
 
 
-Observamos los contrafácticos logrados(son 85). Vemos los 3 primeros
+Observamos que solo se logra un contrafáctico. 
+
 
 ```{r}
 print(cfactuals)
 
 head(cfactuals$predict(), 3)
 ```
+Estos 149 contrafácticos representan combinaciones alternativas de valores en las características (variables explicativas) que, de ser alcanzadas, moverían al caso específico (x_interest) hacia la clase deseada con una probabilidad muy alta.
 
 ```{r}
 # Filtramos por aquellos que son válidos, es decir, aquellos que tienen la predicción deseada
@@ -3978,12 +4033,20 @@ cfactuals$plot_parallel(feature_names = names(
 
 
 ```
-Lo que más cambia es LaneF y dayTimeP en los contrafácticos. Realizaré una interpretación.
+La variable swimtimeP tiene la mayor frecuencia relativa. Esto sugiere que modificar los tiempos de la prueba preliminar (swimtimeP) es clave para mover la predicción hacia la clase deseada (nadadores que bajan su tiempo en la final).
+
+laneF (carril en la final) es la segunda variable más importante. Cambios en esta variable parecen influir significativamente en el resultado.
+
+Recordemos que la variable lane representa el carril asignado al nadador durante la competición (en la preliminar o en la final, según sea laneP o laneF), y vemos que todos los contrafácticos encontrados estan en el carril 7, y la mayoria de ellos con un swimtimeP más alto. Habría que estimar algún valor medio de entre los swimtime para poder indicar al nadador algún posible cambio que suponga una mejora.
 
 
 ```{r}
 rm(cfactuals, moc_classif,predictor,x_interest,df_random,df_test_random)
 ```
+
+
+
+Probamos con otro punto de interés, con más opción de mejora o fijando otros valores con más conocimiento(por ejemplo la calle).
 
 ### Manera 2
 (con knn a mano)
