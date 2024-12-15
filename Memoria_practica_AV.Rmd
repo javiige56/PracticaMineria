@@ -3940,7 +3940,7 @@ Con el objetivo de mejorar nuestro modelo de Random Forest, realizaremos algunas
 - Ajustar parámetros como ntree, mtry y nodesize.
 
   * ntree: número de árboles en el bosque. Cuantos más árboles haya, mejor será la estabilidad y precisión del modelo, pero también aumentará el tiempo de cómputo. Aumentamos en este modelo el valor, ya que lo teníamos en 20.
-  * mtry: número de variables aleatorias que se consideran para cada división en un árbol. Un valor demasiado bajo puede subajustar, mientras que un valor demasiado alto puede hacer que los árboles se sobreajusten. Usualmente se toma el valor de la raiz cuadrada del número de predictores.
+  * mtry: número de variables aleatorias que se consideran para cada división en un árbol. Un valor demasiado bajo puede subajustar, mientras que un valor demasiado alto puede hacer que los árboles se sobreajusten. Usualmente se toma el valor de la raiz cuadrada del número de predictores. En este modelo, se probarán distintos valores y se establecerá el mejor de ellos. Los valores irán de 3 a 9, rangos lógicos para este problema. 
   * nodesize: número mínimo de observaciones en cada nodo terminal de un árbol. Un valor bajo puede llevar a árboles más complejos, pero también puede resultar en sobreajuste.El valor por dfecto es 1, con lo que aumentaremos dicho valor en búsqueda de unos resultados mejores. 
 
 - Utilizar la validación cruzada para obtener predicciones más robustas y evitar el sobreajuste.
@@ -3965,25 +3965,25 @@ preProc <- preProcess(df_random[, -which(names(df_random) == "target","distance"
 df_random_std <- predict(preProc, df_random)
 
 
-# 2. Configurar la validación cruzada
 # Crear control de validación cruzada (10 pliegues)
 train_control <- trainControl(method = "cv", 
-                              number = 10,  # Número de pliegues
+                              number = 10,  
                               search = "grid",  # Usar búsqueda en cuadrícula
                               savePredictions = "final")
 
-# 3. Definir los parámetros a optimizar
-# Búsqueda en cuadrícula para el parámetro mtry (número de predictores por división)
-tune_grid <- expand.grid(.mtry = c(3, 5, 7, 9))  # Puedes ajustar estos valores
 
-# 4. Ajustar el modelo Random Forest usando validación cruzada y búsqueda de parámetros
+# Búsqueda para el parámetro mtry (número de predictores por división)
+tune_grid <- expand.grid(.mtry = c(3,4, 5,6, 7,8, 9))  
+
+# Ajustar el modelo Random Forest usando validación cruzada y búsqueda de parámetros
 rf_model <- randomForest(
-  target ~ .,                 # Fórmula con la variable dependiente y todos los predictores
-  data = df_random_std,       # Datos estandarizados
-  method = "rf",              # Usar Random Forest
+  target ~ .,                 
+  data = df_random_std,       
+  method = "rf", 
+  metric="Spec",    # Optimizar la especificidad
   trControl = train_control, 
-  tuneGrid = tune_grid,  # Validación cruzada       # Búsqueda en cuadrícula para mtry
-  ntree = 200                 # Número de árboles en el modelo
+  tuneGrid = tune_grid, # Búsqueda para mtry
+  ntree = 200          # Número de árboles en el modelo
 )
 
 
@@ -3991,29 +3991,36 @@ plot(rf_model)
 
 ```
 ```{r}
+# Asegurar que target sea un factor en ambos conjuntos de datos
+df_random$target <- as.factor(df_random$target)
+df_test_random$target <- as.factor(df_test_random$target)
+
 # Predicción en el conjunto de entrenamiento
-pred_rf_train <- predict(rf_model, df_random, type = "prob")[, 2]  
-clase_pred_rf_train <- ifelse(pred_rf_train > 0.5, "1", "0")  
-cf_rf_train <- confusionMatrix(as.factor(clase_pred_rf_train), as.factor(df_random$target))
+pred_rf_train <- predict(rf_model, df_random, type = "prob")[, 2]
+clase_pred_rf_train <- factor(ifelse(pred_rf_train > 0.7, "1", "0"), levels = c("0", "1"))
 
-# prueba
+# Matriz de confusión para el conjunto de entrenamiento
+cf_rf_train <- caret::confusionMatrix(clase_pred_rf_train, df_random$target, positive= "1")
+print(cf_rf_train)
 
-pred_rf_test <- predict(rf_model, df_test_random, type = "prob")[, 2] 
-clase_pred_rf_test <- ifelse(pred_rf_test > 0.5, "1","0")   
+# Predicción en el conjunto de prueba
+pred_rf_test <- predict(rf_model, df_test_random, type = "prob")[, 2]
+clase_pred_rf_test <- factor(ifelse(pred_rf_test > 0.5, "1", "0"), levels = c("0", "1"))
 
-cf_rf_test <- confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target))
+# Matriz de confusión para el conjunto de prueba
+cf_rf_test <- caret::confusionMatrix(clase_pred_rf_test, df_test_random$target,positive="1")
 print(cf_rf_test)
 
 ```
 
-(no se por que no me salen los resultados pero bueno ahora lo vuelvo a inicializar todo)
+Tenemos una precisión en torno al 53%. Sin embargo, si nuestro objetivo es minimizar los falsos positivos este es el mejor modelo. Teniendo como criterio de medida la especificidad, obtenemos un 91% en los datos de test. 
 
 ##Conclusiones del Random Forest
 
 
 # Técnica SHAP
 
-La técnica SHAP (SHapley Additive exPlanations) descompone la predicción de un modelo en contribuciones atribuibles a cada característica. Es una técnica de interpretabilidad, que da respuesta al por qué del valor de la predicción de una observación o qué impacto tiene cada caracter´sitica en dicha perdicción.
+La técnica SHAP (SHapley Additive exPlanations) descompone la predicción de un modelo en contribuciones atribuibles a cada característica. Es una técnica de interpretabilidad, que da respuesta al por qué del valor de la predicción de una observación o qué impacto tiene cada caracterísitica en dicha perdicción.
 Esta técnica está basada en la teoría de juegos. Se calculan los valores de Shapley, que determinan cuánto contribuye cada característica en un modelo predictivo, considerando todas las combinaciones posibles de características.
 
 
