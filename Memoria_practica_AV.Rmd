@@ -3274,7 +3274,7 @@ La FPR es idéntica para ambas distancias (58.33%), indicando que el cambio en l
 
 ```{r}
 #elimino el modelo porque el que me sirve es el modelo 2
-rm(df,df_test,dist_train,dist_test,matriz_confusion, x_train,x_test,modelo3knn)
+rm(df,df_test,dist_train,dist_test,matriz_confusion, x_test)
 ```
 
 
@@ -3997,7 +3997,7 @@ df_test_random$target <- as.factor(df_test_random$target)
 
 # Predicción en el conjunto de entrenamiento
 pred_rf_train <- predict(rf_model, df_random, type = "prob")[, 2]
-clase_pred_rf_train <- factor(ifelse(pred_rf_train > 0.7, "1", "0"), levels = c("0", "1"))
+clase_pred_rf_train <- factor(ifelse(pred_rf_train > 0.5, "1", "0"), levels = c("0", "1"))
 
 # Matriz de confusión para el conjunto de entrenamiento
 cf_rf_train <- caret::confusionMatrix(clase_pred_rf_train, df_random$target, positive= "1")
@@ -4023,8 +4023,15 @@ Tenemos una precisión en torno al 53%. Sin embargo, si nuestro objetivo es mini
 La técnica SHAP (SHapley Additive exPlanations) descompone la predicción de un modelo en contribuciones atribuibles a cada característica. Es una técnica de interpretabilidad, que da respuesta al por qué del valor de la predicción de una observación o qué impacto tiene cada caracterísitica en dicha perdicción.
 Esta técnica está basada en la teoría de juegos. Se calculan los valores de Shapley, que determinan cuánto contribuye cada característica en un modelo predictivo, considerando todas las combinaciones posibles de características.
 
+Una de las grandes ventajas de esta técnica es su interpretabilidad global y local.
 
-Elegimos el modelo de Random Forest que nos dió mejores resultados. Tras esto, creamos un predictor. Este predictor conectará la técnica SHAP con el modelo que hemos elegido, separando la variable objetivo de las explicativas. 
+- Global: Muestra cuáles son las características más importantes a nivel general en el modelo.
+- Local: Explica por qué el modelo hizo una predicción específica para un caso individual.
+
+Para entender correctamente qué características han contribuido predominantemente en nuestros modelos, veremos en primer lugar la técnica SHAP con el Random Forest de 4 variables. Posteriormente lo veremos con el Random Forest optimizado según su especificidad. 
+
+## SHAP con Random Forest 2. 
+Elegimos el modelo de Random Forest y creamos un predictor. Este predictor conectará la técnica SHAP con el modelo que hemos elegido, separando la variable objetivo de las explicativas. 
 
 ```{r}
 # Crear un predictor para el modelo
@@ -4050,7 +4057,7 @@ shap_rf2$results
 
 ```
 Estima cómo cada característica influye en la predicción del modelo para esta observación.
-SHAP evalúa el modelo para todas las combinaciones posibles de variables (introduciéndolas o desechándolas). Luego el método promedia estas contribuciones marginales para determinar el impacto de cada característica.
+SHAP evalúa el modelo para todas las combinaciones posibles de variables (introduciéndolas o desechándolas). Luego el método promedia estas contribuciones marginales para determinar el impacto de cada característica. De esta forma, tenemos la interpretación local de la primera predicción.
 
 
 ```{r}
@@ -4071,50 +4078,91 @@ plot(shap_rf2_global)
 ```
 Vemos como la importancia en el conjunto de datos la obtiene la variable swimtimeP. Es decir, el tiempo de nado de los parciales. 
 
+
+## SHAP para Random Forest 3
+
+Tras ver las contribuciones en el Random Forest de 4 variables, optamos por realizar esta técnica en el Random Forest que incluye todas las variables escaladas. En este caso, será más interpretable puesto que el Random Forest ha sido creado mediante muchos árboles y los parámetros han sido elegidos por optimización. Por tanto, de esta forma podemos ver a nivel general las contribuciones de cada variable. 
+
 ```{r}
-# Calcular valores SHAP para una fila específica del conjunto de prueba
-shap_test <- Shapley$new(
-  predictor = predictor_rf2,
-  x.interest = df_test_random[1, c("laneP", "swimtimeP", "daytimeP", "maximoParcialesP")]
+# Crear un predictor para el modelo
+predictor_rf_model <- Predictor$new(
+  model = rf_model,
+  data = df_random_std, 
+  y = df_random_std$target  # Variable objetivo
 )
-
-# Mostrar resultados en tabla
-print(shap_test$results)
-
-# Visualizar resultados para esta observación
-plot(shap_test)
-
 
 ```
 
+Posteriormente, se calculan los valores SHAP para la primera fila de df_random.
+
+```{r}
+# Calcular valores SHAP para una observación específica (primera fila)
+shap_rf_model <- Shapley$new(
+  predictor = predictor_rf_model,
+  x.interest = df_random_std[1, ]
+)
+
+# Mostrar los valores SHAP calculados
+shap_rf_model$results
+plot(shap_rf_model)
+```
+Vemos en este caso que las variables que han aportado mayor contribución a la predicción son: tipo de nado, minimo parciales, media parciales, mediana de los parciales y las calles preliminares y finales. 
 
 ```{r}
 # Calcular valores SHAP para múltiples observaciones
-#shap_rf2_global_test <- FeatureImp$new(predictor_rf2, loss = "ce",data = df_test_random)
+shap_rf_model_global <- FeatureImp$new(predictor_rf_model, loss = "ce")
 
 # Gráfico de importancia global basado en SHAP
-#plot(shap_rf2_global_test)
+plot(shap_rf_model_global)
 
 ```
+A nivel global, podemos ver que las características mas influyentes han sido: la calle en preliminar y finales, el tiempo en los parciales y el tipo de nado.
+
+(COMENTARIO: ESTO TIENE ALGUN TIPO DE SENTIDO??¿¿)
+
+
+##SHAP con KNN
 
 ```{r}
-# Calcular SHAP para las primeras 5 filas del conjunto de prueba
-shap_results <- lapply(1:5, function(i) {
-  shap <- Shapley$new(
-    predictor = predictor_rf2,
-    x.interest = df_test_random[i, c("laneP", "swimtimeP", "daytimeP", "maximoParcialesP")]
-  )
-  return(shap$results)
-})
+df <- datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
+scaled_df <- data.frame(
+  target = df$target,  
+  scale(df[, -1])      
+)
+df_test<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
+scaled_df_test <- data.frame(
+  target = df$target,  
+  scale(df[, -1])      
+)
 
-# Combinar resultados en un único data frame
-shap_combined <- do.call(rbind, shap_results)
-print(shap_combined)
+# Para devolver clases:
+#predict_knn <- predict(modelo3knn, newdata = scaled_df_test)
 
+
+# Crear un predictor para el modelo
+
+# Crear un objeto Predictor para el modelo
+#predictor_knn <- Predictor$new(
+#  model = modelo3knn,
+#  data = scaled_df[,-1],   # Solo características
+#  y = scaled_df$target,   # Variable objetivo
+  #predict.function = predict_knn  # Función personalizada
+#)
 
 ```
 
-(comentario ines: me falta rellenar y lo de los hastaghs q no se q le pasa pero da error, creo q es algo del df pero no se)
+Posteriormente, se calculan los valores SHAP para la primera fila.
+```{r}
+# Calcular valores SHAP para una observación específica (primera fila)
+#shap_knn <- Shapley$new(
+#  predictor = predictor_knn,
+#  x.interest = scaled_df[1, ] 
+)
+
+# Mostrar los valores SHAP calculados
+#shap_knn$results
+#plot(shap_knn)
+```
 
 # Contrafácticos
 
