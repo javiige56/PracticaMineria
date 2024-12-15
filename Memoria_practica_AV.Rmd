@@ -3061,16 +3061,47 @@ Comentaremos las principales métricas de rendimiento, haciendo mayor hincapié 
 
 # Modelos K-Vecinos.
 
-El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del Machine Learning.
-Este método se basa en la noción de similitud (o distancia) entre observaciones.
+El método de los k vecinos más cercanos (abreviatura de “k nearest neighbors” en inglés), se cuenta entre los enfoques más simples y ampliamente utilizados en el campo del Machine Learning.Su simplicidad conceptual y eficacia en problemas de clasificación y regresión lo convierten en una herramienta fundamental en análisis predictivo.
+El k-NN se basa en la noción de similitud entre observaciones, donde se mide la distancia entre los puntos de datos en el espacio multidimensional. La idea central es que los puntos cercanos en el espacio de características  son similares y, por lo tanto, deben compartir la misma etiqueta de clase.
 
-En un problema de clasificación, el algoritmo devolverá la clase que predomina entre los vecinos, es decir, la moda de la variable objetivo.
+En un problema de clasificación, el algoritmo asigna a una observación desconocida (nuevo dato) la clase predominante entre sus k vecinos más cercanos. La distancia entre un punto de prueba y todos los puntos del conjunto de entrenamiento se calcula utilizando una métrica de distancia, como:  
 
-Para elegir el número k, seleccionamos aquel valor que minimice la tasa de errores, al mismo tiempo que preserva la capacidad del algoritmo para realizar predicciones precisas en datos no vistos previamente.
+ **Distancia Euclídea**:  
+     \[
+     d(p, q) = \sqrt{\sum_{i=1}^n (p_i - q_i)^2}
+     \]  
+
+ **Distancia Manhattan**:  
+     \[
+     d(p, q) = \sum_{i=1}^n |p_i - q_i|
+     \]  
+
+ **Distancia de Gower** para datos mixtos (numéricos y categóricos). 
+
+El parámetro *k* es crucial para el rendimiento del modelo:  
+   - Un valor de **k pequeño** puede llevar a un modelo **sensible al ruido** y con riesgo de sobreajuste.  
+   - Un valor de **k grande** suaviza las predicciones, pero puede perder patrones locales importantes.  
+
+Para elegir el valor óptimo de *k*, se utiliza **validación cruzada**.
+
+En nuestro caso, el objetivo es **predecir si un nadador mejora su tiempo** en la final respecto a las preliminares. Las principales consideraciones fueron:  
+
+- Se seleccionaron variables continuas para el análisis.  
+- Se seleccionaron variables relevantes continuas para el análisis. 
+- Se implementaron distancias sobre las variables relevantes continuas para el análisis. 
+
 
 ## Modelo 1.
 
-Primeramente, vamos a probar a introducir todas las variables continuas posibles y escaladas. Usaremos un modelo knn con definido con distancias euclídeas: 
+En este modelo, seleccionaremos todas las variables continuas disponibles y las escalaremos para que tengan una contribución equitativa en el cálculo de la distancia. Utilizaremos la distancia Euclídea como métrica para determinar los vecinos más cercanos.
+La distancia Euclídea entre dos puntos \( p \) y \( q \) en un espacio n-dimensional se define como:
+
+\[
+d(p, q) = \sqrt{\sum_{i=1}^n (p_i - q_i)^2}
+\]
+
+Donde \( p_i \) y \( q_i \) son las coordenadas de los puntos \( p \) y \( q \).
+
 
 ```{r}
 # Elijo todas las variables continuas.
@@ -3081,16 +3112,17 @@ modelo1knn = knn3(scale(df[,-1]), as.factor(df$target), k=3, prob=TRUE)
 
 ```
 
-
-Bien, una vez entrenado, veamos el resultado: 
+Una vez entrenado, evaluaremos el modelo en el conjunto de entrenamiento calculando la matriz de confusión y las métricas de rendimiento.
+En función de los resultados, evaluaremos si este modelo logra un buen equilibrio entre sensibilidad y especificidad, o si es necesario ajustar parámetros como el número de vecinos k o la selección de variables.
 
 ```{r}
 predicciones <- predict(modelo1knn, newdata = scale(df[,-1]), type = "class")
 matrizconfusion1 <- confusionMatrix(predicciones, as.factor(df$target), positive = "1")
 print(matrizconfusion1)
 ```
-
-Ya en nuestros datos de entrenamiento está fallando demasiado, luego no va a ser un buen modelo. Aún así, será nuestro modelo base para intentar encontrar uno mejor. 
+El modelo muestra buen rendimiento para los positivos (bajar de tiempo), pero su rendimiento en la clase negativa es bajo.
+Dado nuestro objetivo de minimizar los falsos positivos, este modelo no cumple los requisitos necesarios.
+Por lo tanto, podemos concluir con que el modelo falla demasiado en nuestros datos de entrenamiento. Luego, no va a ser un buen modelo. Aún así, será nuestro modelo base para intentar encontrar uno mejor. 
 
 
 ```{r}
@@ -3099,7 +3131,9 @@ rm(predicciones, matrizconfusion1, df)
 
 ## Modelo 2. 
 
-Ahora, hacemos una selección de las mejores variables que deberían entrar. Para ello, volvemos a cargar todas las variables categóricas: 
+Para mejorar el rendimiento del modelo y evitar el ruido generado por variables irrelevantes, realizamos una selección de las variables más importantes que deberían incluirse en el modelo. Esta selección permitirá identificar las características más relevantes que determinan si un nadador baja de tiempo o no.
+
+Para ello, volvemos a cargar todas las variables categóricas: 
 
 ```{r}
 df <- datos2015Target_train %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
@@ -3108,8 +3142,9 @@ df_test<- datos2015Target_test %>% select(target, reactiontimeF, edad, pointP, r
 
 ```
 
+Para refinar aún más nuestro modelo KNN, implementaremos un procedimiento de Eliminación Recursiva de Características (RFE). Este método, utilizando validación cruzada, seleccionará las características más relevantes que optimizan el rendimiento del modelo, reduciendo el impacto del ruido de variables irrelevantes.
 
-Bien, una vez cargadas, vamos a usar una función de la librería caret que de cierta manera, elegirá las mejores variables para el modelo: 
+El RFE seleccionará las variables más influyentes para predecir el objetivo (target). Los resultados incluirán, tanto la lista de las mejores variables seleccionadas, como las métricas de rendimiento asociadas con cada tamaño de subconjunto.
 
 ```{r}
 x <- scale(df[,-1])
@@ -3130,7 +3165,8 @@ rm(ctrl, result, x, y)
 ```
 
 
-Bien, luego parece que el mejor modelo considera meter swimtimeP, medianaParcialesP, maximoParcialesP, minimoParcialesP y mediaParcialesP. Veamos cómo se ajusta este modelo: 
+Después de implementar el proceso de selección de características mediante RFE, hemos identificado las variables más relevantes para la predicción del objetivo (target). Estas variables seleccionadas serán utilizadas para ajustar un modelo KNN más eficiente y preciso.
+Las variables seleccionadas son swimtimeP,mediaParcialesP,minimoParcialesP, maximoParcialesP y medianaParcialesP.
 
 ```{r}
 df <- datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
@@ -3142,15 +3178,17 @@ df_test<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, min
 modelo2knn = knn3(scale(df[,-1]), as.factor(df$target), k=3, prob=TRUE)
 ```
 
-Una vez entrenado mi modelo, vamos a ver cuál es su rendimiento en train: 
+Una vez que hemos entrenado el modelo KNN con las variables seleccionadas, es fundamental analizar su rendimiento en el conjunto de datos de entrenamiento (train) para asegurarnos de que el modelo ha capturado correctamente los patrones presentes en los datos.
 
 ```{r}
 predicciones <- predict(modelo2knn, newdata = scale(df[,-1]), type = "class")
 matrizconfusion1 <- confusionMatrix(predicciones, as.factor(df$target), positive = "1")
 print(matrizconfusion1)
 ```
+El modelo clasifica correctamente el 78.97% de las observaciones. El modelo clasifica correctamente el 63.86% de los nadadores que no bajan de tiempo.
+Vistos los resultados del modelo en el conjunto de entrenamiento, esto nos dará una idea inicial del ajuste del modelo. Sin embargo, lo más importante es cómo se comporta en datos no vistos,
 
-Observamos los resultados del modelo en el conjunto de entrenamiento. Esto nos da una idea inicial del ajuste del modelo. Sin embargo, lo más importante es cómo se comporta en datos no vistos:
+El modelo entrenado es ahora evaluado en el conjunto de prueba (test) para medir su capacidad de generalización y comprobar si puede mantener un rendimiento adecuado fuera del conjunto de entrenamiento.
 
 ```{r}
 predicciones <- predict(modelo2knn, newdata = scale(df_test[,-1]), type = "class")
@@ -3159,8 +3197,9 @@ print(matrizconfusion1)
 
 ```
 
-Nos sale un modelo con un 0.65 en test. (comentar luego)
+Dado que el objetivo principal es maximizar el Accuracy y minimizar la tasa de falsos positivos (FPR), evaluemos estas métricas basándonos en los resultados del modelo. 
 
+El modelo clasifica correctamente el 65.31% de los casos en el conjunto de prueba.
 
 ```{r}
 rm(matrizconfusion1, df, df_test)
@@ -3171,7 +3210,7 @@ rm(matrizconfusion1, df, df_test)
 ## Modelo 3 
 
 En este paso, seleccionamos las variables predictoras más relevantes para el modelo basado en K-Vecinos, según los resultados obtenidos en el modelo previo. Estas variables han demostrado ser las más representativas para predecir el target, que indica si un nadador logra mejorar su tiempo en la final. 
-Las variables seleccionadas son:
+Las variables seleccionadas eran:
 - swimtimeP
 - mediaParcialesP: 
 - minimoParcialesP: 
@@ -3212,61 +3251,43 @@ modelo3knn <- knn3Train(
 El modelo knn3Train devuelve directamente las predicciones sobre el conjunto de prueba. Las predicciones se pueden usar para construir una matriz de confusión .
 
 ```{r}
-predicciones <- modelo3knn
-matriz_confusion <- confusionMatrix(as.factor(predicciones), as.factor(df_test$target), positive = "1")
+
+matriz_confusion <- confusionMatrix(as.factor(modelo3knn), as.factor(df_test$target), positive = "1")
 
 # Mostrar la matriz de confusión y métricas
 print(matriz_confusion)
 ```
-Un 65.31% de las predicciones fueron correctas. Balance aceptable entre sensibilidad y especificidad.
+El modelo clasifica correctamente aproximadamente el 65% de los casos en el conjunto de prueba. Aunque supera el azar, es similar al modelo basado en la distancia euclidiana.
 
+La FPR es idéntica para ambas distancias (58.33%), indicando que el cambio en la métrica de distancia no mejora la clasificación de negativos reales.
 
 
 ```{r}
-rm(df,df_test,dist_train,dist_test,matriz_confusion, x_train,x_test,predicciones)
+#elimino el modelo porque el que me sirve es el modelo 2
+rm(df,df_test,dist_train,dist_test,matriz_confusion, x_train,x_test,modelo3knn)
 ```
-## Modelo 4. (si da tiempo)
+## Modelo 4. 
+(si da tiempo)
 
 En este apartado, tratar de hacer un modelo definiendo distancias entre obsevaciones de alguna manera. (seguramente sea el más complicado y lioso de hacer, dejarlo para el final)
 También se podria mirar la distancia de Gower
 
 
 
-## Resumen y decisión. (poner los datos bien.)
-
-
-MODIFICAR ESTO ADAPTANDOSE A LOS MODELOS ACTUALES
+## Resumen y decisión
 
 A continuación haremos un resumen de los modelos ajustados.
 
-1.  KNN sin escalar y k = 5. Incluye todas las variables, incluidas las categóricas como athleteid y eventidF. En el entrenamiento, Accuracy, 0,797 (79,7%),tasa de falsos positivos ( FPR): 0,434 (43,4%). En prueba, Accuracy, 0,733 (73,3%), tasa de falsos positivos ( FPR): 0,5 (50%).
+1.  modelo1KNN:En este modelo se seleccionaron todas las variables continuas disponibles y se escalaron para garantizar que tengan una contribución equitativa en el cálculo de la distancia. Se utilizó la distancia Euclídea como métrica principal para determinar los vecinos más cercanos. A pesar de las limitaciones, este modelo será la base para explorar mejoras, como la selección de variables relevantes, la optimización del número k, o el uso de métricas de distancia alternativas.
 
-Este modelo muestra un desempeño aceptable, pero tiene un problema notable de generalización, ya que la precisión en el conjunto de prueba es significativamente menor que en el conjunto de entrenamiento.
+2. modelo2KNN: En este modelo, se buscó mejorar el rendimiento del KNN reduciendo el impacto del ruido generado por variables irrelevantes. Para ello, se implementó Eliminación Recursiva de Características con validación cruzada para seleccionar las variables más importantes, se utilizó la distancia Euclídea como métrica y se escalaron las variables seleccionadas para asegurar contribuciones equitativas. Aunque el modelo mejora en comparación con la versión inicial al seleccionar variables relevantes, todavía tiene dificultades para generalizar bien en datos no vistos, particularmente en la clase negativa.
 
-2.  Modelo KNN Escalado.
-    Las variables se escalaron para garantizar que todas tengan una contribución equitativa.
-    Se utilizó validación cruzada para encontrar el mejor k.
-    Mejor valor de k encontrado: 3 .
-    En entrenamiento, la precisión ( Accuracy): 0,78.
-    Y en prueba, 0,5.
+3. modelo3KNN: En este modelo, se seleccionaron las mismas variables relevantes identificadas en el Modelo 2. El objetivo principal fue evaluar el impacto de utilizar la distancia Manhattan como métrica en lugar de la distancia Euclídea.
+La distancia Manhattan no mejora el rendimiento respecto a la distancia Euclídea en este contexto.
 
-3.  Modelo k=3 sin escalar.
-    Entrenamiento,0,7641 (76,41%).
-    Esto significa que el modelo clasifica correctamente el 76,41% de los datos en el conjunto de entrenamiento.En prueba 0,6735 (67,35%).
-    El modelo clasifica correctamente el 67,35% de los datos en el conjunto de prueba.
-
-4.  Modelo KNN Simplificado (Sin Variables Categóricas).Variables categóricas como athleteidy eventidFse eliminaron.
-    Solo se incluyen variables numéricas relevantes.
-    Se probaron diferentes valores de k y se encontró que k = 7 es el mejor.En entrenamiento, la precisión ( Accuracy): 0.680 (68%).En prueba, la precisión ( Accuracy): 0,460 (46%).
-    Conclusión: El modelo sin variables categóricas y con solo variables numéricas tiene un rendimiento notablemente inferior.
-    La eliminación de información clave (como identificadores o categorías relevantes) ha afectado la capacidad del modelo para predecir correctamente.
-
-**DESDE AQUÍ EMPIEZA EL RESUMEN ACTUAL:**
-
-Basándome en los resultados que se presentaron, tenemos 2 modelos principales(modelo1knn y modelo2knn)
+Basándome en el resumen anterior que se presentó, tenemos 2 modelos principales (modelo1knn y modelo2knn)
 
 ```{r}
-# Elijo todas las variables continuas.
 df_test1 <- datos2015Target_test %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 
 df_test2<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
@@ -3319,7 +3340,7 @@ legend("bottomright", legend = c("KNN modelo 1", "KNN modelo2"),
 
 El modelo 2 tiene una ligera ventaja en términos de capacidad discriminativa, ya que su AUC está por encima de 0.5, lo que indica que puede distinguir mejor entre nadadores que bajan y no bajan de tiempo. En contraste, el modelo 1 (AUC ~ 0.4983) está prácticamente en el azar (similar a tirar una moneda al aire).
 
-Aunque el AUC del modelo 2 es superior, un valor de 0.5275 sigue siendo bajo. Esto sugiere que ambos modelos tienen un desempeño moderado y que todavía hay espacio para mejorar, ya sea ajustando hiperparámetros (k), probando otras distancias (como Manhattan o Gower), o incluyendo nuevas variables predictoras.
+Aunque el AUC del modelo 2 es superior, un valor de 0.5275 sigue siendo bajo. Esto sugiere que ambos modelos tienen un desempeño moderado y que todavía hay espacio para mejorar, ya sea ajustando hiperparámetros (k), probando otras distancias (como Gower), o incluyendo nuevas variables predictoras.
 
 ```{r}
 rm(auc_knn1,auc_knn2,roc_knn1,roc_knn2,df_test1,df_test2)
@@ -3329,15 +3350,20 @@ Mantenemos el modelo 2 como el mejor hasta ahora, ya que tiene un AUC superior.
 
 # Árboles de decisión
 
+Los árboles de decisión son un modelo de aprendizaje supervisado ampliamente utilizado debido a su capacidad de manejar tanto variables categóricas como numéricas, su facilidad de interpretación y su robustez frente a datos no escalados.
+Estos algoritmos seleccionan secuencialmente las características más informativas (ganancia de información o reducción de entropía) para predecir una variable objetivo, dividiendo los datos en ramas basadas en dichas características.
+
+En este análisis, implementamos un árbol de decisión para predecir si un nadador mejorará su tiempo en la final (target).
+
 ## Modelo 1.
 
-A continuación, vamos a configurar varios modelos basados en árboles de decisión.
-Los árboles de decisión son un modelo de aprendizaje supervisado ampliamente utilizado por su capacidad de manejar datos categóricos y numéricos, ser interpretables y funcionar bien sin necesidad de escalar.
-En este análisis, implementamos un árbol de decisión para predecir la variable objetivo target.
-Este tipo de algoritmos determinan qué variables explicativas proporcionan la mayor parte de la información (ganancia de información) para medir la variable objetivo y hacen predicciones probando secuencialmente las características en orden a su información.
+En este modelo inicial:
 
-Vamos a comenzar creando un árbol con todas las variables, aunque vamos a modificar nuestra variable code (país), por el continente para tratar de generalizar nuestro árbol. Además, cambiaremos daytimeP por la sesion (matinal o vespertina). V
+- Se utilizan todas las variables disponibles para el modelo.
+- La variable code (país) se sustituye por el continente, con el objetivo de reducir la granularidad y mejorar la generalización.
+- La variable daytimeP se reemplaza por una variable categórica que indique si la sesión fue matinal o vespertina.
 
+Primero, realizamos los cambios necesarios en las variables y seleccionamos las que serán usadas en el modelo:
 
 ```{r}
 df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, continente ,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
@@ -3349,17 +3375,16 @@ df_arbol$distance<- as.factor(df_arbol$distance)
 df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 ```
 
-A continuación, calculamos el árbol:
+A continuación, ajustamos el primer árbol de decisión utilizando todas las variables seleccionadas:
 
 ```{r}
 arbol1 <- rpart(target~., data = df_arbol, method = 'class')
 rpart.plot(arbol1, extra = 1)
 arbol1
 ```
+El árbol clasifica 195 observaciones en base a las variables seleccionadas. La variable swimtime es la primera variable utilizada para dividir, lo que indica su importancia clave. Los nadadores con tiempos menores a 106.15 segundos son más propensos a no bajar su tiempo (clase 0). La medianaParcialesP, se utiliza en varios nodos secundarios, mostrando que afecta la clasificación tanto en clases 0 como 1. laneP y laneF, los carriles en preliminares y finales, tienen un impacto notable en las probabilidades de clasificación. El continente es introducido en un nodo profundo, sugiriendo que su efecto es menor comparado con otras variables.
 
-
-A continuación, probamos cómo de bueno es nuestro árbol.
-Para ello, vemos su matriz de confusión:
+Primero, evaluamos el modelo en el conjunto de entrenamiento para entender su desempeño inicial.
 
 ```{r}
 prediction <- predict(arbol1, df_arbol, type = 'class')
@@ -3371,7 +3396,7 @@ cf_train
 
 Nuestro árbol inicial presenta buenos resultados, con una precisión (Accuracy) del 81.1%, lo cual se considera un desempeño notable.
 
-Probemos en test: 
+El modelo muestra un buen ajuste en los datos de entrenamiento, con alta sensibilidad y precisión. Sin embargo, existe un leve riesgo de sobreajuste, ya que el desempeño en el entrenamiento es relativamente alto. Esto deberá confirmarse evaluando el modelo en el conjunto de prueba:
 
 ```{r}
 prediction <- predict(arbol1, df_test_arbol, type = 'class')
@@ -3381,19 +3406,32 @@ cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive=
 cf_test
 ```
 
-
+Al evaluar el modelo en el conjunto de prueba, los resultados reflejan un desempeño significativamente inferior al observado en el entrenamiento. Esto sugiere una posible falta de generalización, especialmente en términos de exactitud y especificidad. El alto número de falsos positivos sugiere que el modelo tiene dificultades para diferenciar correctamente entre nadadores que bajan y no bajan su tiempo.
 
 ```{r, warning=FALSE}
-rm(cf_test, cf_train, prediction)
+rm(df_arbol, df_test_arbol, cf_test, cf_train, prediction)
 ```
 
 ## Modelo 2.
 
 La función utilizada para generar el árbol en el modelo anterior incluye valores predeterminados que no se ajustan completamente a las necesidades de este análisis, por lo que será necesario personalizarlos.
 
-Para ello, emplearemos la función rpart.control, que permite definir parámetros ajustados según los requerimientos, como el número de nodos terminales y la profundidad máxima del árbol.
-Esta configuración asegurará un mayor control sobre la estructura y complejidad del modelo.
+En este modelo, ajustamos la estructura del árbol de decisión modificando los parámetros predeterminados con la función rpart.control. Esto nos permite controlar aspectos clave del árbol, como el número mínimo de observaciones necesarias para dividir un nodo, el tamaño mínimo de un nodo terminal, la profundidad máxima del árbol y el parámetro de complejidad (cp).
 
+
+Para este modelo, utilizamos un conjunto de variables relevantes que combinan datos categóricos y continuos:
+
+```{r}
+df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, continente ,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+
+
+## Además, defino mi variable distancia como categórica.
+df_arbol$distance<- as.factor(df_arbol$distance)
+df_test_arbol$distance<- as.factor(df_test_arbol$distance)
+```
+
+Se emplean los siguientes parámetros de control:
 ```{r}
 control_tree <- rpart.control(minsplit = 4,
                          minbucket = 2,
@@ -3401,7 +3439,7 @@ control_tree <- rpart.control(minsplit = 4,
                          cp = 0)
 ```
 
-Con estos parámetros establecidos, volvemos a ejecutar la función rpart y ver el árbol resultante.
+El árbol se entrena utilizando las variables seleccionadas y el control previamente configurado:
 
 ```{r}
 # Entrenar el árbol de decisión
@@ -3411,6 +3449,7 @@ arbol2 <- rpart(target ~ ., data = df_arbol, method = "class", control = control
 #rpart.plot(arbol2, type = 3, extra = 104, under = TRUE, cex = 0.8)
 ```
 
+Para interpretar fácilmente las divisiones y decisiones del modelo, podemos graficar el árbol generado:
 
 ```{r}
 # Modificar las etiquetas con salto de línea
@@ -3429,6 +3468,7 @@ rpart.plot(arbol2,
 ```
 
 Cada hoja (nodo final) indica una predicción (0 o 1), con precisión y porcentaje de datos representados.
+
 A continuación, voy a proceder a hacer las predicciones correspondientes en nuestros conjuntos de datos tanto de train como de test.
 
 Comenzamos en train:
@@ -3459,12 +3499,27 @@ El modelo tiene un buen desempeño en el conjunto de entrenamiento, pero tiene u
 En este caso, tiene un accuracy de 57.14%, lo que indica que el modelo acierta en aproximadamente la mitad de las predicciones y el valor de especificidad es relativamente bajo, lo que sugiere que el modelo está cometiendo bastantes falsos positivos.
 
 ```{r warning=FALSE}
-rm(cf_test, cf_train, control_tree, pred_test, pred_train)
+rm(df_arbol, df_test_arbol, cf_test, cf_train, control_tree, pred_test, pred_train)
 ```
 
 
 ## Modelo 3.
-En este modelo vamos a jugar con el cp. Escogiendo las variables que mas me interesan(evidentemente esto ya lo esta realizando el árbol, es como si estuviesemos cortando a cierta profundidad,ANALOGO)
+
+En este modelo, buscamos optimizar el parámetro de complejidad (cp) del árbol de decisión utilizando validación cruzada. Este proceso ayuda a determinar el nivel óptimo de poda, equilibrando la capacidad del modelo para generalizar sin sobreajustar.
+
+Comenzamos con las mismas variables que el modelo anterior:
+
+```{r}
+df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, continente ,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+
+
+## Además, defino mi variable distancia como categórica.
+df_arbol$distance<- as.factor(df_arbol$distance)
+df_test_arbol$distance<- as.factor(df_test_arbol$distance)
+```
+
+Se utiliza el conjunto de entrenamiento df_arbol para buscar el mejor valor de cp mediante validación cruzada de 10 particiones
 
 ```{r}
 # Validación cruzada para encontrar el mejor cp
@@ -3478,19 +3533,29 @@ arbol_cv <- train(target ~ .,
 
 ```
 
+El mejor valor de cp se obtiene automáticamente al ajustar el modelo y se puede visualizar:
+
 ```{r}
 # Mejor valor de cp
 print(arbol_cv$bestTune)
 ```
-Además, veo la importancia de las variables.
+Controlar la profundidad del árbol (usando parámetros como maxdepth o cp) es un equivalente funcional a realizar selección de variables. Sin embargo, realizar una selección previa puede ser útil en contextos específicos, especialmente si buscamos comparar resultados entre diferentes modelos o reducir la complejidad del análisis.
+
+Para determinar las características más relevantes en el modelo, analizamos la importancia de las variables. Esto ayuda a identificar aquellas que tienen un impacto significativo en la predicción de la variable objetivo (target).
+
+
 ```{r}
 # Importancia de las variables
 importancia <- varImp(arbol_cv, scale = TRUE)
 print(importancia)
 ```
 
+A partir de los resultados obtenidos, seleccionamos las variables más importantes, descartando aquellas que tienen una contribución baja al modelo. Esto permite simplificar el modelo y reducir el ruido generado por características irrelevantes.
+
+Con las variables seleccionadas (swimtimeP, stroke, medianaParcialesP), construimos un nuevo árbol utilizando el mejor valor de cp encontrado en el paso anterior:
+
 ```{r}
-# Árbol reducido eliminando variables con baja importancia
+set.seed(123)
 arbol4 <- rpart(target ~ ., 
                         data = df_arbol %>% select(swimtimeP, stroke, medianaParcialesP,target), 
                         method = "class", 
@@ -3504,8 +3569,7 @@ rpart.plot(arbol4, type = 3, extra = 104, under = TRUE, cex = 0.8)
 ```
 
 En este árbol toma la variable más importante el tiempo de nado en el parcial.
-En concreto, es relevante si los nadadores tienen un tiempo mayor o menor de 106 segundos, probablemente indique una división entre las pruebas de larga y baja distancia.
-Posteriormene divide según las medianas de dichos parciales.
+En concreto, es relevante si los nadadores tienen un tiempo mayor o menor de 106 segundos, probablemente indique una división entre las pruebas de larga y baja distancia. Posteriormene divide según las medianas de dichos parciales.
 Por último, utiliza nuevamente los tiempos de los parciales.
 En resumen, el árbol toma como las variables más influyentes las basadas en los tiempos y sus medianas parciales.
 
@@ -3518,6 +3582,7 @@ cf_train <- confusionMatrix(prediction, as.factor(df_arbol$target),positive="1",
 
 cf_train
 ```
+Este modelo logra un rendimiento equilibrado en el conjunto de entrenamiento, identificando correctamente tanto positivos como negativos.
 
 Y en test:
 
@@ -3528,24 +3593,36 @@ cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive=
 
 cf_test
 ```
+El Accuracy es de un 59.18%, lo que significa que el modelo clasifica correctamente aproximadamente 6 de cada 10 observaciones.
+El modelo muestra una pérdida notable de rendimiento al pasar de entrenamiento a prueba. Esto podría deberse a sobreajuste, donde el modelo aprende demasiado de los patrones específicos del conjunto de entrenamiento y no generaliza bien en datos no vistos.
 
-El accuracy de 61.22% indica que el modelo acierta en aproximadamente el 61% de las predicciones.
-Aunque es superior a una predicción aleatoria, el p-valor de 0.09887 sugiere que esta diferencia no es estadísticamente significativa.
-Esto sugiere que el modelo no está significativamente mejor que una estrategia aleatoria y podría necesitar ajustes o mejoras.
+58.83%, que es el promedio de la sensibilidad y la especificidad. Muestra que el modelo no está logrando un equilibrio óptimo entre las clases positivas y negativas.
 
-La sensibilidad de 72% indica que el modelo tiene una buena capacidad para identificar los casos positivos (por ejemplo, nadadores que "bajan").
-Acierta en 7 de cada 10 casos positivos, lo cual es positivo, aunque por sí solo este estadístico no indica un buen modelo ya que se necesita un equilibrio con la especificidad.
-La especificidad de 50% muestra que el modelo identifica correctamente la mitad de los casos negativos.
-Sin embargo, la otra mitad de los casos negativos son clasificados erróneamente como positivos, lo que significa que el modelo está generando una cantidad significativa de falsos positivos.
-
+Aunque identifica correctamente los positivos (bajar de tiempo), el modelo tiene problemas significativos con la clasificación de los negativos, generando muchos falsos positivos, lo que no es ideal para nuestro objetivo. Tiene un valor elevado, lo que significa que más de la mitad de los nadadores que realmente no bajan de tiempo fueron clasificados incorrectamente como que sí bajan. Este es un punto débil del modelo.
 
 ```{r}
+#cambio de nombre
+arbol3= arbol4
 #no eliminar arbolcv lo uso abajo
-rm(cf_train, cf_test, prediction,importancia,control)
+rm(arbol4, df_arbol, df_test_arbol, cf_train, cf_test, prediction,importancia,control)
 ```
 
 
-CONCLUSION hasta el momento ARBOLES PARA EL BAGGING(14/12): el que mejor va es arbol3
+
+## Resumen y decisión.
+
+1. Arbol1: Se entrenó con todas las variables relevantes, reemplazando code (país) por continente y daytimeP por sesion. Utilizó los parámetros por defecto de la función rpart. Aunque el modelo funciona bien en entrenamiento, su bajo rendimiento en prueba revela una falta de capacidad de generalización.
+
+2. Arbol2: Se utilizó la función rpart.control para personalizar la estructura del árbol. El ajuste de los parámetros reduce la complejidad del modelo, pero no logra una mejora significativa en la generalización.
+
+3. Arbol3: Se utilizó validación cruzada (10-fold) para determinar el mejor valor del parámetro cp, reduciendo la complejidad del árbol. Se eliminaron variables de baja importancia para simplificar el modelo. La validación cruzada ayuda a reducir la complejidad del modelo sin comprometer el rendimiento en entrenamiento.
+
+Los tres modelos basados en árboles muestran un rendimiento adecuado en el conjunto de entrenamiento, pero fallan en generalizar bien en el conjunto de prueba, con una precisión en prueba que oscila entre el 55% y el 59%.
+
+El Modelo 2 y el Modelo 3, con ajustes de control y validación cruzada respectivamente, ofrecen mejoras en simplicidad sin sacrificar el rendimiento, pero no resuelven completamente los problemas de sobreajuste.
+
+
+(hacer algo gráfico que muestre que arbol es mejor)
 
 # Métodos de ensamblado.
 
@@ -3559,8 +3636,9 @@ Este enfoque es particularmente útil en algoritmos inestables, como árboles de
 
 ### Modelo 1.
 
-A continuación, vamos a construir un modelo de bagging sobre el modelo 3 hecho en Árboles de decisión, buscamos de alguna manera generar una mejora.
-Para ello, primeramente voy a crear mis dataFrames:
+En este paso, utilizaremos el modelo 3 basado en árboles de decisión como modelo base para implementar un modelo de Bagging. El objetivo es mejorar la generalización y la precisión del modelo al combinar múltiples árboles entrenados en subconjuntos de datos de entrenamiento.
+
+Primero, seleccionamos las variables relevantes para el análisis y aseguramos que las variables categóricas se traten adecuadamente.
 
 ```{r}
 df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
@@ -3571,7 +3649,7 @@ df_arbol$distance<- as.factor(df_arbol$distance)
 df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 ```
 
-Una vez definidos mis árboles, voy a entrenar mi modelo:
+En este caso, utilizaremos la función bagging de la librería ipred para entrenar un modelo de Bagging basado en árboles de decisión. El objetivo es mejorar el rendimiento del modelo base:
 
 ```{r}
 # Bagging
@@ -3583,7 +3661,7 @@ modeloBagging1 <- bagging(target ~., data=df_arbol, coob=TRUE,nbagg=50,
 
 ```
 
-Vemos sus predicciones en entrenamiento:
+Una vez entrenado el modelo de Bagging, evaluamos su desempeño en el conjunto de entrenamiento utilizando la función predict para obtener las probabilidades de cada clase. Luego, transformamos estas probabilidades en predicciones binarias (0 o 1) con un umbral del 50%. Finalmente, calculamos la matriz de confusión y otras métricas.
 
 ```{r}
 pred_bag_train <- predict(modeloBagging1, df_arbol,type="prob")[,2]
@@ -3593,8 +3671,9 @@ cf_bag_train <- confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_ar
 cf_bag_train
 ```
 
-Parece que sobreajusta ya que tenemos un accuracy, sensitivity y specificity del 100%.
-Probamos este modelo con los datos en test:
+El modelo de Bagging ha logrado un rendimiento perfecto en el conjunto de entrenamiento. Esto sugiere que el modelo ha aprendido todos los patrones presentes en los datos de entrenamiento. Sin embargo, un desempeño perfecto en este conjunto puede ser una señal de sobreajuste.
+
+El siguiente paso será evaluar el modelo en el conjunto de prueba para determinar si estas métricas se mantienen o si el modelo ha perdido su capacidad de generalización.
 
 ```{r}
 pred_bag_test <- predict(modeloBagging1, df_test_arbol,type="prob")[,2]
@@ -3604,11 +3683,9 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 cf_bag_test
 ```
 
-Confirmamos que tiende al sobreajuste, se reducen todos los estadísticos.
-En concreto, la especificidad baja a un 45.83%.
-Un valor de 45.83% es relativamente bajo, lo que significa que el modelo está cometiendo muchos falsos positivos, clasificando incorrectamente como positivos a muchos casos negativos.
+Aunque el modelo de Bagging tiene un buen desempeño en la identificación de nadadores que bajan su tiempo (sensibilidad alta), su capacidad para clasificar correctamente los nadadores que no bajan su tiempo es limitada (especificidad baja). Esto sugiere que el modelo tiende a clasificar como positivos a muchos casos que en realidad son negativos, lo que se refleja en una alta Tasa de Falsos Positivos.
 
-En el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
+El marcado contraste entre el rendimiento perfecto en el conjunto de entrenamiento y el bajo rendimiento en el conjunto de prueba confirma que el modelo sufre de sobreajuste. Este problema podría abordarse ajustando los hiperparámetros del modelo, reduciendo la complejidad de los árboles base, o aumentando la cantidad de datos disponibles para el entrenamiento.
 
 ```{r}
 rm(cf_bag_train, cf_bag_test)
@@ -3616,7 +3693,7 @@ rm(cf_bag_train, cf_bag_test)
 
 ### Modelo 2.
 
-Una vez definidos los árboles, entrenamos el modelo:
+Una vez definidos los árboles, entrenamos un nuevo modelo de Bagging con ajustes en los hiperparámetros. Este ajuste busca mejorar la generalización del modelo, manteniendo un balance adecuado entre sensibilidad y especificidad.
 
 ```{r}
 # Bagging
@@ -3637,8 +3714,7 @@ cf_bag_train <- confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_ar
 cf_bag_train
 ```
 
-Obtenemos igual que en el caso anterior, unos estadísticos del 100%.
-Vemos cómo se comporta el modelo en los datos test:
+Estos resultados son típicos de un modelo sobreajustado, ya que logra una precisión perfecta en el conjunto de entrenamiento pero probablemente no generaliza bien en datos de prueba. Para validar el modelo, es esencial evaluar su rendimiento en el conjunto de prueba, donde se podría observar una caída significativa en la precisión y otras métricas, lo que confirmaría el sobreajuste.
 
 ```{r}
 pred_bag_test <- predict(modeloBagging2, df_test_arbol,type="prob")[,2]
@@ -3647,9 +3723,7 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 
 cf_bag_test
 ```
-
-Confirmamos que tiende al sobreajuste, aunque se comporta ligeramente mejor que en el caso anterior.
-en el siguiente modelo, vamos a tratar de definir mejor el control sobre el árbol creado.
+El modelo muestra un claro sobreajuste. Si bien funciona perfectamente en el conjunto de entrenamiento, su rendimiento en el conjunto de prueba es malo, lo que sugiere que no puede generalizar bien. Eso si, se comporta ligeramente mejor que en el caso anterior.
 
 ```{r}
 rm(cf_bag_train, cf_bag_test)
@@ -3658,9 +3732,8 @@ rm(cf_bag_train, cf_bag_test)
 
 ### Modelo 3.
 
-Voy a meter exactamente los mismos parámetros de control que empleábamos en el arbol3 (el que mejor iba y veo que pasa)
+En este modelo, emplearemos el mismo conjunto de parámetros utilizados en el árbol 3, el cual demostró ser el más prometedor entre los modelos basados en árboles de decisión. Además, repetiremos la selección de variables realizada en ese modelo.
 
-Además, recordamos que hacíamos selección de variables(realizamos la misma que en arbol3)
 ```{r}
 # Bagging
 set.seed(123)
@@ -3670,8 +3743,7 @@ modeloBagging3 <- bagging(target ~., df_arbol %>% select(swimtimeP, stroke, medi
 
 ```
 
-
-Vemos ahora sus predicciones en train y su matriz de confusión,
+Este modelo debería proporcionar una mejora en la capacidad de generalización debido al ajuste fino del parámetro de complejidad (cp) y la reducción de ruido gracias a la selección de variables clave. Una comparación entre las métricas de los conjuntos de entrenamiento y prueba determinará si el modelo logra un buen equilibrio entre sensibilidad y especificidad, minimizando los falsos positivos.
 
 ```{r}
 pred_bag_train <- predict(modeloBagging3, df_arbol,type="prob")[,2]
@@ -3690,8 +3762,10 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 
 cf_bag_test
 ```
+Esto indica que el modelo clasifica correctamente el 63.27% de los casos en el conjunto de prueba, lo cual es una mejora respecto a algunos de los modelos previos.
+La especificidad relativamente baja (45.83%) implica que el modelo no clasifica correctamente a muchos nadadores que no bajan de tiempo, lo que podría llevar a falsos positivos.
 
-Lo hemos mejorado. De hecho, sin selección empeora.
+En cualquier caso, es un modelo con mejora.
 
 ```{r}
 rm(cf_bag_train, cf_bag_test)
@@ -3712,8 +3786,10 @@ La función bagging de la librería ipred está diseñada principalmente para mo
 
 Conclusion Bagging:Modelo 3 candidato
 
+
+### Resumen y decision.
+
 # Random Forest 
-(hacer un modelo sobre el mejor modelo de árboles de decisión.)
 Un Bosque Aleatorio es una potente técnica de ensamblado que utiliza un conjunto de DTs para mejorar la precisión de las predicciones.
 En lugar de confiar en un solo árbol, se construye un bosque compuesto por numerosos árboles individuales.
 La singularidad de un Bosque Aleatorio radica en cómo se crean y combinan estos árboles.
