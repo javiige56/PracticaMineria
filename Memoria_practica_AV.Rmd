@@ -52,7 +52,7 @@ library(counterfactuals)
 library(iml)
 library(GGally)
 library(pROC)
-
+library(reshape2)
 ```
 
 # Introducción.
@@ -441,7 +441,7 @@ De acuerdo con esta nueva variable, vemos cómo se distribuyen las edades.
 ```{r}
 ggplot(nadadoresParticipantes, aes(x = edad)) +
   geom_density(fill = "#0072B2", color = "#0072B2") + # Azul accesible para daltónicos
-  ggtitle("Distribución. Edades.")
+  ggtitle("Gráfica de densidad")
 ```
 
 La mayoría de los nadadores parecen tener entre 15 y 25 años, con un pico alrededor de los 20 años.
@@ -913,14 +913,10 @@ Ahora que hemos determinado que la diferencia es estadísticamente significativa
 Calculamos la diferencia relativa, ya que los tiempos de reacción son muy pequeños y de esta forma nos podemos hacer una idea de lo representativa que es la diferencia de medias.
 
 ```{r}
-mediaTiempoReaccion <- mean(nadadoresPruebas$reactiontime)
-mediaTiempoReaccion
-(0.7166871-0.6922862)/mediaTiempoReaccion*100
+((0.7166871-0.6922862)/(0.692286))*100
 ```
 
-Obtenemos que las mujeres tardan un 3.5% más de tiempo que los hombres.
-Es decir que, si mantenemos en igualdad todas las demás variables, si un hombre tarda 22 segundos en un 50, una mujer tardará 3.5% más de tiempo, es decir, 22.77 segundos.
-Una diferencia **significativamente** grande si hablamos de una prueba tan corta.
+Obtenemos que las mujeres tardan un 3.5% más de tiempo que los hombres. A efectos prácticos, tardar 2 centésimas más en reaccionar no es significativo en pruebas de fondo, pero sí que lo puede llegar a ser en pruebas de velocidad donde la diferencia entre los nadadores es de décimas. 
 
 ### Reactiontime. Distancias largas vs distancias cortas.
 
@@ -1028,7 +1024,7 @@ Para ello, realizaremos un gráfico de densidad conjunto.
 
 ```{r}
 ggplot(nadadoresPruebas, aes(x = reactiontime, color = as.factor(distance), fill = as.factor(distance))) +
-  geom_density(alpha = 0.3) +  # Ajustar la transparencia
+  geom_density(alpha = 0.8) +  # Ajustar la transparencia
   ggtitle("Distribución comparada de Reaction time") +
   labs(x = "Tiempo de Reacción", y = "Densidad", color = "Distancia", fill = "Distancia") +
   theme_minimal()
@@ -3037,21 +3033,20 @@ rm(datos, porcentajes)
 
 # Medidas de rendimiento.
 
-En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, voy a intentar minimizar el error que se produce cuando predigo que un nadador SÍ baja de tiempo, pero en realidad no lo hace.
-Me interesa minimizar los falsos positivos.
+En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, quiero minimizar la tasa de falsos positivos. 
+
 Una tabla de contingencia, es una herramienta que permite evaluar el rendimiento de un modelo de clasificación. Esta tabla resume las predicciones del modelo comparándolas con los valores reales y se utiliza principalmente en problemas de clasificación binaria (aunque puede ampliarse a multiclase).
 
 
 ```{r, echo=FALSE}
-# Crear la tabla en formato data frame
 tabla <- data.frame(
-  " " = c("(1)", "(0)"),
-  "(1)" = c("Verdaderos Positivos (TP)", "Falsos Negativos (FN)"),
-  "(0)" = c("Falsos Positivos (FP)", "Verdaderos Negativos (TN)")
+  "Prediction 0" = c("TN", "FP"),  
+  "Prediction 1" = c("FN", "TP")   
 )
 
-# Imprimir la tabla con knitr::kable
-knitr::kable(tabla, format = "markdown", align = "c", col.names = c("", "(1)", "(0)"))
+rownames(tabla) <- c("Reference 0", "Reference 1")
+
+knitr::kable(tabla, format = "markdown", align = "c", caption = "Matriz de Confusión")
 
 ```
 
@@ -3067,7 +3062,14 @@ Por tanto, utilizaremos distintos modelos y evaluaremos su calidad mediante medi
 Comentaremos las principales métricas de rendimiento, haciendo mayor hincapié en las siguientes:
 
 -   Accuracy o Exactitud $= \frac{TP + TN}{N}$. Mide la proporción de predicciones correctas hechas por un modelo de clasificación. Es uno de los indicadores más utilizados para evaluar el desempeño de un modelo de clasificación. Intentaremos maximizar este valor.
--   FPR (tasa de falsos positivos) $= \frac{FP}{FP+TN}$ Intentaremos minimizar este valor ya que mide la proporción de negativos reales que el modelo clasifica incorrectamente como positivos.
+-   FPR (tasa de falsos positivos) $= \frac{FP}{FP+TP}$ Intentaremos minimizar este valor, ya que mide la proporción de positivos que acierta el modelo. Esta medida de rendimiento, no se contempla en las matrices de confusión y debemos calcularla a mano. 
+
+De manera análoga al FPR, podemos usar $= \frac{TP}{FP+TP}$ y tratar de maximizar este valor. Este valor sí que se encuentra en las matrices de confusión que evaluaremos más adelante. 
+
+```{r, echo=FALSE}
+rm(tabla)
+```
+
 
 # Modelos K-Vecinos.
 
@@ -3130,9 +3132,9 @@ predicciones <- predict(modelo1knn, newdata = scale(df[,-1]), type = "class")
 matrizconfusion1 <- confusionMatrix(predicciones, as.factor(df$target), positive = "1")
 print(matrizconfusion1)
 ```
-El modelo muestra buen rendimiento para los positivos (bajar de tiempo), pero su rendimiento en la clase negativa es bajo.
-Dado nuestro objetivo de minimizar los falsos positivos, este modelo no cumple los requisitos necesarios.
-Por lo tanto, podemos concluir con que el modelo falla demasiado en nuestros datos de entrenamiento. Luego, no va a ser un buen modelo. Nos servirá como modelo base para intentar encontrar uno mejor. 
+Tras los resultados, observamos que el modelo acierta 3 de cada 4 veces que predice (72.82%). Además, la tasa de verdaderos positivos es de 73.98%. 
+
+Dado nuestro objetivo de minimizar los falsos positivos, este modelo no cumple demasiado bien los requisitos. A priori, no va a ser un buen modelo. Nos servirá como modelo base para intentar encontrar uno mejor. 
 
 
 ```{r}
@@ -3170,7 +3172,7 @@ result <- rfe(x, y, sizes=c(1:ncol(x)), rfeControl=ctrl)
 print(result)
 ```
 
-```{r}
+```{r, echo=FALSE}
 rm(ctrl, result, x, y)
 ```
 
@@ -3195,7 +3197,8 @@ predicciones <- predict(modelo2knn, newdata = scale(df[,-1]), type = "class")
 matrizconfusion1 <- confusionMatrix(predicciones, as.factor(df$target), positive = "1")
 print(matrizconfusion1)
 ```
-El modelo clasifica correctamente el 78.97% de las observaciones. El modelo clasifica correctamente el 63.86% de los nadadores que no bajan de tiempo.
+El modelo clasifica correctamente el 78.97% de las observaciones. Casi 4 de cada 5, luego parece mejor que el primer modelo entrenado. Además, su tasa de verdaderos positivos es mayor que antes.
+
 Vistos los resultados del modelo en el conjunto de entrenamiento, esto nos dará una idea inicial del ajuste del modelo. Sin embargo, lo más importante es cómo se comporta en datos no vistos.
 
 El modelo entrenado es ahora evaluado en el conjunto de prueba (test) para medir su capacidad de generalización y comprobar si puede mantener un rendimiento adecuado fuera del conjunto de entrenamiento.
@@ -3207,9 +3210,9 @@ print(matrizconfusion1)
 
 ```
 
-Dado que el objetivo principal es maximizar el Accuracy y minimizar la tasa de falsos positivos (FPR), evaluemos estas métricas basándonos en los resultados del modelo. 
+Vemos que, el Accuracy baja al predecir en datos nunca vistos, acierta un 65% de las veces que predice algo. Además, la tasa de verdaderos positivos es de un 61%, un poco baja. Aún así, este modelo es mejor que el anteriormente entrenado.
 
-El modelo clasifica correctamente el 65.31% de los casos en el conjunto de prueba.
+
 
 ```{r}
 rm(matrizconfusion1, df, df_test)
@@ -3269,7 +3272,7 @@ print(matriz_confusion)
 ```
 El modelo clasifica correctamente aproximadamente el 65% de los casos en el conjunto de prueba. Aunque supera el azar, es similar al modelo basado en la distancia euclidiana.
 
-La FPR es idéntica para ambas distancias (58.33%), indicando que el cambio en la métrica de distancia no mejora la clasificación de negativos reales.
+Es un modelo muy parecido al modelo 2. Ya que la tasa de positivos verdaderos también es del 61%. Nos quedaremos con el segundo modelo. 
 
 
 ```{r}
@@ -3347,7 +3350,7 @@ El modelo 2 tiene una ligera ventaja en términos de capacidad discriminativa, y
 Aunque el AUC del modelo 2 es superior, un valor de 0.5275 sigue siendo bajo. Esto sugiere que ambos modelos tienen un desempeño moderado y que todavía hay espacio para mejorar, ya sea ajustando hiperparámetros (k), probando otras distancias (como Gower), o incluyendo nuevas variables predictoras.
 
 ```{r}
-rm(auc_knn1,auc_knn2,roc_knn1,roc_knn2,df_test1,df_test2)
+rm(auc_knn1,auc_knn2,roc_knn1,roc_knn2,df_test1,df_test2, modelo1knn, x_train, modelo3knn, probs_knn1, probs_knn2, predicciones)
 ```
 
 Mantenemos el modelo 2 como el mejor hasta ahora, ya que tiene un AUC superior.
@@ -3367,7 +3370,7 @@ En este modelo inicial:
 - La variable code (país) se sustituye por el continente, con el objetivo de reducir la granularidad y mejorar la generalización.
 - La variable daytimeP se reemplaza por una variable categórica que indique si la sesión fue matinal o vespertina.
 
-Primero, realizamos los cambios necesarios en las variables y seleccionamos las que serán usadas en el modelo:
+Seleccionamos las variables: 
 
 ```{r}
 df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, continente ,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
@@ -3398,7 +3401,7 @@ cf_train <- confusionMatrix(prediction, as.factor(df_arbol$target),positive="1",
 cf_train
 ```
 
-Nuestro árbol inicial presenta buenos resultados, con una precisión (Accuracy) del 81.1%, lo cual se considera un desempeño notable.
+Nuestro árbol inicial presenta buenos resultados, con una precisión (Accuracy) del 81.1%, lo cual se considera un desempeño notable. Además, presenta también una buena precisión a la hora de identificar los nadadores que bajan de tiempo, un 81.67%. 
 
 El modelo muestra un buen ajuste en los datos de entrenamiento, con alta sensibilidad y precisión. Sin embargo, puede ser debido al sobreajuste. Esto deberá confirmarse evaluando el modelo en el conjunto de prueba:
 
@@ -3423,7 +3426,7 @@ La función utilizada para generar el árbol en el modelo anterior incluye valor
 En este modelo, ajustamos la estructura del árbol de decisión modificando los parámetros predeterminados con la función rpart.control. Esto nos permite controlar aspectos clave del árbol, como el número mínimo de observaciones necesarias para dividir un nodo, el tamaño mínimo de un nodo terminal, la profundidad máxima del árbol y el parámetro de complejidad (cp).
 
 
-Para este modelo, utilizamos un conjunto de variables relevantes que combinan datos categóricos y continuos:
+Para este modelo, usamos las mismas variables que en el modelo 1: 
 
 ```{r}
 df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, continente ,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
@@ -3436,6 +3439,7 @@ df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 ```
 
 Se emplean los siguientes parámetros de control:
+
 ```{r}
 control_tree <- rpart.control(minsplit = 4,
                          minbucket = 2,
@@ -3484,11 +3488,10 @@ cf_train
 ```
 
 
-En general, el modelo muestra un buen rendimiento: la precisión (87.69%) es bastante alta, lo que indica que la mayoría de las predicciones son correctas.
-La sensibilidad (95.54%) es excelente, lo que significa que el modelo es muy eficaz para identificar correctamente los casos positivos (en este caso, los nadadores que bajan de tiempo).
-La especificidad (77.11%) también es razonable, indicando que el modelo es relativamente bueno para identificar los casos negativos, aunque podría mejorarse.
+En general, el modelo muestra un buen rendimiento: la precisión (87.69%) es bastante alta, lo que indica que la mayoría de las predicciones son correctas. Además, detecta bastante bien aquellos nadadores que consiguen bajar de marca, ya que consigue identificar el 84.92%. 
 
-Lo analizamos con los datos test:
+
+Lo analizamos a continuación con los datos test:
 
 ```{r}
 pred_test <- predict(arbol2, newdata = df_test_arbol, type = "class")
@@ -3498,7 +3501,7 @@ cf_test
 ```
 
 El modelo tiene un buen desempeño en el conjunto de entrenamiento, pero tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajuste.
-En este caso, tiene un accuracy de 57.14%, lo que indica que el modelo acierta en aproximadamente la mitad de las predicciones y el valor de especificidad es relativamente bajo, lo que indica que el modelo está cometiendo bastantes falsos positivos.
+En este caso, tiene un accuracy de 57.14%, lo que indica que el modelo acierta en aproximadamente la mitad de las predicciones. Además, detecta 1 de cada 2 positivos aproximadamente, una moneda al aire. No es un buen modelo. 
 
 ```{r warning=FALSE}
 rm(df_arbol, df_test_arbol, cf_test, cf_train, control_tree, pred_test, pred_train)
@@ -3598,6 +3601,7 @@ cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive=
 cf_test
 ```
 El Accuracy es de un 59.18%, lo que significa que el modelo clasifica correctamente aproximadamente 6 de cada 10 observaciones.
+
 El modelo muestra una pérdida notable de rendimiento al predecir con los datos de prueba. Esto podría deberse a sobreajuste, donde el modelo aprende demasiado de los patrones específicos del conjunto de entrenamiento y no generaliza bien en datos no vistos.
 
 El balanced accucary es de 58.83%, que es el promedio de la sensibilidad y la especificidad. Muestra que el modelo no está logrando un equilibrio óptimo entre las clases positivas y negativas.
@@ -3646,6 +3650,11 @@ ggplot(metricas_melt, aes(x = Modelo, y = value, fill = variable)) +
 
 ```
 
+
+```{r}
+rm(metricas, metricas_melt)
+```
+
 # Métodos de ensamblado.
 
 Los métodos de ensamblado son técnicas avanzadas de aprendizaje automático que combinan múltiples modelos base para mejorar la precisión, la robustez y la generalización de las predicciones.
@@ -3658,7 +3667,7 @@ Este enfoque es particularmente útil en algoritmos inestables, como árboles de
 
 ### Modelo 1.
 
-En este paso, utilizaremos el modelo 3 basado en árboles de decisión como modelo base para implementar un modelo de Bagging. El objetivo es mejorar la generalización y la precisión del modelo al combinar múltiples árboles entrenados en subconjuntos de datos de entrenamiento.
+En este paso, utilizaremos el modelo 2 basado en árboles de decisión como modelo base para implementar un modelo de Bagging. El objetivo es mejorar la generalización y la precisión del modelo al combinar múltiples árboles entrenados en subconjuntos de datos de entrenamiento.
 
 Primero, seleccionamos las variables relevantes para el análisis y aseguramos que las variables categóricas se traten adecuadamente.
 
@@ -3785,16 +3794,16 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 cf_bag_test
 ```
 Esto indica que el modelo clasifica correctamente el 63.27% de los casos en el conjunto de prueba, lo cual es una mejora respecto a algunos de los modelos previos.
-La especificidad relativamente baja (45.83%) implica que el modelo no clasifica correctamente a muchos nadadores que no bajan de tiempo, lo que podría llevar a falsos positivos.
 
-En cualquier caso, es un modelo con mejora.
+Por otro lado, no evalúa demasiado bien cuando predice que un nadador mejora, es decir, predice bien 6 de cada 10 nadadores que mejoran. Aún así es mucho mejor modelo que los anteriores, lo tendremos en cuenta.
+
 
 ```{r}
 rm(cf_bag_train, cf_bag_test)
 ```
 
 
-### Modelo 4.
+### Modelo 4. (Lo hace luego Alonso.)
 
 En este apartado, vamos a realizar un bagging sobre nuestro mejor modelo knn para ver si logra mejorar.
 
@@ -3811,7 +3820,21 @@ Conclusion Bagging:Modelo 3 candidato
 
 ### Resumen y decision.
 
+
+
+
+
+
+```{r}
+#Elimino todo lo que no usaré en adelante.
+
+rm(df_arbol, df_test_arbol, pred_bag_test, pred_bag_train, clase.pred.bag.test, clase.pred.bag.train)
+```
+
+
+
 # Random Forest 
+
 Un Bosque Aleatorio es una potente técnica de ensamblado que utiliza un conjunto de DTs para mejorar la precisión de las predicciones.
 En lugar de confiar en un solo árbol, se construye un bosque compuesto por numerosos árboles individuales.
 La singularidad de un Bosque Aleatorio radica en cómo se crean y combinan estos árboles.
@@ -3825,6 +3848,9 @@ El Bosque Aleatorio se basa en una regla de decisión que cuenta los votos de ca
 En teoría, un gran número de modelos relativamente no correlacionados que funcionan como un comité superarán a cualquier modelo individual.
 
 ### Modelo 1
+
+Vamos a entrenar un primer modelo de Random Forest. Para ello, voy a recoger todas las variables posibles. Son las mismas variables que se usaban para los árboles de decisión. 
+
 ```{r}
 df_random <- datos2015Target_train %>% select(target, distance, stroke, gender,continente, heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 df_test_random <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
@@ -3833,8 +3859,9 @@ df_test_random <- datos2015Target_test %>% select(target, distance, stroke, gend
 df_random$distance<- as.factor(df_random$distance)
 df_test_random$distance<- as.factor(df_test_random$distance)
 
-str(df_random)
 ```
+
+Una vez recogidas las variables en el dataframe, vamos a proceder a entrenar nuestro primer modelo de Random Forest (rf1):
 
 ```{r}
 set.seed(123)
@@ -3848,23 +3875,27 @@ rf1 <- randomForest(
 )
 ```
 
+A continuación, graficamos el error: 
+
 ```{r}
 # Graficar el error
 plot(rf1)
 legend("right", colnames(rf1$err.rate), lty = 1:5, col = 1:6)
 
 ```
-(Parece que en 50 se establece, lo pongo pruebo y parece que con 10 va bien)
+
+A continuación, vamos a realizar las distintas predicciones en nuestro conjunto de entrenamiento: 
 
 ```{r}
-library(caret)
-# Predicción en el conjunto de entrenamiento
 pred_rf_train <- predict(rf1, df_random, type = "prob")[, 2]  
 clase_pred_rf_train <- ifelse(pred_rf_train > 0.5, "1", "0")  
 cf_rf_train <- confusionMatrix(as.factor(clase_pred_rf_train), as.factor(df_random$target), positive = "1")
+print(cf_rf_train)
+```
 
-# prueba
+Observamos que no se equivoca nunca, es decir, reconoce todos los patrones en el conjunto en el que ha entrenado. Esto, sugiere sobreajuste tal y como hemos aprendido durante el proyecto. Visualicemos a continuación los datos en test: 
 
+```{r}
 pred_rf_test <- predict(rf1, df_test_random, type = "prob")[, 2] 
 clase_pred_rf_test <- ifelse(pred_rf_test > 0.5, "1","0")   
 
@@ -3874,6 +3905,10 @@ print(cf_rf_test)
 
 ```
 
+Tal y como preveíamos, se han sobreajustado los datos y este modelo entrenado no es demasiado válido, es como lanzar una moneda al aire. 
+
+
+
 ```{r}
 
 # Importancia de las variables
@@ -3882,11 +3917,15 @@ print(var_importance)
 varImpPlot(rf1)
 
 ```
+
+(Hablar de esto)
+
 ```{r}
 rm(var_importance,pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,clase_pred_rf_test ,cf_rf_test)
 ```
 
 ## Modelo 2
+
 ESTO ES UN INTENTO DE ENCONTRAR UN MEJOR RANDOM FOREST PERO REALMENTE ESTA MAL PLANTEADO. DEBIDO A LA NATURALEZA DEL RANDOM DEBERIAMOS CONSEGUIR UNO CON MEJOR RENDIMIENTO(INTENTARLO :( )
 
 Realmente con un buen Random hemos ganado y te realiza seleccion, pero realizo selección de variables manual por si algún casual mejora
@@ -3902,6 +3941,7 @@ rf2 <- randomForest(
   mtry = 6
 )
 ```
+
 
 ```{r}
 # Graficar el error
@@ -3928,12 +3968,10 @@ print(cf_rf_test)
 
 ```{r}
 rm(pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,clase_pred_rf_test ,cf_rf_test)
-
-#rm(df_random,df_test_random) #lo uso en contrafacticos y shap
 ```
 
 
-#Modelo 3 Random Forest.
+## Modelo 3.
 Con el objetivo de mejorar nuestro modelo de Random Forest, realizaremos algunas modificaciones: 
 
 - Estandarizar los datos. Aunque Random Forest no suele ser tan sensible a la escala de las variables como otros modelos (como KNN por ejemplo), a veces normalizar o estandarizar las variables puede mejorar el rendimiento,
