@@ -2888,8 +2888,8 @@ rownames(nadadoresFinalistas) <- 1:nrow(nadadoresFinalistas)
 dim(nadadoresFinalistas)
 ```
 
-Luego, observamos que sí, estamos en lo cierto.
-Ahora, voy a hacer la repartición de mis datos sobre el dataframe creado anteriormente:
+Luego, observamos que estamos en lo cierto.
+Realizamos la partición de los datos sobre el dataframe creado anteriormente:
 
 ```{r}
 n=nrow(datos2015Target)
@@ -2897,29 +2897,29 @@ set.seed(1312)
 indices_validation= sample(1:n, n*0.1)
 indices_entrenamiento= c(1:n)[-indices_validation]
 
-#he dividido los datos, ahora, cojo los de entreno y divido otra vez. 
+#Tras dividir los datos, tomamos los de train y volvemos a dividir.
 n_entrenamiento=length(indices_entrenamiento)
 set.seed(2910)
 indices_train=sample(indices_entrenamiento, 0.8*n_entrenamiento)
 indices_test=c(1:n)[-c(indices_validation, indices_train)]
-#reinicio las filas por si acaso:
+#Reiniciar las filas
 rownames(datos2015Target) <- NULL
-#hago la repartición:
+#Partición
 datos2015Target_train=datos2015Target[indices_train,]
 datos2015Target_test= datos2015Target[indices_test, ]
 datos2015Target_validation=datos2015Target[indices_validation, ]
 ```
 
 ```{r}
-# Elimino las tablas que no voy a usar: 
+# Eliminar las tablas que no se usarán
 
 rm(datos2015, nadadoresParticipantes, nadadoresPruebas, nadadoresParticipantesCopia, nadadoresPruebasCopia, nadadoresFinalistas )
 ```
 
 # Análisis previo de los datos.
 
-Antes de comenzar nuestro estudio, vamos a evaluar el total de nadadores que sí bajan de tiempo y el total que NO lo hacen.
-Lo hacemos:
+Antes de comenzar nuestro estudio, vamos a evaluar el total de nadadores que sí bajan de tiempo y el total que no lo hacen.
+
 
 ```{r}
 datos2015Target_train$target <- as.factor(datos2015Target_train$target)
@@ -2928,16 +2928,16 @@ summary(datos2015Target_train$target)
 112/(112+83)
 ```
 
-Luego, un 57.43% baja de marca.
-Luego, tiene sentido intentar buscar mediante medidas de rendimiento, esas predicciones sobre nuevas observaciones.
-Vamos a evaluar todos los modelos de rendimiento vistos en teoría, y elegiremos el (los) que nos aporten un mayor rendimiento en las medidas (DECIDIRLAS).
+Tenemos que un 57.43% baja de marca.
+Tiene sentido intentar buscar mediante medidas de rendimiento, esas predicciones sobre nuevas observaciones.
+Vamos a evaluar todos los modelos de rendimiento vistos en teoría, y elegiremos el(los) que nos aporten un mayor rendimiento a través del análisis de sus medidas.
 
-## Posibles variables que influyan en la respuesta.
+## Variables que pueden influir en la respuesta.
 
-A continuación, voy a evaluar en mi conjunto de datos, si existe algún patrón que nos pueda decir si las nadadoras bajan o no de tiempo, es decir, si alguna variable dictamina más que otras.
-Para ello, voy a empezar analizando la edad.
-Voy a evaluar si existe algún tipo de relación entre la edad y si bajan o no tiempo.
-Para ello:
+Evaluamos en nuestro conjunto de datos si existe algún patrón que nos pueda ayudar a predecir si las nadadoras bajan o no de tiempo. Analizamos si existen variables que dictaminan más que otras.
+
+Analizamos en primer lugar la edad. Evaluamos si existe algún tipo de relación entre la edad y si bajan o no tiempo.
+Para ello,
 
 ```{r}
 # Agrupar edades en intervalos (por ejemplo, cada 5 años)
@@ -2964,15 +2964,13 @@ ggplot(porcentajes, aes(x = grupo_edad, y = porcentaje, fill = factor(target))) 
   theme_minimal()
 ```
 
-Parece que, a partir de los 30 años, hay más porcentaje de nadadores que no consiguen bajar la marca.
-Parece haber relación, luego lo tendremos en cuenta.
+A partir de los 30 años, aumenta el porcentaje de nadadores que no mejoran su marca, lo que sugiere una posible relación que será considerada.
 
 ```{r, echo=FALSE}
 rm(conteo, df, porcentajes)
 ```
 
-Continuamos nuestro estudio haciendo algo muy similar con los estilos.
-Es decir, ¿alguno de los 5 estilos tiene relación con que se baje la marca?
+Continuamos nuestro estudio con la variable stroke, analizando si alguno de los 5 estilos tiene relación con la mejora de la marca.
 Lo vemos en el siguiente gráfico:
 
 ```{r}
@@ -2996,11 +2994,9 @@ ggplot(porcentajes, aes(x = stroke, y = porcentaje, fill = factor(target))) +
   theme_minimal()
 ```
 
-Bueno, parece que, hay algunos estilos mucho más influyentes que otros.
-Medley y Free, son estilos que parece que tienen un porcentaje alto de bajar.
-También el estilo braza no parece un estilo en el que se baje en las finales.
+Observamos que algunos estilos son más influyentes que otros. Medley y Free muestran un porcentaje elevado de mejora, mientras que en el estilo Braza no parece ser frecuente bajar la marca en las finales.
 
-Prosigo el estudio haciendo lo mismo con las distancias:
+A continuación, analizamos si existe una relación entre las distancias y la mejora de la marca. El siguiente gráfico ilustra este análisis:
 
 ```{r}
 datos<-datos2015Target_train
@@ -3033,7 +3029,7 @@ rm(datos, porcentajes)
 
 # Medidas de rendimiento.
 
-En los modelos que vamos a calcular a continuación, nuestro objetivo va a ser que, cada vez que digamos que un nadador baja de tiempo, sea cierto, es decir, quiero minimizar la tasa de falsos positivos. 
+En los modelos que calcularemos a continuación, nuestro objetivo será garantizar que, cada vez que afirmemos que un nadador mejora su tiempo, esta predicción sea correcta. Por lo tanto, nos centraremos en minimizar la tasa de falsos positivos.
 
 Una tabla de contingencia, es una herramienta que permite evaluar el rendimiento de un modelo de clasificación. Esta tabla resume las predicciones del modelo comparándolas con los valores reales y se utiliza principalmente en problemas de clasificación binaria (aunque puede ampliarse a multiclase).
 
@@ -3223,10 +3219,10 @@ rm(matrizconfusion1, df, df_test)
 ## Modelo 3 
 
 En este paso, seleccionamos las variables predictoras más relevantes para el modelo basado en K-Vecinos, según los resultados obtenidos en el modelo previo. Estas variables han demostrado ser las más representativas para predecir el target, que indica si un nadador logra mejorar su tiempo en la final. 
-Las variables seleccionadas eran:
+Las variables seleccionadas son:
 - swimtimeP
-- mediaParcialesP: 
-- minimoParcialesP: 
+- mediaParcialesP
+- minimoParcialesP 
 - maximoParcialesP
 - medianaParcialesP
 
@@ -3261,7 +3257,7 @@ modelo3knn <- knn3Train(
 )
 ```
 
-El modelo knn3Train devuelve directamente las predicciones sobre el conjunto de prueba. Las predicciones se pueden usar para construir una matriz de confusión .
+El modelo knn3Train devuelve directamente las predicciones sobre el conjunto de prueba. Las predicciones se pueden usar para construir una matriz de confusión.
 
 ```{r}
 
@@ -3292,7 +3288,7 @@ A continuación haremos un resumen de los modelos ajustados.
 3. modelo3KNN: En este modelo, se seleccionaron las mismas variables relevantes identificadas en el Modelo 2. El objetivo principal fue evaluar el impacto de utilizar la distancia Manhattan como métrica en lugar de la distancia Euclídea.
 La distancia Manhattan no mejora el rendimiento respecto a la distancia Euclídea en este contexto.
 
-Basándome en el resumen anterior que se presentó, tenemos 2 modelos principales (modelo1knn y modelo2knn)
+Basándonos en el resumen anterior presentad, tenemos 2 modelos principales (modelo1knn y modelo2knn)
 
 ```{r}
 df_test1 <- datos2015Target_test %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
@@ -3377,7 +3373,7 @@ df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, c
 df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
 
-## Además, defino mi variable distancia como categórica.
+## Además, definimos la variable distancia como categórica.
 df_arbol$distance<- as.factor(df_arbol$distance)
 df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 ```
@@ -3501,7 +3497,7 @@ cf_test
 ```
 
 El modelo tiene un buen desempeño en el conjunto de entrenamiento, pero tiene un bajo desempeño en datos no vistos, lo que sugiere sobreajuste.
-En este caso, tiene un accuracy de 57.14%, lo que indica que el modelo acierta en aproximadamente la mitad de las predicciones. Además, detecta 1 de cada 2 positivos aproximadamente, una moneda al aire. No es un buen modelo. 
+En este caso, tiene un accuracy de 57.14%, lo que indica que el modelo acierta en aproximadamente la mitad de las predicciones. Además, detecta 1 de cada 2 positivos aproximadamente. No es un buen modelo. 
 
 ```{r warning=FALSE}
 rm(df_arbol, df_test_arbol, cf_test, cf_train, control_tree, pred_test, pred_train)
@@ -3611,7 +3607,7 @@ Aunque identifica correctamente los positivos (bajar de tiempo), el modelo tiene
 ```{r}
 #cambio de nombre
 arbol3= arbol4
-#no eliminar arbolcv lo uso abajo
+#no eliminamos arbolcv, lo usamos abajo
 rm(arbol4, df_arbol, df_test_arbol, cf_train, cf_test, prediction,importancia,control)
 ```
 
@@ -3675,7 +3671,7 @@ Primero, seleccionamos las variables relevantes para el análisis y aseguramos q
 df_arbol <- datos2015Target_train %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
-## Además, defino mi variable distancia como categórica.
+## Además, definimos la variable distancia como categórica.
 df_arbol$distance<- as.factor(df_arbol$distance)
 df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 ```
@@ -3692,7 +3688,7 @@ modeloBagging1 <- bagging(target ~., data=df_arbol, coob=TRUE,nbagg=50,
 
 ```
 
-Una vez entrenado el modelo de Bagging, evaluamos su desempeño en el conjunto de entrenamiento utilizando la función predict para obtener las probabilidades de cada clase. Luego, transformamos estas probabilidades en predicciones binarias (0 o 1) con un umbral del 50%. Finalmente, calculamos la matriz de confusión y otras métricas.
+Una vez entrenado el modelo de Bagging, evaluamos su desempeño en el conjunto de entrenamiento utilizando la función predict para obtener las probabilidades de cada clase. A continuación, transformamos estas probabilidades en predicciones binarias (0 o 1) con un umbral del 50%. Finalmente, calculamos la matriz de confusión y otras métricas.
 
 ```{r}
 pred_bag_train <- predict(modeloBagging1, df_arbol,type="prob")[,2]
@@ -3754,7 +3750,7 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 
 cf_bag_test
 ```
-El modelo muestra un claro sobreajuste. Si bien funciona perfectamente en el conjunto de entrenamiento, su rendimiento en el conjunto de prueba es malo, lo que sugiere que no puede generalizar bien. Eso si, se comporta ligeramente mejor que en el caso anterior.
+El modelo muestra un claro sobreajuste. Si bien funciona perfectamente en el conjunto de entrenamiento, su rendimiento en el conjunto de prueba es malo, lo que sugiere que no puede generalizar bien. Sin embargo, se comporta ligeramente mejor que en el caso anterior.
 
 ```{r}
 rm(cf_bag_train, cf_bag_test)
@@ -3793,7 +3789,8 @@ cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test
 
 cf_bag_test
 ```
-Esto indica que el modelo clasifica correctamente el 63.27% de los casos en el conjunto de prueba, lo cual es una mejora respecto a algunos de los modelos previos.
+
+Los resultados indican que el modelo clasifica correctamente el 63.27% de los casos en el conjunto de prueba, lo cual es una mejora respecto a algunos de los modelos previos.
 
 Por otro lado, no evalúa demasiado bien cuando predice que un nadador mejora, es decir, predice bien 6 de cada 10 nadadores que mejoran. Aún así es mucho mejor modelo que los anteriores, lo tendremos en cuenta.
 
@@ -3893,7 +3890,7 @@ cf_rf_train <- confusionMatrix(as.factor(clase_pred_rf_train), as.factor(df_rand
 print(cf_rf_train)
 ```
 
-Observamos que no se equivoca nunca, es decir, reconoce todos los patrones en el conjunto en el que ha entrenado. Esto, sugiere sobreajuste tal y como hemos aprendido durante el proyecto. Visualicemos a continuación los datos en test: 
+Observamos que el modelo no comete errores en el conjunto de entrenamiento, identificando perfectamente todos los patrones. Esto sugiere la presencia de sobreajuste, tal y como hemos aprendido a lo largo del proyecto. Visualizamos a continuación los datos en test: 
 
 ```{r}
 pred_rf_test <- predict(rf1, df_test_random, type = "prob")[, 2] 
@@ -3905,8 +3902,7 @@ print(cf_rf_test)
 
 ```
 
-Tal y como preveíamos, se han sobreajustado los datos y este modelo entrenado no es demasiado válido, es como lanzar una moneda al aire. 
-
+Tal y como preveíamos, el modelo se ha sobreajustado a los datos de entrenamiento, lo que lo hace poco válido en la práctica. Su capacidad de generalización es limitada.
 
 
 ```{r}
@@ -3917,8 +3913,13 @@ print(var_importance)
 varImpPlot(rf1)
 
 ```
+Realizamos un análisis de la importancia de las variables en el modelo Random Forest. Tenemos como medidas "MeanDecreaseAccuracy" y "MeanDecreaseGini". 
 
-(Hablar de esto)
+  - La "MeanDecreaseAccuracy" mide la reducción en la precisión del modelo cuando se elimina o cambia una variable. Evalúa cuánto empeora la precisión del modelo si la variable en cuestión no está disponible para hacer predicciones. Un valor alto de MeanDecreaseAccuracy indica que, al eliminar esa variable, la precisión del modelo disminuye considerablemente, lo que significa que la variable es importante para el rendimiento del modelo
+  
+  - La "MeanDecreaseGini" se basa en la impureza de Gini, es una medida de cuán mezcladas están las clases en un nodo del árbol de decisión. Cuanto mayor es el valor para una variable, mas contribuye a la capacidad del modelo para separar correctamente las clases y mejorar las predicciones. Refleja cuanto mejora la capacidad del modelo para hacer predicciones correctas al incluir esa variable en el modelo. Si es más alto, mayor importancia tiene dicha variable ya que ayuda a dividir mejor los datos en los árboles del modelo.
+  
+Si tomamos nuestros resultados, tenemos que  variables como laneF, laneP, swimtimeP, pointP y daytimeP destacan con altos valores en MeanDecreaseGini, lo que sugiere que son las más relevantes para el modelo. Sin embargo, algunas variables, como heatF y otras con valores cercanos a cero o negativos, no aportan información significativa y podrían considerarse menos importantes. La presencia de valores negativos en MeanDecreaseAccuracy sugiere que algunas variables podrían introducir ruido o no ser informativas para el modelo.
 
 ```{r}
 rm(var_importance,pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,clase_pred_rf_test ,cf_rf_test)
@@ -4154,53 +4155,8 @@ shap_rf_model_global <- FeatureImp$new(predictor_rf_model, loss = "ce")
 plot(shap_rf_model_global)
 
 ```
-A nivel global, podemos ver que las características mas influyentes han sido: la calle en preliminar y finales, el tiempo en los parciales y el tipo de nado.
+A nivel global, se observa que las características más influyentes en la predicción son la calle en preliminares y finales, el tiempo en los parciales y el tipo de nado. Estas variables son clave para la predicción, ya que, como se observó en un análisis preliminar, ciertos estilos de nado tienden a tener una mayor probabilidad de mejorar en el tiempo final que otros. Además, es razonable suponer que el tiempo en los parciales puede ofrecer una buena indicación del rendimiento en la ronda final. Finalmente, la calle utilizada en la final y semifinal no es seleccionada al azar; los nadadores con mejores tiempos suelen ser asignados a las calles intermedias, lo que introduce un sesgo en esta variable.
 
-(COMENTARIO: ESTO TIENE ALGUN TIPO DE SENTIDO??¿¿)
-
-
-##SHAP con KNN
-
-```{r}
-df <- datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
-scaled_df <- data.frame(
-  target = df$target,  
-  scale(df[, -1])      
-)
-df_test<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
-scaled_df_test <- data.frame(
-  target = df$target,  
-  scale(df[, -1])      
-)
-
-# Para devolver clases:
-#predict_knn <- predict(modelo3knn, newdata = scaled_df_test)
-
-
-# Crear un predictor para el modelo
-
-# Crear un objeto Predictor para el modelo
-#predictor_knn <- Predictor$new(
-#  model = modelo3knn,
-#  data = scaled_df[,-1],   # Solo características
-#  y = scaled_df$target,   # Variable objetivo
-  #predict.function = predict_knn  # Función personalizada
-#)
-
-```
-
-Posteriormente, se calculan los valores SHAP para la primera fila.
-```{r}
-# Calcular valores SHAP para una observación específica (primera fila)
-#shap_knn <- Shapley$new(
-#  predictor = predictor_knn,
-#  x.interest = scaled_df[1, ] 
-)
-
-# Mostrar los valores SHAP calculados
-#shap_knn$results
-#plot(shap_knn)
-```
 
 # Contrafácticos
 
@@ -4208,7 +4164,7 @@ El análisis contrafáctico busca entender cómo modificar las características 
 
 En este caso, aplicaremos contrafácticos al modelo Random Forest (rf1) . Esto permitirá identificar las variables más influyentes y realizar ajustes dirigidos para obtener una probabilidad deseada de mejora en la predicción del nadador.
 
-### Manera 1
+### Método 1
 
 Para aplicar un análisis contrafáctico, comenzamos seleccionando un registro específico de nuestro conjunto de datos. Este registro representará el caso que queremos estudiar en profundidad. En este ejemplo, elegimos la fila 10 del conjunto df_random:
 
@@ -4363,7 +4319,7 @@ El resultado muestra que para el nuevo punto de interés seleccionado, el modelo
 
 La elección de las variables a incluir en fixed_features en este caso depende del conocimiento sobre la materia(**sujeto a cambios por Alonso**). Veamos como vamos a proceder ahora:
 
-- Variables potencialmente fijas ( fixed_features):distance,stroke,gender, continente y edad: La edad no puede cambiar para el nadador en ese momento.
+- Variables potencialmente fijas  (fixed_features): distance,stroke,gender, continente y edad: La edad no puede cambiar para el nadador en ese momento.
 - Variables potencialmente modificables: el resto.
 
 
@@ -4418,7 +4374,7 @@ CONCLUIR
 rm(cfactuals, moc_classif,predictor,x_interest,df_random,df_test_random)
 ```
 
-### Manera 2
+### Método 2
 (con knn a mano)
 
 # Conclusiones sobre nuestro mejor modelo.
