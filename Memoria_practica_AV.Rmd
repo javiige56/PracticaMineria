@@ -4467,51 +4467,64 @@ rm(cfactuals, moc_classif,predictor,x_interest,df_random,df_test_random)
 
 # Curvas ROC 
 
-Genero las probabilidades para el conjunto de prueba .
-
 ```{r}
-# Probabilidades del árbol de decisión
-pred_probs_arbol <- predict(arbol, newdata = df_test_arbol, type = "prob")[, 2]  # Probabilidad de clase 1
-
-# Probabilidades del modelo KNN
-pred_probs_knn <- predict(knn_best, newdata = df_test_scaled, type = "prob")[, 2]
+df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 
 
-library(pROC)
+df_test2<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 
+df_test_random <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
-# ROC para cada modelo
-
-roc_arbol <- roc(df_test_arbol$target, pred_probs_arbol)
-roc_knn <- roc(df_test$target, pred_probs_knn)
-roc_randomforest <- roc(df_test$target, pred_rf_test)
-
-#AUC de cada modelo
-auc_arbol <- auc(roc_arbol)
-auc_knn <- auc(roc_knn)
-
-# Gráfico comparativo de curvas ROC
-plot(roc_arbol, col = "blue", lwd = 2, main = "Comparación de Curvas ROC")
-lines(roc_knn, col = "red", lwd = 2)
-lines(roc_randomforest, col = "green", lwd = 2)
-# Añadir una leyenda
-legend("bottomright", legend = c("Árbol de Decisión", "KNN","RandomForest"),
-       col = c("blue", "red", "green", "purple"), lwd = 2)
-
-
+df_test_random$distance<- as.factor(df_test_random$distance)
 ```
 
-El AUC es 0.618, lo cual indica que el modelo tiene un rendimiento moderado, pero no particularmente bueno para distinguir entre las clases.
+La curva ROC mide la sensibilidad (tasa de verdaderos positivos) frente a la especificidad (1 - tasa de falsos positivos).
 
-El AUC es 0.582, lo cual sugiere que el modelo KNN tiene un rendimiento ligeramente inferior al del Árbol de Decisión.
+```{r}
+probs_arbol <- predict(arbol2, newdata = df_test_arbol[,-1], type = "prob")[, 2]
 
-Las curvas muestran que ambos modelos tienen un desempeño similar, pero el Árbol de Decisión parece ser marginalmente mejor en ciertos puntos
-
-Ambos valores de AUC son menores a 0.7, lo cual indica que los modelos necesitan mejoras.
-Un AUC \> 0.7 se considera aceptable, y \> 0.8 es bueno.
+probs_knn2<- predict(modelo2knn, newdata = df_test2[,-1], type = "prob")[, 2]
 
 
-#Elección del mejor modelo
+probs_random<-predict(rf2, newdata = df_test_random[,-1], type = "prob")[, 2]
+
+roc_1 <- roc(df_test_arbol$target, probs_arbol)
+roc_2<- roc(df_test2$target, probs_knn2)
+roc_3<- roc(df_test_random$target, probs_random)
+#mirar los dataframes. 
+
+# Calcular el AUC para cada modelo
+#auc_1 <- auc(roc_1)
+#auc_2<- auc(roc_2)
+#auc_3<- auc(roc_3)
+
+#auc_knn_es_3 <- auc(roc_knn_es_3)
+#auc_knn_selected <- auc(roc_knn_selected)
+
+# Imprimir los valores de AUC
+#cat("AUC KNN modelo 1", auc_1, "\n")
+#cat("AUC KNN modelo 2:", auc_2, "\n")
+#cat("AUC KNN modelo 2:", auc_3, "\n")
+
+
+#cat("AUC KNN sin escalar k=3:", auc_knn_es_3, "\n")
+#cat("AUC KNN con variables seleccionadas:", auc_knn_selected, "\n")
+
+# Graficar las curvas ROC
+plot(roc_1, col = "blue", lwd = 2, main = "Comparación de Curvas ROC para los Mejores Modelos", xlim = c(0, 1), ylim = c(0, 1))
+lines(roc_2, col = "red", lwd = 2)
+lines(roc_3, col = "pink", lwd = 2)
+
+#lines(roc_knn_es_3, col = "green", lwd = 2)
+#lines(roc_knn_selected, col = "purple", lwd = 2)
+
+abline(a = 0, b = 1, col = "gray", lty = 2)
+
+legend("bottomright", legend = c("Árbol", "Knn", "Random Forest"),
+       col = c("blue", "red", "pink"), lwd = 2, cex = 0.5) 
+```
+Teniendo en cuenta los resultados en cada uno de los modelos ajustados y las curvas ROC, tomamos el modelo Random Forest como el mejor modelo para predecir nuestra variable objetivo. 
 
 
 #Validación
