@@ -3142,7 +3142,7 @@ rm(predicciones, matrizconfusion1, df)
 
 Para mejorar el rendimiento del modelo y evitar el ruido generado por variables irrelevantes, realizamos una selección de las variables más importantes que deberían incluirse en el modelo. Esta selección permitirá identificar las características más relevantes que determinan si un nadador baja de tiempo o no.
 
-Para ello, volvemos a cargar todas las variables categóricas: 
+Para ello, volvemos a cargar todas las variables: 
 
 ```{r}
 df <- datos2015Target_train %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
@@ -3196,7 +3196,16 @@ print(matrizconfusion1)
 ```
 El modelo clasifica correctamente el 78.97% de las observaciones. Casi 4 de cada 5, luego parece mejor que el primer modelo entrenado. Además, su tasa de verdaderos positivos es mayor que antes.
 
-Vistos los resultados del modelo en el conjunto de entrenamiento, esto nos dará una idea inicial del ajuste del modelo. Sin embargo, lo más importante es cómo se comporta en datos no vistos.
+Probamos dividir nuestras predicciones en 4 grupos según sus probabilidades de mejora. De esta forma, intentamos reducir los errores de predicción para aquellos casos en los que no está realmente asegurada su mejora (o su no mejora). Para ello, realizamos la siguiente tabla, 
+
+```{r}
+predicciones <- predict(modelo2knn, newdata = scale(df[,-1]), type = "prob")[,2]
+table(round(predicciones, 3),df$target)
+```
+Como vemos, dividiendo a nuestros nadadores en cuatro grupos, obtenemos que las predicciones para los participantes que mejoran coinciden en su totalidad con los datos de referencia. A su vez, las predicciones del primer grupo donde establecemos que no mejorarán su marca también carecen de error. 
+
+Vistos los resultados del modelo en el conjunto de entrenamiento, esto nos dará una idea inicial del ajuste del modelo. Sin embargo, la eficacia de nuestro modelo radicará en cómo se comporta en datos no vistos.
+
 
 El modelo entrenado es ahora evaluado en el conjunto de prueba (test) para medir su capacidad de generalización y comprobar si puede mantener un rendimiento adecuado fuera del conjunto de entrenamiento.
 
@@ -3209,7 +3218,7 @@ print(matrizconfusion1)
 
 Vemos que, el Accuracy baja al predecir en datos nunca vistos, acierta un 65% de las veces que predice algo. Además, la tasa de verdaderos positivos es de un 61%, un poco baja. Aún así, este modelo es mejor que el anteriormente entrenado.
 
-Podemos intentar dividir nuestras predicciones en más grupos, según sus probabilidades asociadas. 
+Si probamos en test nuestras predicciones con los umbrales impuestos anteriormente clasificando en varios grupos, tenemos: 
 
 ```{r}
 predicciones <- predict(modelo2knn, newdata = scale(df_test[,-1]), type = "prob")[,2]
@@ -3832,12 +3841,26 @@ Este modelo debería proporcionar una mejora en la capacidad de generalización 
 ```{r}
 pred_bag_train <- predict(modeloBagging3, df_arbol,type="prob")[,2]
 clase.pred.bag.train=ifelse(pred_bag_train>0.5,"1","0")
-cf_bag_train <- confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_arbol$target),positive="1")
+cf_bag_train <- caret::confusionMatrix(as.factor(clase.pred.bag.train), as.factor(df_arbol$target),positive="1")
 
 cf_bag_train
 ```
+Probamos a cortar en 3 categorías con el fin de reducir los errores de predicción:
 
-Vemos cómo se comporta el modelo en los datos test:
+```{r}
+# Cortar las probabilidades en categorías
+pred_bag_train_cut <- cut(pred_bag_train, breaks = c(-Inf, 0.30, 0.70, Inf), labels = c("Low", "Medium", "High"))
+
+# Crear la tabla de contingencia
+tabla_resultados <- table(pred_bag_train_cut, df_arbol$target)
+
+# Mostrar la tabla
+print(tabla_resultados)
+```
+
+
+
+Vemos ahora cómo se comporta el modelo en los datos test:
 
 ```{r}
 pred_bag_test <- predict(modeloBagging3, df_test_arbol,type="prob")[,2]
@@ -3851,7 +3874,7 @@ Los resultados indican que el modelo clasifica correctamente el 63.27% de los ca
 
 Por otro lado, no evalúa demasiado bien cuando predice que un nadador mejora, es decir, predice bien 6 de cada 10 nadadores que mejoran. Aún así es mucho mejor modelo que los anteriores, lo tendremos en cuenta.
 
-Podemos tratar de realizar nuevamente tres grupos: muy probable, igualmente probable y poco probable para las predicciones de nuestra variable target. 
+Si probamos el modelo respecto a los tres grupos: muy probable, igualmente probable y poco probable para las predicciones de nuestra variable target. 
 
 ```{r}
 # Cortar las probabilidades en categorías
@@ -4070,15 +4093,23 @@ legend("right", colnames(rf1$err.rate), lty = 1:5, col = 1:6)
 Implementamos la predicción con el modelo de Random Forest (rf2) en los conjuntos de train y test. Ajustamos el umbral de decisión a 0.66.
 
 ```{r}
+
 # Predicción en el conjunto de entrenamiento
 pred_rf_train <- predict(rf2, df_random, type = "prob")[, 2]  
 clase_pred_rf_train <- ifelse(pred_rf_train > 0.66, "1", "0")  
-cf_rf_train <- confusionMatrix(as.factor(clase_pred_rf_train), as.factor(df_random$target), positive = "1")
+cf_rf_train <- caret::confusionMatrix(as.factor(clase_pred_rf_train), as.factor(df_random$target), positive = "1")
 print(cf_rf_train)
 ```
 
-Obtenemos medidas de rendimiento prácticamente perfectas. Evaluamos en test el posible sobreajuste de este modelo.
 
+
+Obtenemos medidas de rendimiento prácticamente perfectas. Evaluamos en test el posible sobreajuste de este modelo.
+```{r}
+roc_curve <- roc(df_random$target, pred_rf_train)
+best_threshold <- coords(roc_curve, "best", ret = "threshold")
+print(best_threshold)
+
+```
 
 ```{r}
 # prueba
@@ -4086,7 +4117,7 @@ Obtenemos medidas de rendimiento prácticamente perfectas. Evaluamos en test el 
 pred_rf_test <- predict(rf2, df_test_random, type = "prob")[, 2] 
 clase_pred_rf_test <- ifelse(pred_rf_test > 0.66, "1","0")   
 
-cf_rf_test <- confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target), positive = "1")
+cf_rf_test <- caret::confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target), positive = "1")
 print(cf_rf_test)
 ```
 
