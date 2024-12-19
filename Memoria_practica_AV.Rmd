@@ -3926,7 +3926,7 @@ print(cf_rf_test)
 
 ```
 
-Tal y como preveíamos, el modelo se ha sobreajustado a los datos de entrenamiento, lo que lo hace poco válido en la práctica. Su capacidad de generalización es limitada.
+Tal y como preveíamos, el modelo se ha sobreajustado a los datos de entrenamiento, lo que lo hace poco válido en la práctica. Su capacidad de generalización es limitada. 
 
 
 ```{r}
