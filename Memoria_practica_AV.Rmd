@@ -4103,13 +4103,23 @@ print(cf_rf_train)
 
 
 
-Obtenemos medidas de rendimiento prácticamente perfectas. Evaluamos en test el posible sobreajuste de este modelo.
+Obtenemos medidas de rendimiento prácticamente perfectas. Vamos a realizar también su ajuste en 3 cortes, con el objetivo de tener mejores predicciones en test.
+
 ```{r}
-roc_curve <- roc(df_random$target, pred_rf_train)
-best_threshold <- coords(roc_curve, "best", ret = "threshold")
-print(best_threshold)
+# Obtener las probabilidades de predicción
+pred_rf_train <- predict(rf2, df_random, type = "prob")[, 2] 
+
+# Dividir en 3 grupos según los cortes: 0-0.50, 0.50-0.7 y 0.7-1
+clase_pred_rf_train <- cut(pred_rf_train, 
+                          breaks = c(-Inf, 0.50, 0.7, Inf), 
+                          labels = c("0", "Medium", "1"))
+
+table(clase_pred_rf_train, df_random$target)
 
 ```
+
+Evaluamos en test el posible sobreajuste de este modelo y si realmente es mejor o peor establecer dos dos umbrales adicionales.
+
 
 ```{r}
 # prueba
@@ -4120,6 +4130,7 @@ clase_pred_rf_test <- ifelse(pred_rf_test > 0.66, "1","0")
 cf_rf_test <- caret::confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target), positive = "1")
 print(cf_rf_test)
 ```
+
 
 
 El rendimiento del modelo ha mejorado en comparación con el random forest anterior. Este modelo presenta mejor desempeño en la identificación de negativos (especificidad) y ligeras mejoras en la exactitud.
@@ -4715,19 +4726,21 @@ Teniendo en cuenta los resultados en cada uno de los modelos ajustados y las cur
 
 
 # Validación
+
+Probamos nuestros datos de validación para el modelo seleccionado, 
+
 ```{r}
 df_final <- datos2015Target_validation %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
-#pred_bag <- predict(modeloBagging2, df_final ,type="prob")[,2]
-#clase.pred.bag.test=ifelse(pred_bag_test>0.5,"1","0")
-#pred_bag_validation <- predict(modeloBagging2, df_final,type="prob")[,2]
-#clase.pred.bag.validation=ifelse(pred_bag_validation>0.5,"1","0")
+df_final$distance<- as.factor(df_final$distance)
 
-#confusionMatrix(pred_bag_validation)
+pred_bag <- predict(modeloBagging2, df_final ,type="class")
+
+cf_bag_val <- caret::confusionMatrix(pred_bag, as.factor(df_final$target),positive="1")
+cf_bag_val
 ```
-```{r}
-predicciones <- predict(modeloBagging2, newdata = df_final, type = "class")
-#matrizconfusion <- caret::confusionMatrix(predicciones, as.factor(df_final$target), positive = "1")
-#print(matrizconfusion)
-```
+El modelo clasifica correctamente el 66.67% de los casos (Accuracy) y al 72.22% de los casos positivos (Sensitivity). El 76.47% de las veces que predice un caso como positivo son correctas. La especificidad es relativamente baja (55.56%), lo que indica que el modelo tiene problemas para identificar correctamente la clase negativa. 
+Sin embargo, debemos tener en cuenta que el conjunto de datos en validación es limitado. Además, hemos de tener en cuenta que la tasa de falsos positivos es relativamente baja, el modelo captura en su mayoría correctamente a los casos positivos. 
+
+
 
