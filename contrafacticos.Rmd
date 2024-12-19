@@ -1,0 +1,238 @@
+---
+title: "Untitled"
+author: "Inés Molinero Moreno"
+date: "2024-12-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Contrafácticos
+
+El análisis contrafáctico busca entender cómo modificar las características de una observación específica para alterar la predicción del modelo de manera deseada. Este tipo de análisis tiene aplicaciones clave en la explicabilidad del modelo y en la toma de decisiones basada en resultados simulados.
+
+En este caso, aplicaremos contrafácticos al modelo Random Forest (rf1) . Esto permitirá identificar las variables más influyentes y realizar ajustes dirigidos para obtener una probabilidad deseada de mejora en la predicción del nadador.
+
+Para aplicar un análisis contrafáctico, comenzamos seleccionando un registro específico de nuestro conjunto de datos. Este registro representará el caso que queremos estudiar en profundidad. En este ejemplo, elegimos la fila 10 del conjunto df_random:
+
+```{r}
+df_random[10,]
+```
+
+Esto nos permite ver las características originales de la observación seleccionada. A partir de esta información, realizaremos cambios en las variables relevantes.
+
+El siguiente código  configura el modelo de Random Forest excluyendo la observación de interés (fila 10) del conjunto de entrenamiento para evitar sesgos. 
+
+Luego, utilizamos la biblioteca iml para analizar el modelo y buscar contrafácticos. 
+```{r}
+set.seed(2345)
+rf1 <- randomForest(
+  target ~ ., 
+  data = df_random[-10,], 
+  importance = TRUE, 
+  proximity = TRUE,
+  ntree = 20, 
+  mtry = 6
+)
+
+# Tenemos que usar iml::Predictor para poner el modelo en el formato adecuado
+# type='prob' para tener las probabilidades y no las etiquetas binarizadas
+predictor = iml::Predictor$new(rf1, type = "prob") 
+
+# Punto de interés para buscar contrafácticos
+x_interest = df_random[10, ]
+```
+
+
+Obtenemos las probabilidades predichas por el modelo para el punto de interés (x_interest). Esto es útil para interpretar cómo el modelo clasifica ese caso particular antes de generar contrafácticos.
+
+```{r}
+# Predicción de la probabilidad de cada clase
+predictor$predict(x_interest) 
+```
+
+Esto significa que el modelo predice un 10% de probabilidad de que el nadador no baje su tiempo.
+
+Esto indica un 90% de probabilidad de que el nadador sí baje su tiempo.
+
+En este caso, el modelo está bastante seguro de que el nadador bajará su tiempo en la final, con una probabilidad alta (90%). 
+Dado que la probabilidad ya está a favor de la clase positiva (1), probablemente no sea necesario generar contrafácticos para modificar esta predicción.
+No tiene mucho sentido "buscar mejoras" cuando realmente ya hay una probabilidad muy alta de bajar el tiempo.
+Aunque el objetivo parece estar logrado, podemos explorar qué cambios serán necesarios para aumentar aún más la probabilidad de éxito.
+
+
+El código utiliza el método MOCClassif para determinar los cambios necesarios en las características de un punto de interés (x_interest) para mover su predicción a una clase deseada  con una probabilidad dentro de un rango definido. 
+
+Los fixed_features son variables que no queremos modificar en los contrafácticos. En este caso, continente, distancia, edad, y gender están fijas porque podrían ser atributos que no se pueden cambiar. 
+Esto, lo modificaremos posteriormente para distintos objetivos.
+
+
+```{r}
+# Ahora estudiamos qué factores se deben cambiar para que la probabilidad aumente
+# Ponemos las opciones para el algoritmo
+
+moc_classif = MOCClassif$new(
+  predictor, epsilon = 0, fixed_features = c("continente", "edad","gender", "distance"))
+
+# Se puede penalizar aquellos individuos que estén más lejos del intervalo deseado que un umbral epsilon.
+
+# Si ponemos epsilon=0 entonces estamos penalizando a todos aquellos individuos cuya predicción está fuera del intervalo deseado
+
+# Con fixed_features se fijan las variables que no se pueden mover
+
+```
+
+```{r}
+# Sacamos los contrafácticos
+cfactuals = moc_classif$find_counterfactuals(
+   x_interest, desired_class = "1", desired_prob = c(0.92, 1))
+```
+
+
+
+Veamos cuantos contrafácticos se logran. 
+
+
+```{r}
+print(cfactuals)
+
+head(cfactuals$predict(), 3)
+```
+Estos 186 contrafácticos representan combinaciones alternativas de valores en las características (variables explicativas) que, de ser alcanzadas, moverían al caso específico (x_interest) hacia la clase deseada con una probabilidad muy alta.
+
+```{r}
+# Filtramos por aquellos que son válidos, es decir, aquellos que tienen la predicción deseada
+cfactuals$subset_to_valid()
+nrow(cfactuals$data)
+
+head(cfactuals$data,3)
+```
+Debido a que tenemos una cantidad alta de contrafácticos, busco una representación gráfica que me ayude a comprenderlos:
+
+```{r}
+# Pintamos las variables más importantes para lograr el cambio deseado
+# Setting subset_zero = TRUE excludes all unchanged features from the plot.
+cfactuals$plot_freq_of_feature_changes(subset_zero = TRUE)
+
+```
+La variable pointP tiene la mayor frecuencia relativa. Esto sugiere que modificar los puntos de la prueba preliminar (pointP) es clave para mover la predicción hacia la clase deseada (nadadores que bajan su tiempo en la final).
+
+La segunda variable es swimtimeP, que modificarla parecen influir significativamente en el resultado.
+
+```{r}
+# En azul el punto de interés y en gris los contrafácticos
+cfactuals$plot_parallel(feature_names = names(
+  cfactuals$get_freq_of_feature_changes()), digits_min_max = 2L)
+```
+
+
+Todos los contrafácticos nos indican que nuestro punto de interés debería aumentar sus puntos porque todos ellos tienen más puntos que el x_interest. Lo mismo ocurre con el swimtime, reducir el tiempo aumentaría la probabilidad de mejora (nos lo esperamos porque están inversamente relacionadas).
+
+Algo curioso es observar que la gran mayoría de contrafácticos nada la preliminar en la calle 7. Nuestro nadador de interés nadó en la calle 2. Esto podríamos verlo como algo que se podría modificar, pero dada la naturaleza de la selección de calle por nadador,  se establecerá proximamente como fijo.
+
+```{r}
+rm(cfactuals, moc_classif,predictor,x_interest)
+```
+
+
+Si el punto de interés inicial ya cumple con el objetivo o no permite realizar un análisis más profundo de los contrafácticos, seleccionamos otro punto con más posibilidades de mejora o fijamos valores de variables relevantes para explorar cómo cambiarían las predicciones.
+
+Para aplicar un análisis contrafáctico, comenzamos seleccionando un registro específico de nuestro conjunto de datos. 
+
+```{r}
+df_random[56,]
+```
+ A partir de esta información, realizaremos cambios en las variables relevantes.
+
+```{r}
+set.seed(2345)
+rf1 <- randomForest(
+  target ~ ., 
+  data = df_random[-56,], 
+  importance = TRUE, 
+  proximity = TRUE,
+  ntree = 20, 
+  mtry = 6
+)
+
+# Tenemos que usar iml::Predictor para poner el modelo en el formato adecuado
+# type='prob' para tener las probabilidades y no las etiquetas binarizadas
+predictor = iml::Predictor$new(rf1, type = "prob") 
+
+# Punto de interés para buscar contrafácticos
+x_interest = df_random[56, ]
+```
+
+
+Obtenemos las probabilidades predichas por el modelo para el punto de interés (x_interest). 
+
+```{r}
+# Predicción de la probabilidad de cada clase
+predictor$predict(x_interest) 
+```
+
+
+El resultado muestra que para el nuevo punto de interés seleccionado, el modelo predice un 50% de probabilidad para ambas clases (0 y 1). Esto indica que el modelo está indeciso sobre si el nadador bajará su tiempo en la final o no. Este es un caso interesante para el análisis contrafáctico, ya que es posible identificar qué cambios en las variables podrían inclinar la predicción hacia la clase positiva 
+
+La elección de las variables a incluir en fixed_features en este caso depende del conocimiento sobre la materia. Veamos como vamos a proceder ahora:
+
+- Variables potencialmente fijas  (fixed_features): distance,stroke, gender, continente, edad, laneP, heatP y daytimeP. Se debe a que se han escogido antes de comenzar la final. Realmente son variables que hay que fijar antes de nadar la final.
+- Variables potencialmente modificables: el resto.
+
+
+```{r}
+# Ponemos las opciones para el algoritmo
+moc_classif = MOCClassif$new(
+  predictor, epsilon = 0, fixed_features = c("distance", "stroke", "gender", "continente", "edad","laneP","heatP","daytimeP"))
+# Sacamos los contrafácticos(queremos que aumente a un rango de 0.6/1)
+cfactuals = moc_classif$find_counterfactuals(
+   x_interest, desired_class = "1", desired_prob = c(0.6, 1))
+```
+
+
+
+
+Veamos cuantos contrafácticos se logran. 
+
+
+```{r}
+print(cfactuals)
+
+head(cfactuals$predict(), 3)
+```
+Estos 90 contrafácticos representan combinaciones alternativas de valores en las características (variables explicativas) que, de ser alcanzadas, moverían al caso específico (x_interest) hacia la clase deseada con una probabilidad entre 0.6 y 1.
+
+Filtramos por aquellos que son válidos, es decir, aquellos que tienen la predicción deseada
+```{r}
+# Filtramos por aquellos que son válidos, es decir, aquellos que tienen la predicción deseada
+cfactuals$subset_to_valid()
+nrow(cfactuals$data)
+
+head(cfactuals$data,3)
+```
+Es complicado de interpretar con las tablas. Procedemos a representar gráficamente los cambios sugeridos.
+
+Este análisis proporciona visualizaciones clave para entender qué variables han sido más relevantes para los cambios contrafácticos generados y có.
+
+```{r}
+# Pintamos las variables más importantes para lograr el cambio deseado
+# Setting subset_zero = TRUE excludes all unchanged features from the plot.
+cfactuals$plot_freq_of_feature_changes(subset_zero = TRUE)
+
+# En azul el punto de interés y en gris los contrafácticos
+cfactuals$plot_parallel(feature_names = names(
+  cfactuals$get_freq_of_feature_changes()), digits_min_max = 2L)
+```
+
+
+
+
+La gran mayoría de contrafácticos filtrados nadan la final en la calle 8. Nuestro nadador de interés nadó en la calle 4. Me indica que en la preliminar debería haber nadado más rápido.
+
+Todos los contrafácticos nos indican que nuestro punto de interés debería aumentar sus puntos porque todos ellos tienen más puntos que el x_interest. 
+Con el maximoParcialesP, no queda tan claro, pues hay contrafácticos con valores mayores y otros con valores menores. 
+
+```{r}
+rm(cfactuals, moc_classif,predictor,x_interest,df_random,df_test_random)
+```
