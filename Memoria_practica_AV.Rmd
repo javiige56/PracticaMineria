@@ -4406,7 +4406,7 @@ cfactuals$plot_parallel(feature_names = names(
 
 ```
 
-La gran mayoría de contrafácticos filtrados nadan la final en la calle 8. Nuestro nadador de interés nadó en la calle 4. Me indica que en la preliminar debería haber nadado más rápido.
+La gran mayoría de contrafácticos filtrados nadan la final en la calle 8. Nuestro nadador de interés nadó en la calle 4. Me indica que en la preliminar debería haber nadado más rápido. c
 
 Todos los contrafácticos nos indican que nuestro punto de interés debería aumentar sus puntos porque todos ellos tienen más puntos que el x_interest. 
 Con el maximoParcialesP, no queda tan claro, pues hay contrafácticos con valores mayores y otros con valores menores. 
