@@ -3183,7 +3183,7 @@ df <- datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, minim
 df_test<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 
 
-#Entreno el modelo. 
+#Entrenamos el modelo. 
 modelo2knn = knn3(scale(df[,-1]), as.factor(df$target), k=3, prob=TRUE)
 ```
 
@@ -3208,6 +3208,19 @@ print(matrizconfusion1)
 ```
 
 Vemos que, el Accuracy baja al predecir en datos nunca vistos, acierta un 65% de las veces que predice algo. Además, la tasa de verdaderos positivos es de un 61%, un poco baja. Aún así, este modelo es mejor que el anteriormente entrenado.
+
+Podemos intentar dividir nuestras predicciones en más grupos, según sus probabilidades asociadas. 
+
+```{r}
+predicciones <- predict(modelo2knn, newdata = scale(df_test[,-1]), type = "prob")[,2]
+table(round(predicciones, 3),df_test$target)
+```
+Como vemos, tendríamos 4 grupos:
+
+- Grupo 1: nadadores que con alta probabilidad podemos predecir que no mejorarán su marca. Acertamos en 4 de cada 5.
+- Grupo 2: nadadores que probablemente, con menor seguridad, no mejorarán su marca. En este caso, acertamos en 6 de 8 participantes.
+- Grupo 3: nadadores que posiblemente mejoren su marca. Acertamos en 14 de 23.
+- Grupo 4: nadadores que con alta probabilidad mejorarán. Acertamos en 8 de 13. 
 
 
 
@@ -3289,7 +3302,11 @@ A continuación haremos un resumen de los modelos ajustados.
 3. modelo3KNN: En este modelo, se seleccionaron las mismas variables relevantes identificadas en el Modelo 2. El objetivo principal fue evaluar el impacto de utilizar la distancia Manhattan como métrica en lugar de la distancia Euclídea.
 La distancia Manhattan no mejora el rendimiento respecto a la distancia Euclídea en este contexto.
 
-Basándonos en el resumen anterior presentad, tenemos 2 modelos principales (modelo1knn y modelo2knn)
+Basándonos en el resumen anterior presentado, optaremos por tomar de entre los K-NN el modelo 2.
+
+
+## Curvas ROC esto quitar se supone
+
 
 ```{r}
 df_test1 <- datos2015Target_test %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
@@ -3462,7 +3479,7 @@ rpart.plot(arbol2,
            branch=1,
            space=0.5,
            under = TRUE, 
-           cex = 0.3, 
+           cex = 0.4, 
            box.palette = "Blues", 
            tweak = 1.5,
            fallen.leaves = TRUE, 
@@ -3597,6 +3614,9 @@ cf_test <- confusionMatrix(prediction, as.factor(df_test_arbol$target),positive=
 
 cf_test
 ```
+
+
+
 El Accuracy es de un 59.18%, lo que significa que el modelo clasifica correctamente aproximadamente 6 de cada 10 observaciones.
 
 El modelo muestra una pérdida notable de rendimiento al predecir con los datos de prueba. Esto podría deberse a sobreajuste, donde el modelo aprende demasiado de los patrones específicos del conjunto de entrenamiento y no generaliza bien en datos no vistos.
@@ -3629,7 +3649,7 @@ El Modelo 2 y el Modelo 3, con ajustes de control y validación cruzada respecti
 Si graficamos las medidas de rendimiento en los datos test de los tres modelos anteriores, tenemos: 
 
 ```{r}
-# Supongamos que tienes las métricas
+# métricas
 metricas <- data.frame(
   Modelo = c("Árbol 1", "Árbol 2", "Árbol 3"),
   Precision = c(0.555, 0.571, 0.59),
@@ -3785,15 +3805,30 @@ Vemos cómo se comporta el modelo en los datos test:
 
 ```{r}
 pred_bag_test <- predict(modeloBagging3, df_test_arbol,type="prob")[,2]
+
 clase.pred.bag.test=ifelse(pred_bag_test>0.5,"1","0")
 cf_bag_test <- confusionMatrix(as.factor(clase.pred.bag.test), as.factor(df_test_arbol$target),positive="1")
 
 cf_bag_test
 ```
-
 Los resultados indican que el modelo clasifica correctamente el 63.27% de los casos en el conjunto de prueba, lo cual es una mejora respecto a algunos de los modelos previos.
 
 Por otro lado, no evalúa demasiado bien cuando predice que un nadador mejora, es decir, predice bien 6 de cada 10 nadadores que mejoran. Aún así es mucho mejor modelo que los anteriores, lo tendremos en cuenta.
+
+Podemos tratar de realizar nuevamente tres grupos: muy probable, igualmente probable y poco probable para las predicciones de nuestra variable target. 
+
+```{r}
+# Cortar las probabilidades en categorías
+pred_bag_test_cut <- cut(pred_bag_test, breaks = c(-Inf, 0.30, 0.70, Inf), labels = c("Low", "Medium", "High"))
+
+# Crear la tabla de contingencia
+tabla_resultados <- table(pred_bag_test_cut, df_test_arbol$target)
+
+# Mostrar la tabla
+print(tabla_resultados)
+```
+
+De esta forma tenemos que para el primer grupo (personas que no mejoran su marca), el modelo acierta 8 de cada 12 nadadores (0.66%) y para el tercer grupo (personas que mejoran su marca), el modelo acierta 15 de cada 24 (62,5%).
 
 
 ```{r}
@@ -3801,19 +3836,7 @@ rm(cf_bag_train, cf_bag_test)
 ```
 
 
-### Modelo 4. (Lo hace luego Alonso.)
-
-En este apartado, vamos a realizar un bagging sobre nuestro mejor modelo knn para ver si logra mejorar.
-
-Voy a meter exactamente los mismos parámetros de control que empleábamos en el modeloknn2. Además, recordamos que hacíamos selección de variables.
-
-La función bagging de la librería ipred está diseñada principalmente para modelos como árboles de decisión y regresión logística.  KNN no está directamente soportadopara el bagging en esta función. Esto se debe a que KNN es un modelo basado en instancias y no un modelo paramétrico que pueda ser "entrenado" explícitamente en un subconjunto de datos.
-
-(hay que hacerlo manualmente, hacer si hay tiempo)
-
-
-
-Conclusion Bagging:Modelo 3 candidato
+ 
 
 
 ### Resumen y decision.
@@ -3928,22 +3951,23 @@ rm(var_importance,pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,cl
 
 ## Modelo 2
 
-ESTO ES UN INTENTO DE ENCONTRAR UN MEJOR RANDOM FOREST PERO REALMENTE ESTA MAL PLANTEADO. DEBIDO A LA NATURALEZA DEL RANDOM DEBERIAMOS CONSEGUIR UNO CON MEJOR RENDIMIENTO(INTENTARLO :( )
-
-Realmente con un buen Random hemos ganado y te realiza seleccion, pero realizo selección de variables manual por si algún casual mejora
+Realizamos un segundo modelo con el objetivo de mejorar el rendimiento del Random Forest anterior. 
 
 ```{r}
 set.seed(213)
 rf2 <- randomForest(
   target ~ ., 
-  data = df_random %>% select(laneP,swimtimeP,daytimeP,maximoParcialesP,target), 
+  data = df_random, 
   importance = TRUE, 
   proximity = TRUE,
-  ntree = 20, 
-  mtry = 6
+  ntree = 90, 
+  mtry = 7
 )
+
 ```
 
+
+Generamos el gráfico de los errores de clasificación a lo largo del número de árboles en el modelo Random Forest. Se muestra cómo evoluciona el error (tanto general como para cada clase, si es una tarea de clasificación) a medida que se agregan más árboles.
 
 ```{r}
 # Graficar el error
@@ -3951,16 +3975,47 @@ plot(rf2)
 legend("right", colnames(rf1$err.rate), lty = 1:5, col = 1:6)
 
 ```
+
+Implementamos la predicción con el modelo de Random Forest (rf2) en los conjuntos de train y test. Ajustamos el umbral de decisión a 0.66.
+
 ```{r}
 # Predicción en el conjunto de entrenamiento
 pred_rf_train <- predict(rf2, df_random, type = "prob")[, 2]  
-clase_pred_rf_train <- ifelse(pred_rf_train > 0.5, "1", "0")  
+clase_pred_rf_train <- ifelse(pred_rf_train > 0.66, "1", "0")  
 cf_rf_train <- confusionMatrix(as.factor(clase_pred_rf_train), as.factor(df_random$target), positive = "1")
 print(cf_rf_train)
+```
+
+Obtenemos medidas de rendimiento prácticamente perfectas. Evaluamos en test el posible sobreajuste de este modelo.
+
+
+```{r}
 # prueba
 
 pred_rf_test <- predict(rf2, df_test_random, type = "prob")[, 2] 
-clase_pred_rf_test <- ifelse(pred_rf_test > 0.5, "1","0")   
+clase_pred_rf_test <- ifelse(pred_rf_test > 0.66, "1","0")   
+
+cf_rf_test <- confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target), positive = "1")
+print(cf_rf_test)
+```
+
+
+El rendimiento del modelo ha mejorado en comparación con el random forest anterior. Este modelo presenta mejor desempeño en la identificación de negativos (especificidad) y ligeras mejoras en la exactitud.
+
+El umbral del 0.66 puede no ser óptimo. Calculamos el mejor umbral (best_threshold) de decisión para el modelo basado en la curva ROC.
+
+```{r}
+roc_curve <- roc(df_test_random$target, pred_rf_test)
+best_threshold <- coords(roc_curve, "best", ret = "threshold")
+print(best_threshold)
+
+```
+El umbral óptimo según este criterio, es 0.7. Por tanto, realizamos las predicciones de nuestros datos con este corte. 
+
+```{r}
+# prueba
+pred_rf_test <- predict(rf2, df_test_random, type = "prob")[, 2] 
+clase_pred_rf_test <- ifelse(pred_rf_test > 0.7, "1","0")   
 
 cf_rf_test <- confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target), positive = "1")
 print(cf_rf_test)
@@ -3968,10 +4023,28 @@ print(cf_rf_test)
 
 ```
 
+Parece que hemos maximizado la especificidad gracias a este cambio. Sin embargo, existe bastante error respecto a la predicción de los competidores que no bajan de marca. Podríamos realizar un subgrupo más, basado en su aleatoriedad. Es decir, no tenemos conclusiones claras de que bajen o no de marca en su final. 
+
+
 ```{r}
-rm(pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,clase_pred_rf_test ,cf_rf_test)
+# Obtener las probabilidades de predicción
+pred_rf_test <- predict(rf2, df_test_random, type = "prob")[, 2] 
+
+# Dividir en 3 grupos según los cortes: 0-0.50, 0.50-0.7 y 0.7-1
+clase_pred_rf_test <- cut(pred_rf_test, 
+                          breaks = c(-Inf, 0.50, 0.7, Inf), 
+                          labels = c("0", "Medium", "1"))
+
+table(clase_pred_rf_test, df_test_random$target)
+
 ```
 
+De esta forma, dejamos sin clasificar positiva o negativamente a 15 personas, las posicionamos en "incertidumbre". Esto nos reduce el error de falsos negativos de un 38,8% a un 33,33%. El umbral para afirmar que el nadador bajará de tiempo es el mismo. Por lo que en este sentido no cambia. 
+
+
+```{r}
+rm(pred_rf_train, clase_pred_rf_train,cf_rf_train,pred_rf_test,clase_pred_rf_test ,cf_rf_test,roc_curve,best_threshold )
+```
 
 ## Modelo 3.
 Con el objetivo de mejorar nuestro modelo de Random Forest, realizaremos algunas modificaciones: 
@@ -4055,7 +4128,7 @@ print(cf_rf_test)
 
 Tenemos una precisión en torno al 53%. Sin embargo, si nuestro objetivo es minimizar los falsos positivos este es el mejor modelo. Teniendo como criterio de medida la especificidad, obtenemos un 91% en los datos de test. 
 
-##Conclusiones del Random Forest
+## Conclusiones del Random Forest
 
 
 # Técnica SHAP
@@ -4086,6 +4159,7 @@ predictor_rf2 <- Predictor$new(
 Posteriormente, se calculan los valores SHAP para la primera fila de df_random.
 
 ```{r}
+
 # Calcular valores SHAP para una observación específica (primera fila)
 shap_rf2 <- Shapley$new(
   predictor = predictor_rf2,
@@ -4165,17 +4239,18 @@ El análisis contrafáctico busca entender cómo modificar las características 
 
 En este caso, aplicaremos contrafácticos al modelo Random Forest (rf1) . Esto permitirá identificar las variables más influyentes y realizar ajustes dirigidos para obtener una probabilidad deseada de mejora en la predicción del nadador.
 
-### Método 1
-
 Para aplicar un análisis contrafáctico, comenzamos seleccionando un registro específico de nuestro conjunto de datos. Este registro representará el caso que queremos estudiar en profundidad. En este ejemplo, elegimos la fila 10 del conjunto df_random:
 
 ```{r}
 df_random[10,]
 ```
+
 Esto nos permite ver las características originales de la observación seleccionada. A partir de esta información, realizaremos cambios en las variables relevantes.
 
 El siguiente código  configura el modelo de Random Forest excluyendo la observación de interés (fila 10) del conjunto de entrenamiento para evitar sesgos. 
-Luego, utiliza la biblioteca iml para analizar el modelo y buscar contrafácticos. 
+
+Luego, utilizamos la biblioteca iml para analizar el modelo y buscar contrafácticos.
+
 ```{r}
 set.seed(2345)
 rf1 <- randomForest(
@@ -4193,49 +4268,53 @@ predictor = iml::Predictor$new(rf1, type = "prob")
 
 # Punto de interés para buscar contrafácticos
 x_interest = df_random[10, ]
-
 ```
+
 
 Obtenemos las probabilidades predichas por el modelo para el punto de interés (x_interest). Esto es útil para interpretar cómo el modelo clasifica ese caso particular antes de generar contrafácticos.
 
 ```{r}
 # Predicción de la probabilidad de cada clase
 predictor$predict(x_interest) 
-
 ```
+
 Esto significa que el modelo predice un 10% de probabilidad de que el nadador no baje su tiempo.
 
 Esto indica un 90% de probabilidad de que el nadador sí baje su tiempo.
 
-En este caso, el modelo está bastante seguro de que el nadador bajará su tiempo en la final, con una probabilidad alta (90%). Dado que la probabilidad ya está a favor de la clase positiva (1), probablemente no sea necesario generar contrafácticos para modificar esta predicción.
+En este caso, el modelo está bastante seguro de que el nadador bajará su tiempo en la final, con una probabilidad alta (90%). 
+Dado que la probabilidad ya está a favor de la clase positiva (1), probablemente no sea necesario generar contrafácticos para modificar esta predicción.
+No tiene mucho sentido "buscar mejoras" cuando realmente ya hay una probabilidad muy alta de bajar el tiempo.
 Aunque el objetivo parece estar logrado, podemos explorar qué cambios serán necesarios para aumentar aún más la probabilidad de éxito.
-
-```{r}
-head(df_random)
-```
 
 
 El código utiliza el método MOCClassif para determinar los cambios necesarios en las características de un punto de interés (x_interest) para mover su predicción a una clase deseada  con una probabilidad dentro de un rango definido. 
 
-Los fixed_features son variables que no queremos modificar en los contrafácticos. En este caso, continente, edad, y gender están fijas porque podrían ser atributos que no se pueden cambiar.
+Los fixed_features son variables que no queremos modificar en los contrafácticos. En este caso, continente, distancia, edad, y gender están fijas porque podrían ser atributos que no se pueden cambiar. 
+Esto, lo modificaremos posteriormente para distintos objetivos.
 
 
 ```{r}
-# Ahora estudiamos qué factores  se deben cambiar para que la probabilidad aumente
+# Ahora estudiamos qué factores se deben cambiar para que la probabilidad aumente
+# Ponemos las opciones para el algoritmo
+
+moc_classif = MOCClassif$new(
+  predictor, epsilon = 0, fixed_features = c("continente", "edad","gender", "distance"))
+
 # Se puede penalizar aquellos individuos que estén más lejos del intervalo deseado que un umbral epsilon.
-# Si ponemos epsilon=0 entonces estamos penalizando a todos aquellos individuos cuya predicción está fuera del
-# intervalo deseado
+
+# Si ponemos epsilon=0 entonces estamos penalizando a todos aquellos individuos cuya predicción está fuera del intervalo deseado
+
 # Con fixed_features se fijan las variables que no se pueden mover
 
-# Ponemos las opciones para el algoritmo
-moc_classif = MOCClassif$new(
-  predictor, epsilon = 0, fixed_features = c("continente", "edad","gender"))
-# Sacamos los contrafácticos
+```
+
+```{r}
+# Hallamos los contrafácticos
 cfactuals = moc_classif$find_counterfactuals(
    x_interest, desired_class = "1", desired_prob = c(0.92, 1))
-
-
 ```
+
 
 
 Veamos cuantos contrafácticos se logran. 
@@ -4246,7 +4325,7 @@ print(cfactuals)
 
 head(cfactuals$predict(), 3)
 ```
-Estos 149 contrafácticos representan combinaciones alternativas de valores en las características (variables explicativas) que, de ser alcanzadas, moverían al caso específico (x_interest) hacia la clase deseada con una probabilidad muy alta.
+Estos 186 contrafácticos representan combinaciones alternativas de valores en las características (variables explicativas) que, de ser alcanzadas, moverían al caso específico (x_interest) hacia la clase deseada con una probabilidad muy alta.
 
 ```{r}
 # Filtramos por aquellos que son válidos, es decir, aquellos que tienen la predicción deseada
@@ -4255,24 +4334,28 @@ nrow(cfactuals$data)
 
 head(cfactuals$data,3)
 ```
+Debido a que tenemos una cantidad alta de contrafácticos, busco una representación gráfica que me ayude a comprenderlos:
 
 ```{r}
 # Pintamos las variables más importantes para lograr el cambio deseado
 # Setting subset_zero = TRUE excludes all unchanged features from the plot.
 cfactuals$plot_freq_of_feature_changes(subset_zero = TRUE)
 
+```
+La variable pointP tiene la mayor frecuencia relativa. Esto sugiere que modificar los puntos de la prueba preliminar (pointP) es clave para mover la predicción hacia la clase deseada (nadadores que bajan su tiempo en la final).
+
+La segunda variable es swimtimeP, que modificarla parecen influir significativamente en el resultado.
+
+```{r}
 # En azul el punto de interés y en gris los contrafácticos
 cfactuals$plot_parallel(feature_names = names(
   cfactuals$get_freq_of_feature_changes()), digits_min_max = 2L)
-
-
 ```
-La variable swimtimeP tiene la mayor frecuencia relativa. Esto sugiere que modificar los tiempos de la prueba preliminar (swimtimeP) es clave para mover la predicción hacia la clase deseada (nadadores que bajan su tiempo en la final).
 
-laneF (carril en la final) es la segunda variable más importante. Cambios en esta variable parecen influir significativamente en el resultado.
 
-Recordemos que la variable lane representa el carril asignado al nadador durante la competición (en la preliminar o en la final, según sea laneP o laneF), y vemos que todos los contrafácticos encontrados estan en el carril 7, y la mayoria de ellos con un swimtimeP más alto. Habría que estimar algún valor medio de entre los swimtime para poder indicar al nadador algún posible cambio que suponga una mejora.
+Todos los contrafácticos nos indican que nuestro punto de interés debería aumentar sus puntos porque todos ellos tienen más puntos que el x_interest. Lo mismo ocurre con el swimtime, reducir el tiempo aumentaría la probabilidad de mejora (nos lo esperamos porque están inversamente relacionadas).
 
+Algo curioso es observar que la gran mayoría de contrafácticos nada la preliminar en la calle 7. Nuestro nadador de interés nadó en la calle 2. Esto podríamos verlo como algo que se podría modificar, pero dada la naturaleza de la selección de calle por nadador,  se establecerá proximamente como fijo.
 
 ```{r}
 rm(cfactuals, moc_classif,predictor,x_interest)
@@ -4305,35 +4388,35 @@ predictor = iml::Predictor$new(rf1, type = "prob")
 
 # Punto de interés para buscar contrafácticos
 x_interest = df_random[56, ]
-
 ```
+
 
 Obtenemos las probabilidades predichas por el modelo para el punto de interés (x_interest). 
 
 ```{r}
 # Predicción de la probabilidad de cada clase
 predictor$predict(x_interest) 
-
 ```
+
 
 El resultado muestra que para el nuevo punto de interés seleccionado, el modelo predice un 50% de probabilidad para ambas clases (0 y 1). Esto indica que el modelo está indeciso sobre si el nadador bajará su tiempo en la final o no. Este es un caso interesante para el análisis contrafáctico, ya que es posible identificar qué cambios en las variables podrían inclinar la predicción hacia la clase positiva 
 
-La elección de las variables a incluir en fixed_features en este caso depende del conocimiento sobre la materia(**sujeto a cambios por Alonso**). Veamos como vamos a proceder ahora:
+La elección de las variables a incluir en fixed_features en este caso depende del conocimiento sobre la materia. Veamos como vamos a proceder ahora:
 
-- Variables potencialmente fijas  (fixed_features): distance,stroke,gender, continente y edad: La edad no puede cambiar para el nadador en ese momento.
+- Variables potencialmente fijas  (fixed_features): distance,stroke, gender, continente, edad, laneP, heatP y daytimeP. Se debe a que se han escogido antes de comenzar la final. Realmente son variables que hay que fijar antes de nadar la final.
 - Variables potencialmente modificables: el resto.
 
 
 ```{r}
 # Ponemos las opciones para el algoritmo
 moc_classif = MOCClassif$new(
-  predictor, epsilon = 0, fixed_features = c("distance", "stroke", "gender", "continente", "edad"))
-# Sacamos los contrafácticos
+  predictor, epsilon = 0, fixed_features = c("distance", "stroke", "gender", "continente", "edad","laneP","heatP","daytimeP"))
+# Sacamos los contrafácticos(queremos que aumente a un rango de 0.6/1)
 cfactuals = moc_classif$find_counterfactuals(
    x_interest, desired_class = "1", desired_prob = c(0.6, 1))
-
-
 ```
+
+
 
 
 Veamos cuantos contrafácticos se logran. 
@@ -4344,8 +4427,9 @@ print(cfactuals)
 
 head(cfactuals$predict(), 3)
 ```
-Estos 185 contrafácticos representan combinaciones alternativas de valores en las características (variables explicativas) que, de ser alcanzadas, moverían al caso específico (x_interest) hacia la clase deseada con una probabilidad entre 0.6 y 1.
+Estos 90 contrafácticos representan combinaciones alternativas de valores en las características (variables explicativas) que, de ser alcanzadas, moverían al caso específico (x_interest) hacia la clase deseada con una probabilidad entre 0.6 y 1.
 
+Filtramos por aquellos que son válidos, es decir, aquellos que tienen la predicción deseada
 ```{r}
 # Filtramos por aquellos que son válidos, es decir, aquellos que tienen la predicción deseada
 cfactuals$subset_to_valid()
@@ -4353,7 +4437,7 @@ nrow(cfactuals$data)
 
 head(cfactuals$data,3)
 ```
-Esto es complicado de interpretar con las tablas. Procedemos a representar gráficamente los cambios sugeridos.
+Es complicado de interpretar con las tablas. Procedemos a representar gráficamente los cambios sugeridos.
 
 Este análisis proporciona visualizaciones clave para entender qué variables han sido más relevantes para los cambios contrafácticos generados y có.
 
@@ -4365,66 +4449,82 @@ cfactuals$plot_freq_of_feature_changes(subset_zero = TRUE)
 # En azul el punto de interés y en gris los contrafácticos
 cfactuals$plot_parallel(feature_names = names(
   cfactuals$get_freq_of_feature_changes()), digits_min_max = 2L)
-
-
 ```
-CONCLUIR
 
+
+
+
+La gran mayoría de contrafácticos filtrados nadan la final en la calle 8. Nuestro nadador de interés nadó en la calle 4. Me indica que en la preliminar debería haber nadado más rápido.
+
+Todos los contrafácticos nos indican que nuestro punto de interés debería aumentar sus puntos porque todos ellos tienen más puntos que el x_interest. 
+Con el maximoParcialesP, no queda tan claro, pues hay contrafácticos con valores mayores y otros con valores menores. 
 
 ```{r}
 rm(cfactuals, moc_classif,predictor,x_interest,df_random,df_test_random)
 ```
 
-### Método 2
-(con knn a mano)
 
-# Conclusiones sobre nuestro mejor modelo.
 
-hacer los contrafácticos y tema 7 en general.
-
-PREGUNTAR A CARMEN CÓMO ELEGIR LA PROBABILIDAD (0.5 O OTRA)
-
-# Curva ROC (Pruebo por ahora como van los modelos, actualizar)
-
-Genero las probabilidades para el conjunto de prueba .
+# Curvas ROC 
 
 ```{r}
-# Probabilidades del árbol de decisión
-pred_probs_arbol <- predict(arbol, newdata = df_test_arbol, type = "prob")[, 2]  # Probabilidad de clase 1
-
-# Probabilidades del modelo KNN
-pred_probs_knn <- predict(knn_best, newdata = df_test_scaled, type = "prob")[, 2]
+df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_test_arbol$distance<- as.factor(df_test_arbol$distance)
 
 
-library(pROC)
+df_test2<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 
+df_test_random <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
-# ROC para cada modelo
-
-roc_arbol <- roc(df_test_arbol$target, pred_probs_arbol)
-roc_knn <- roc(df_test$target, pred_probs_knn)
-roc_randomforest <- roc(df_test$target, pred_rf_test)
-
-#AUC de cada modelo
-auc_arbol <- auc(roc_arbol)
-auc_knn <- auc(roc_knn)
-
-# Gráfico comparativo de curvas ROC
-plot(roc_arbol, col = "blue", lwd = 2, main = "Comparación de Curvas ROC")
-lines(roc_knn, col = "red", lwd = 2)
-lines(roc_randomforest, col = "green", lwd = 2)
-# Añadir una leyenda
-legend("bottomright", legend = c("Árbol de Decisión", "KNN","RandomForest"),
-       col = c("blue", "red", "green", "purple"), lwd = 2)
-
-
+df_test_random$distance<- as.factor(df_test_random$distance)
 ```
 
-El AUC es 0.618, lo cual indica que el modelo tiene un rendimiento moderado, pero no particularmente bueno para distinguir entre las clases.
+La curva ROC mide la sensibilidad (tasa de verdaderos positivos) frente a la especificidad (1 - tasa de falsos positivos).
 
-El AUC es 0.582, lo cual sugiere que el modelo KNN tiene un rendimiento ligeramente inferior al del Árbol de Decisión.
+```{r}
+probs_arbol <- predict(arbol2, newdata = df_test_arbol[,-1], type = "prob")[, 2]
 
-Las curvas muestran que ambos modelos tienen un desempeño similar, pero el Árbol de Decisión parece ser marginalmente mejor en ciertos puntos
+probs_knn2<- predict(modelo2knn, newdata = df_test2[,-1], type = "prob")[, 2]
 
-Ambos valores de AUC son menores a 0.7, lo cual indica que los modelos necesitan mejoras.
-Un AUC \> 0.7 se considera aceptable, y \> 0.8 es bueno.
+
+probs_random<-predict(rf2, newdata = df_test_random[,-1], type = "prob")[, 2]
+
+roc_1 <- roc(df_test_arbol$target, probs_arbol)
+roc_2<- roc(df_test2$target, probs_knn2)
+roc_3<- roc(df_test_random$target, probs_random)
+#mirar los dataframes. 
+
+# Calcular el AUC para cada modelo
+#auc_1 <- auc(roc_1)
+#auc_2<- auc(roc_2)
+#auc_3<- auc(roc_3)
+
+#auc_knn_es_3 <- auc(roc_knn_es_3)
+#auc_knn_selected <- auc(roc_knn_selected)
+
+# Imprimir los valores de AUC
+#cat("AUC KNN modelo 1", auc_1, "\n")
+#cat("AUC KNN modelo 2:", auc_2, "\n")
+#cat("AUC KNN modelo 2:", auc_3, "\n")
+
+
+#cat("AUC KNN sin escalar k=3:", auc_knn_es_3, "\n")
+#cat("AUC KNN con variables seleccionadas:", auc_knn_selected, "\n")
+
+# Graficar las curvas ROC
+plot(roc_1, col = "blue", lwd = 2, main = "Comparación de Curvas ROC para los Mejores Modelos", xlim = c(0, 1), ylim = c(0, 1))
+lines(roc_2, col = "red", lwd = 2)
+lines(roc_3, col = "pink", lwd = 2)
+
+#lines(roc_knn_es_3, col = "green", lwd = 2)
+#lines(roc_knn_selected, col = "purple", lwd = 2)
+
+abline(a = 0, b = 1, col = "gray", lty = 2)
+
+legend("bottomright", legend = c("Árbol", "Knn", "Random Forest"),
+       col = c("blue", "red", "pink"), lwd = 2, cex = 0.5) 
+```
+Teniendo en cuenta los resultados en cada uno de los modelos ajustados y las curvas ROC, tomamos el modelo Random Forest como el mejor modelo para predecir nuestra variable objetivo. 
+
+
+#Validación

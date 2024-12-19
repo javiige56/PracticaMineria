@@ -1,0 +1,52 @@
+---
+title: "Untitled"
+author: "Inés Molinero Moreno"
+date: "2024-12-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Probabilidades del árbol de decisión
+pred_probs_arbol <- predict(arbol, newdata = df_test_arbol, type = "prob")[, 2]  # Probabilidad de clase 1
+
+# Probabilidades del modelo KNN
+pred_probs_knn <- predict(knn_best, newdata = df_test_scaled, type = "prob")[, 2]
+
+
+library(pROC)
+
+
+# ROC para cada modelo
+
+roc_arbol <- roc(df_test_arbol$target, pred_probs_arbol)
+roc_knn <- roc(df_test$target, pred_probs_knn)
+roc_randomforest <- roc(df_test$target, pred_rf_test)
+
+#AUC de cada modelo
+auc_arbol <- auc(roc_arbol)
+auc_knn <- auc(roc_knn)
+
+# Gráfico comparativo de curvas ROC
+plot(roc_arbol, col = "blue", lwd = 2, main = "Comparación de Curvas ROC")
+lines(roc_knn, col = "red", lwd = 2)
+lines(roc_randomforest, col = "green", lwd = 2)
+# Añadir una leyenda
+legend("bottomright", legend = c("Árbol de Decisión", "KNN","RandomForest"),
+       col = c("blue", "red", "green", "purple"), lwd = 2)
+
+
+```
+
+El AUC es 0.618, lo cual indica que el modelo tiene un rendimiento moderado, pero no particularmente bueno para distinguir entre las clases.
+
+El AUC es 0.582, lo cual sugiere que el modelo KNN tiene un rendimiento ligeramente inferior al del Árbol de Decisión.
+
+Las curvas muestran que ambos modelos tienen un desempeño similar, pero el Árbol de Decisión parece ser marginalmente mejor en ciertos puntos
+
+Ambos valores de AUC son menores a 0.7, lo cual indica que los modelos necesitan mejoras.
+Un AUC \> 0.7 se considera aceptable, y \> 0.8 es bueno.
+
