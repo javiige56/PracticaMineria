@@ -4685,10 +4685,18 @@ Teniendo en cuenta los resultados en cada uno de los modelos ajustados y las cur
 
 # Validación
 ```{r}
-df_final <- datos2015Target_validation %>% select(target, distance, stroke, gender, continente ,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+df_final <- datos2015Target_validation %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 
 #pred_bag <- predict(modeloBagging2, df_final ,type="prob")[,2]
 #clase.pred.bag.test=ifelse(pred_bag_test>0.5,"1","0")
+#pred_bag_validation <- predict(modeloBagging2, df_final,type="prob")[,2]
+#clase.pred.bag.validation=ifelse(pred_bag_validation>0.5,"1","0")
 
+#confusionMatrix(pred_bag_validation)
+```
+```{r}
+predicciones <- predict(modeloBagging2, newdata = df_final, type = "class")
+#matrizconfusion <- caret::confusionMatrix(predicciones, as.factor(df_final$target), positive = "1")
+#print(matrizconfusion)
 ```
 
