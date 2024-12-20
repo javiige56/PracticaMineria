@@ -54,6 +54,7 @@ library(GGally)
 
 library(pROC)
 library(reshape2)
+library(DALEX)
 ```
 
 # Introducción.
@@ -2801,7 +2802,7 @@ Observo que Joseph Schooling, nadó la final más rapido que la final, por lo qu
 
 ## Categorización de algunas variables. 
 
-Algunas de nuestras variables, son categóricas, pero tienen demasiadas categorías, por lo que si queremos hacer modelos como k-vecinos o árboles, puede que no sean todo lo generales que deberían. Por ejemplo, la variable país, puede servirnos para un modelo k-vecinos, pero en un árbol de decisión podría hacer una división si perteneces a un conjunto de países muy específico. Como el objetivo es predecir con modelos lo más generales posibles, a continuación voy a ir evaluando las variables a las cuales les debemos hacer un tratamiento distinto de los datos: 
+Algunas de nuestras variables, son categóricas, pero tienen demasiadas categorías, por lo que si queremos hacer modelos como k-vecinos o árboles, puede que no sean todo lo generales que deberían. Por ejemplo, la variable país, puede servirnos para un modelo k-vecinos (siempre y cuando no consideremos la distancia euclídea), pero en un árbol de decisión podría hacer una división si perteneces a un conjunto de países muy específico. Como el objetivo es predecir con modelos lo más generales posibles, a continuación voy a ir evaluando las variables a las cuales les debemos hacer un tratamiento distinto de los datos: 
 
 ### Daytime. 
 
@@ -2914,7 +2915,10 @@ datos2015Target_validation=datos2015Target[indices_validation, ]
 ```{r}
 # Eliminar las tablas que no se usarán
 
-rm(datos2015, nadadoresParticipantes, nadadoresPruebas, nadadoresParticipantesCopia, nadadoresPruebasCopia, nadadoresFinalistas )
+rm(datos2015, nadadoresParticipantes, nadadoresPruebas, nadadoresParticipantesCopia, nadadoresPruebasCopia, nadadoresFinalistas, indices_entrenamiento, indices_test, indices_train, indices_validation )
+rownames(datos2015Target_train)<-NULL
+rownames(datos2015Target_test)<-NULL
+rownames(datos2015Target_validation)<-NULL
 ```
 
 # Análisis previo de los datos.
@@ -3131,7 +3135,25 @@ print(matrizconfusion1)
 ```
 Tras los resultados, observamos que el modelo acierta 3 de cada 4 veces que predice (72.82%). Además, la tasa de verdaderos positivos es de 73.98%. 
 
-Dado nuestro objetivo de minimizar los falsos positivos, este modelo no cumple demasiado bien los requisitos. A priori, no va a ser un buen modelo. Nos servirá como modelo base para intentar encontrar uno mejor. 
+Dado nuestro objetivo de minimizar los falsos positivos, este modelo no cumple demasiado bien los requisitos. A priori, no va a ser un buen modelo. Nos servirá como modelo base para intentar encontrar uno mejor.
+
+Podríamos pensar que, aunque nuestro modelo no está siendo del todo bueno, alomejor sí que está siendo decisivo para algún rango concreto de probabilidades. Como tengo sólamente las siguientes probabilidades al ser k=3 (0, 0.3, 0.6,1), vamos a pintar la matriz de confusión con estos cortes: 
+
+```{r}
+predicciones <- predict(modelo1knn, newdata = scale(df[,-1]), type="prob")[,2]
+table(cut(predicciones, c(-1, 0, 0.4,0.7,1)), as.factor(df$target))
+```
+
+Si observamos aquí nuestros datos, podríamos concluir que, si los 3 vecinos de nuestro nadador no bajan de marca, entonces está claro que él tampoco lo hace. De manera análoga, si los 3 vecinos lo hace, sí que baja de marca. Nuestro modelo está siendo efectivo en las probabilidades extremas, y entre medias, no tanto. Veamos ahora en test esto: 
+
+```{r}
+df <- datos2015Target_test %>% select(target, reactiontimeF, edad, pointP, reactiontimeP, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
+
+predicciones <- predict(modelo1knn, newdata = scale(df[,-1]), type="prob")[,2]
+table(cut(predicciones, c(-1, 0, 0.4,0.7,1)), as.factor(df$target))
+```
+
+Parece que está sobreajustando y no es capaz de dividir igual de bien en test, luego no parece ser un buen modelo.
 
 
 ```{r}
@@ -3153,7 +3175,7 @@ df_test<- datos2015Target_test %>% select(target, reactiontimeF, edad, pointP, r
 
 Para refinar aún más nuestro modelo KNN, implementaremos un procedimiento de Eliminación Recursiva de Características (RFE). Este método, utilizando validación cruzada, seleccionará las características más relevantes que optimizan el rendimiento del modelo, reduciendo el impacto del ruido de variables irrelevantes.
 
-El RFE seleccionará las variables más influyentes para predecir el objetivo (target). Los resultados incluirán, tanto la lista de las mejores variables seleccionadas, como las métricas de rendimiento asociadas con cada tamaño de subconjunto.
+El RFE seleccionará las variables más influyentes para predecir el objetivo (target) usando un Random Forest. Los resultados incluirán, tanto la lista de las mejores variables seleccionadas, como las métricas de rendimiento asociadas con cada tamaño de subconjunto.
 
 ```{r}
 x <- scale(df[,-1])
@@ -3231,10 +3253,8 @@ Como vemos, tendríamos 4 grupos:
 - Grupo 3: nadadores que posiblemente mejoren su marca. Acertamos en 14 de 23.
 - Grupo 4: nadadores que con alta probabilidad mejorarán. Acertamos en 8 de 13. 
 
-
-
 ```{r}
-rm(matrizconfusion1, df, df_test)
+rm(matrizconfusion1, df, df_test, predicciones)
 ```
 
 
@@ -3296,7 +3316,7 @@ Es un modelo muy parecido al modelo 2. Ya que la tasa de positivos verdaderos ta
 
 ```{r}
 #elimino el modelo porque el que me sirve es el modelo 2
-rm(df,df_test,dist_train,dist_test,matriz_confusion, x_test)
+rm(df,df_test,dist_train,dist_test,matriz_confusion, x_test, x_train, modelo3knn)
 ```
 
 
@@ -3366,8 +3386,15 @@ Aunque el AUC del modelo 2 es superior, un valor de 0.5275 sigue siendo bajo. Es
 En este caso, aunque las curvas ROC nos proporcionan información, sería más útil trabajar en mejorar el modelo KNN antes de centrarnos en estas gráficas.
 
 
-```{r}
+```{r, echo=FALSE}
 rm(auc_knn1,auc_knn2,roc_knn1,roc_knn2,df_test1,df_test2, modelo1knn, x_train, modelo3knn, probs_knn1, probs_knn2, predicciones)
+#Me guardo los dataframes para futuras comprobaciones más tarde: 
+
+df_modelo2_knn<-datos2015Target_train %>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
+
+df_modelo2_knn_test<-datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
+
+df_modelo2_knn_validation<-datos2015Target_validation%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
 ```
 
 Mantenemos el modelo 2 como el mejor hasta ahora, ya que tiene un AUC superior.
@@ -3431,6 +3458,8 @@ cf_test
 ```
 
 Al evaluar el modelo en el conjunto de prueba, los resultados reflejan un desempeño significativamente inferior al observado en el entrenamiento. Esto sugiere una posible falta de generalización, especialmente en términos de exactitud y especificidad. El alto número de falsos positivos sugiere que el modelo tiene dificultades para diferenciar correctamente entre nadadores que bajan y no bajan su tiempo.
+
+
 
 ```{r, warning=FALSE}
 rm(df_arbol, df_test_arbol, cf_test, cf_train, prediction)
@@ -3714,7 +3743,7 @@ cat("AUC Modelo 3:", auc_arbol3, "\n")
 ```
 
 ```{r}
-rm(metricas, metricas_melt)
+rm(metricas, metricas_melt, auc_arbol1, auc_arbol2, auc_arbol3, probs_arbol1, probs_arbol2, probs_arbol3, roc_arbol1, roc_arbol2, roc_arbol3, df_test_arbol)
 ```
 
 # Métodos de ensamblado.
@@ -3781,7 +3810,7 @@ Aunque el modelo de Bagging tiene un buen desempeño en la identificación de na
 El marcado contraste entre el rendimiento perfecto en el conjunto de entrenamiento y el bajo rendimiento en el conjunto de prueba confirma que el modelo sufre de sobreajuste. Este problema podría abordarse ajustando los hiperparámetros del modelo, reduciendo la complejidad de los árboles base, o aumentando la cantidad de datos disponibles para el entrenamiento.
 
 ```{r}
-rm(cf_bag_train, cf_bag_test)
+rm(cf_bag_train, cf_bag_test, clase.pred.bag.test, clase.pred.bag.train, pred_bag_test, pred_bag_train)
 ```
 
 ### Modelo 2.
@@ -3819,7 +3848,7 @@ cf_bag_test
 El modelo muestra un claro sobreajuste. Si bien funciona perfectamente en el conjunto de entrenamiento, su rendimiento en el conjunto de prueba es peor, lo que sugiere que puede no estar generalizando bien. Sin embargo, se comporta ligeramente mejor que en el caso anterior.
 
 ```{r}
-rm(cf_bag_train, cf_bag_test)
+rm(cf_bag_train, cf_bag_test, clase.pred.bag.test, clase.pred.bag.train, pred_bag_test, pred_bag_train)
 ```
 
 
@@ -3891,7 +3920,7 @@ De esta forma tenemos que para el primer grupo (personas que no mejoran su marca
 
 
 ```{r}
-rm(cf_bag_train, cf_bag_test)
+rm(cf_bag_train, cf_bag_test, tabla_resultados, pred_bag_train_cut, pred_bag_train, pred_bag_test_cut, pred_bag_test, clase.pred.bag.test, clase.pred.bag.train)
 ```
 
 
@@ -3963,10 +3992,15 @@ Aunque el Modelo 3 tiene una mejor interpretación en un contexto práctico espe
 
 ```{r}
 #Elimino todo lo que no usaré en adelante.
-rm(df_arbol, df_test_arbol, pred_bag_test, pred_bag_train, clase.pred.bag.test, clase.pred.bag.train)
+#Elimino el modelo 1 ya que no va a ser relevante. 
+rm(modeloBagging1, roc_bag1, roc_bag2, roc_bag3, auc_bag1, auc_bag2, auc_bag3, pred_bag_test, pred_bag_train, clase.pred.bag.test, clase.pred.bag.train, probs_bag1, probs_bag2, probs_bag3)
+
+df_baggin_train<-df_arbol
+df_baggin_test<-df_test_arbol
+df_baggin_validation<-datos2015Target_validation %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+
+rm(df_arbol, df_test_arbol)
 ```
-
-
 
 # Random Forest 
 
@@ -4096,13 +4130,12 @@ Implementamos la predicción con el modelo de Random Forest (rf2) en los conjunt
 
 # Predicción en el conjunto de entrenamiento
 pred_rf_train <- predict(rf2, df_random, type = "prob")[, 2]  
-clase_pred_rf_train <- ifelse(pred_rf_train > 0.66, "1", "0")  
+clase_pred_rf_train <- ifelse(pred_rf_train > 0.7, "1", "0")  
 cf_rf_train <- caret::confusionMatrix(as.factor(clase_pred_rf_train), as.factor(df_random$target), positive = "1")
 print(cf_rf_train)
 ```
 
-
-
+Tras varias pruebas en consola, hemos observado que el mejor valor que discriminaba las dos categorías es con 0.7 como corte. 
 Obtenemos medidas de rendimiento prácticamente perfectas. Vamos a realizar también su ajuste en 3 cortes, con el objetivo de tener mejores predicciones en test.
 
 ```{r}
@@ -4125,39 +4158,15 @@ Evaluamos en test el posible sobreajuste de este modelo y si realmente es mejor 
 # prueba
 
 pred_rf_test <- predict(rf2, df_test_random, type = "prob")[, 2] 
-clase_pred_rf_test <- ifelse(pred_rf_test > 0.66, "1","0")   
+clase_pred_rf_test <- ifelse(pred_rf_test > 0.7, "1","0")   
 
 cf_rf_test <- caret::confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target), positive = "1")
 print(cf_rf_test)
 ```
 
-
-
 El rendimiento del modelo ha mejorado en comparación con el random forest anterior. Este modelo presenta mejor desempeño en la identificación de negativos (especificidad) y ligeras mejoras en la exactitud.
 
-El umbral del 0.66 puede no ser óptimo. Calculamos el mejor umbral (best_threshold) de decisión para el modelo basado en la curva ROC.
-
-```{r}
-roc_curve <- roc(df_test_random$target, pred_rf_test)
-best_threshold <- coords(roc_curve, "best", ret = "threshold")
-print(best_threshold)
-
-```
-El umbral óptimo según este criterio, es 0.7. Por tanto, realizamos las predicciones de nuestros datos con este corte. 
-
-```{r}
-# prueba
-pred_rf_test <- predict(rf2, df_test_random, type = "prob")[, 2] 
-clase_pred_rf_test <- ifelse(pred_rf_test > 0.7, "1","0")   
-
-cf_rf_test <- confusionMatrix(as.factor(clase_pred_rf_test), as.factor(df_test_random$target), positive = "1")
-print(cf_rf_test)
-
-
-```
-
-Parece que hemos maximizado la especificidad gracias a este cambio. Sin embargo, existe bastante error respecto a la predicción de los competidores que no bajan de marca. Podríamos realizar un subgrupo más, basado en su aleatoriedad. Es decir, no tenemos conclusiones claras de que bajen o no de marca en su final. 
-
+A continuación, comprobamos en test creando disintas clases dependiendo la probabilidad.
 
 ```{r}
 # Obtener las probabilidades de predicción
@@ -4192,24 +4201,16 @@ Con el objetivo de mejorar nuestro modelo de Random Forest, realizaremos algunas
 - Utilizar la validación cruzada para obtener predicciones más robustas y evitar el sobreajuste.
 
 ```{r}
-
 set.seed(123)
-#Tomo el dataframe necesario
-df_random <- datos2015Target_train %>% select(target, distance, stroke, gender,continente, heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
-
-df_test_random <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
-
-## Además, defino mi variable distancia como categórica.
-df_random$distance<- as.factor(df_random$distance)
-df_test_random$distance<- as.factor(df_test_random$distance)
-
 #Estandarizo
 preProc <- preProcess(df_random[, -which(names(df_random) == "target","distance")], 
                       method = c("center", "scale"))
 
 # Aplicar la estandarización a los datos
 df_random_std <- predict(preProc, df_random)
-
+preProc <- preProcess(df_test_random[, -which(names(df_test_random) == "target","distance")], 
+                      method = c("center", "scale"))
+df_random_test_std<- predict(preProc, df_test_random)
 
 # Crear control de validación cruzada (10 pliegues)
 train_control <- trainControl(method = "cv", 
@@ -4236,30 +4237,36 @@ rf_model <- randomForest(
 plot(rf_model)
 
 ```
+
 ```{r}
 # Asegurar que target sea un factor en ambos conjuntos de datos
 df_random$target <- as.factor(df_random$target)
 df_test_random$target <- as.factor(df_test_random$target)
 
 # Predicción en el conjunto de entrenamiento
-pred_rf_train <- predict(rf_model, df_random, type = "prob")[, 2]
+pred_rf_train <- predict(rf_model, df_random_std, type = "prob")[, 2]
 clase_pred_rf_train <- factor(ifelse(pred_rf_train > 0.5, "1", "0"), levels = c("0", "1"))
 
 # Matriz de confusión para el conjunto de entrenamiento
-cf_rf_train <- caret::confusionMatrix(clase_pred_rf_train, df_random$target, positive= "1")
+cf_rf_train <- caret::confusionMatrix(clase_pred_rf_train, df_random_std$target, positive= "1")
 print(cf_rf_train)
 
 # Predicción en el conjunto de prueba
-pred_rf_test <- predict(rf_model, df_test_random, type = "prob")[, 2]
+pred_rf_test <- predict(rf_model, df_random_test_std, type = "prob")[, 2]
 clase_pred_rf_test <- factor(ifelse(pred_rf_test > 0.5, "1", "0"), levels = c("0", "1"))
 
 # Matriz de confusión para el conjunto de prueba
-cf_rf_test <- caret::confusionMatrix(clase_pred_rf_test, df_test_random$target,positive="1")
+cf_rf_test <- caret::confusionMatrix(clase_pred_rf_test, as.factor(df_random_test_std$target),positive="1")
 print(cf_rf_test)
 
 ```
 
-Tenemos una precisión en torno al 53%. Sin embargo, si nuestro objetivo es minimizar los falsos positivos este es el mejor modelo. Teniendo como criterio de medida la especificidad, obtenemos un 91% en los datos de test. 
+Tenemos una precisión en torno al 53%. Sin embargo, si nuestro objetivo es minimizar los falsos positivos este es el mejor modelo. Teniendo como criterio de medida la especificidad, obtenemos un 91% en los datos de test. Podría considerarse un buen modelo para nuestro objetivo porque, si predice que mejora, realmente hay una gran probabilidad de acierto.
+
+
+```{r}
+rm(pred_rf_test, pred_rf_train, clase_pred_rf_test, clase_pred_rf_train, train_control, tune_grid, preProc, cf_rf_test, cf_rf_train)
+```
 
 ## Conclusiones del Random Forest
 
@@ -4298,7 +4305,7 @@ roc_rf1 <- roc(df_test_random$target, pred_rf_test1)
 pred_rf_test2 <- predict(rf2, df_test_random, type = "prob")[, 2]
 roc_rf2 <- roc(df_test_random$target, pred_rf_test2)
 
-pred_rf_test3 <- predict(rf_model, df_test_random, type = "prob")[, 2]
+pred_rf_test3 <- predict(rf_model, df_random_test_std, type = "prob")[, 2]
 roc_rf3 <- roc(df_test_random$target, pred_rf_test3)
 
 
@@ -4328,6 +4335,11 @@ legend("bottomright", legend = c("Modelo 1 RF", "Modelo 2 RF", "Modelo 3 RF"),
 En definitiva, el Modelo 2 es el mejor de los tres, al tener un mayor valor de AUC, lo que indica un mejor desempeño global. Presenta un balance adecuado entre sensibilidad y especificidad, especialmente tras ajustar el umbral de decisión. Es un modelo más robusto en términos de generalización, con menos riesgo de sobreajuste que el Modelo 1 y mejores predicciones globales que el Modelo 3.
 
 
+
+```{r}
+rm(auc_rf1, auc_rf2, auc_rf3, pred_rf_test1, pred_rf_test2, pred_rf_test3, roc_rf3, roc_rf2, roc_rf1)
+```
+
 # Técnica SHAP
 
 La técnica SHAP (SHapley Additive exPlanations) descompone la predicción de un modelo en contribuciones atribuibles a cada característica. Es una técnica de interpretabilidad, que da respuesta al por qué del valor de la predicción de una observación o qué impacto tiene cada caracterísitica en dicha perdicción.
@@ -4341,7 +4353,7 @@ Una de las grandes ventajas de esta técnica es su interpretabilidad global y lo
 
 Para entender correctamente qué características han contribuido predominantemente en nuestros modelos, veremos en primer lugar la técnica SHAP con el Random Forest de 4 variables. Posteriormente lo veremos con el Random Forest optimizado según su especificidad. 
 
-## SHAP con Random Forest 2. 
+## Uso en modelo 2 (RF). 
 
 Elegimos el modelo de Random Forest y creamos un predictor. Este predictor conectará la técnica SHAP con el modelo que hemos elegido, separando la variable objetivo de las explicativas. 
 
@@ -4349,7 +4361,7 @@ Elegimos el modelo de Random Forest y creamos un predictor. Este predictor conec
 # Crear un predictor para el modelo
 predictor_rf2 <- Predictor$new(
   model = rf2,
-  data = df_random,  # Variables explicativas
+  data = df_random[,-1],  # Variables explicativas
   y = as.factor(df_random$target)                                                  # Variable objetivo
 )
 
@@ -4357,13 +4369,19 @@ predictor_rf2 <- Predictor$new(
 
 ```
 
-Posteriormente, se calculan los valores SHAP para la primera fila de df_random.
+A continuación, elegimos una fila específica para calcular y ver sus valores SHAP. Pero antes de ello, voy a ver qué predicción hace mi modelo para la primera fila: 
+
+```{r}
+predict(rf2, df_random[1,], type = "prob")[,2]
+```
+
+Luego, es una fila a la que le predice que NO baja de tiempo. Lo tendremos en cuenta a la hora de interpretar el siguiente gráfico.
 
 ```{r}
 # Calcular valores SHAP para una observación específica (primera fila)
 shap_rf2 <- Shapley$new(
   predictor = predictor_rf2,
-  x.interest = df_random[1,]
+  x.interest = df_random[1,-1]
 )
 
 # Mostrar los valores SHAP calculados
@@ -4392,6 +4410,11 @@ plot(shap_rf2_global)
 ```
 Vemos como la importancia en el conjunto de datos la obtiene la variable swimtimeP. Es decir, el tiempo de nado de los parciales. 
 
+
+
+```{r}
+rm(predictor_rf2, shap_rf2)
+```
 
 ## SHAP para Random Forest 3
 
@@ -4430,7 +4453,12 @@ shap_rf_model_global <- FeatureImp$new(predictor_rf_model, loss = "ce")
 plot(shap_rf_model_global)
 
 ```
-A nivel global, se observa que las características más influyentes en la predicción son la calle en preliminares y finales, el tiempo en los parciales y el tipo de nado. Estas variables son clave para la predicción, ya que, como se observó en un análisis preliminar, ciertos estilos de nado tienden a tener una mayor probabilidad de mejorar en el tiempo final que otros. Además, es razonable suponer que el tiempo en los parciales puede ofrecer una buena indicación del rendimiento en la ronda final. Finalmente, la calle utilizada en la final y semifinal no es seleccionada al azar; los nadadores con mejores tiempos suelen ser asignados a las calles intermedias, lo que introduce un sesgo en esta variable.
+A nivel global, se observa que las características más influyentes en la predicción son la calle en preliminares y finales, el tiempo total y el estilo de nado. Estas variables son clave para la predicción, ya que, como se observó en un análisis preliminar, ciertos estilos de nado tienden a tener una mayor probabilidad de mejorar en el tiempo final que otros. Además, es razonable suponer que el tiempo en los parciales puede ofrecer una buena indicación del rendimiento en la ronda final. Finalmente, la calle utilizada en la final y semifinal no es seleccionada al azar; los nadadores con mejores tiempos suelen ser asignados a las calles intermedias, lo que introduce un sesgo en esta variable.
+
+
+```{r}
+rm(predictor_rf_model, shap_rf_model, shap_rf_model_global)
+```
 
 
 # Contrafácticos
@@ -4660,7 +4688,7 @@ Todos los contrafácticos nos indican que nuestro punto de interés debería aum
 Con el maximoParcialesP, no queda tan claro, pues hay contrafácticos con valores mayores y otros con valores menores. 
 
 ```{r}
-rm(cfactuals, moc_classif,predictor,x_interest,df_random,df_test_random)
+rm(cfactuals, moc_classif,predictor,x_interest)
 ```
 
 
@@ -4670,13 +4698,6 @@ rm(cfactuals, moc_classif,predictor,x_interest,df_random,df_test_random)
 ```{r}
 df_test_arbol <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, sesionP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
 df_test_arbol$distance<- as.factor(df_test_arbol$distance)
-
-
-df_test2<- datos2015Target_test%>% select(target, swimtimeP, mediaParcialesP, minimoParcialesP, maximoParcialesP, medianaParcialesP)
-
-df_test_random <- datos2015Target_test %>% select(target, distance, stroke, gender, continente,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
-
-df_test_random$distance<- as.factor(df_test_random$distance)
 ```
 
 La curva ROC mide la sensibilidad (tasa de verdaderos positivos) frente a la especificidad (1 - tasa de falsos positivos).
@@ -4684,16 +4705,16 @@ La curva ROC mide la sensibilidad (tasa de verdaderos positivos) frente a la esp
 ```{r}
 probs_arbol <- predict(arbol2, newdata = df_test_arbol[,-1], type = "prob")[, 2]
 
-probs_knn2<- predict(modelo2knn, newdata = df_test2[,-1], type = "prob")[, 2]
+probs_knn2<- predict(modelo2knn, newdata = df_modelo2_knn_test[,-1], type = "prob")[, 2]
 
-probs_bag2 <- predict(modeloBagging2, df_test_arbol, type = "prob")[, 2]
+probs_bag2 <- predict(modeloBagging2, df_baggin_test, type = "prob")[, 2]
 
 probs_random<-predict(rf2, newdata = df_test_random[,-1], type = "prob")[, 2]
 
 roc_1 <- roc(df_test_arbol$target, probs_arbol)
-roc_2<- roc(df_test2$target, probs_knn2)
+roc_2<- roc(df_modelo2_knn_test$target, probs_knn2)
 roc_3<- roc(df_test_random$target, probs_random)
-roc_4<- roc(df_test_arbol$target, probs_bag2)
+roc_4<- roc(df_baggin_test$target, probs_bag2)
 #mirar los dataframes. 
 
 # Calcular el AUC para cada modelo
@@ -4730,13 +4751,14 @@ Teniendo en cuenta los resultados en cada uno de los modelos ajustados y las cur
 Probamos nuestros datos de validación para el modelo seleccionado, 
 
 ```{r}
-df_final <- datos2015Target_validation %>% select(target, distance, stroke, gender, name,heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+pred_bag <- predict(modeloBagging2, df_baggin_validation ,type="class")
+```
 
-df_final$distance<- as.factor(df_final$distance)
 
-pred_bag <- predict(modeloBagging2, df_final ,type="class")
+```{r}
+pred_bag <- predict(modeloBagging2, df_baggin_validation ,type="class")
 
-cf_bag_val <- caret::confusionMatrix(pred_bag, as.factor(df_final$target),positive="1")
+cf_bag_val <-confusionMatrix(pred_bag, as.factor(df_baggin_validation$target),positive="1")
 cf_bag_val
 ```
 El modelo clasifica correctamente el 66.67% de los casos (Accuracy) y al 72.22% de los casos positivos (Sensitivity). El 76.47% de las veces que predice un caso como positivo son correctas. La especificidad es relativamente baja (55.56%), lo que indica que el modelo tiene problemas para identificar correctamente la clase negativa. 
