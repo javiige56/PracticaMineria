@@ -5,11 +5,13 @@ date: "`r Sys.Date()`"
 output:
   html_document:
     theme: flatly
-    toc: yes
+    toc: true
     toc_float:
       collapsed: true
-editor_options: 
-  markdown: 
+  pdf_document:
+    toc: true
+editor_options:
+  markdown:
     wrap: sentence
 ---
 
@@ -4748,21 +4750,28 @@ Teniendo en cuenta los resultados en cada uno de los modelos ajustados y las cur
 
 # Validación
 
-Probamos nuestros datos de validación para el modelo seleccionado, 
-
 ```{r}
-pred_bag <- predict(modeloBagging2, df_baggin_validation ,type="class")
+validation <- datos2015Target_validation %>% select(target, distance, stroke, gender,continente, heatF, laneF, edad, heatP, laneP, pointP, reactiontimeP, swimtimeP, daytimeP, mediaParcialesP, medianaParcialesP, maximoParcialesP, minimoParcialesP)
+validation$distance<-as.factor(validation$distance)
 ```
 
 
-```{r}
-pred_bag <- predict(modeloBagging2, df_baggin_validation ,type="class")
 
-cf_bag_val <-confusionMatrix(pred_bag, as.factor(df_baggin_validation$target),positive="1")
-cf_bag_val
+```{r}
+library(caret)
+pred_rf <- predict(rf2, validation[,-1] ,type="class")
+
+cf_rf_val <- caret::confusionMatrix(pred_rf, as.factor(validation$target), positive='1')
+cf_rf_val
 ```
+
 El modelo clasifica correctamente el 66.67% de los casos (Accuracy) y al 72.22% de los casos positivos (Sensitivity). El 76.47% de las veces que predice un caso como positivo son correctas. La especificidad es relativamente baja (55.56%), lo que indica que el modelo tiene problemas para identificar correctamente la clase negativa. 
 Sin embargo, debemos tener en cuenta que el conjunto de datos en validación es limitado. Además, hemos de tener en cuenta que la tasa de falsos positivos es relativamente baja, el modelo captura en su mayoría correctamente a los casos positivos. 
+
+
+
+
+
 
 
 
